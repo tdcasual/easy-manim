@@ -1,0 +1,38 @@
+[project]
+name = "easy-manim"
+version = "0.1.0"
+description = "MCP validated video agent"
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2,<3",
+  "mcp[cli]>=1,<2",
+  "httpx>=0.27,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<9",
+]
+
+[project.scripts]
+easy-manim-mcp = "video_agent.server.main:main"
+easy-manim-worker = "video_agent.worker.main:main"
+easy-manim-doctor = "video_agent.doctor.main:main"
+easy-manim-cleanup = "video_agent.cleanup.main:main"
+easy-manim-export-task = "video_agent.export.main:main"
+easy-manim-eval-run = "video_agent.eval.main:main"
+easy-manim-qa-bundle = "video_agent.qa_bundle.main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,94 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from video_agent.adapters.llm.client import LLMClient, StubLLMClient
+from video_agent.adapters.llm.openai_compatible_client import OpenAICompatibleLLMClient
+from video_agent.adapters.llm.prompt_builder import build_generation_prompt
+from video_agent.adapters.rendering.frame_extractor import FrameExtractor
+from video_agent.adapters.rendering.manim_runner import ManimRunner
+from video_agent.adapters.storage.artifact_store import ArtifactStore
+from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.runtime_service import RuntimeService
+from video_agent.application.task_service import TaskService
+from video_agent.application.workflow_engine import WorkflowEngine
+from video_agent.config import Settings
+from video_agent.observability.metrics import MetricsCollector
+from video_agent.safety.runtime_policy import RuntimePolicy
+from video_agent.validation.hard_validation import HardValidator
+from video_agent.validation.rule_validation import RuleValidator
+from video_agent.validation.static_check import StaticCheckValidator
+from video_agent.worker.worker_loop import WorkerLoop
+
+
+@dataclass
+class AppContext:
+    settings: Settings
+    store: SQLiteTaskStore
+    artifact_store: ArtifactStore
+    task_service: TaskService
+    workflow_engine: WorkflowEngine
+    worker: WorkerLoop
+    runtime_service: RuntimeService
+    runtime_policy: RuntimePolicy
+    metrics: MetricsCollector
+
+
+
+def _build_llm_client(settings: Settings) -> LLMClient:
+    if settings.llm_provider == "stub":
+        return StubLLMClient()
+    if settings.llm_provider == "openai_compatible":
+        if not settings.llm_base_url:
+            raise ValueError("llm_base_url is required for openai_compatible provider")
+        if not settings.llm_api_key:
+            raise ValueError("llm_api_key is required for openai_compatible provider")
+        return OpenAICompatibleLLMClient(
+            base_url=settings.llm_base_url,
+            api_key=settings.llm_api_key,
+            model=settings.llm_model,
+            timeout_seconds=settings.llm_timeout_seconds,
+            max_retries=settings.llm_max_retries,
+        )
+    raise ValueError(f"Unsupported llm_provider: {settings.llm_provider}")
+
+
+
+def create_app_context(settings: Settings) -> AppContext:
+    store = SQLiteTaskStore(settings.database_path)
+    store.initialize()
+    artifact_store = ArtifactStore(settings.artifact_root, eval_root=settings.eval_root)
+    task_service = TaskService(store=store, artifact_store=artifact_store, settings=settings)
+    runtime_service = RuntimeService(settings=settings, store=store)
+    runtime_policy = RuntimePolicy(work_root=settings.artifact_root)
+    metrics = MetricsCollector()
+    workflow_engine = WorkflowEngine(
+        store=store,
+        artifact_store=artifact_store,
+        llm_client=_build_llm_client(settings),
+        prompt_builder=build_generation_prompt,
+        static_validator=StaticCheckValidator(),
+        manim_runner=ManimRunner(command=settings.manim_command),
+        frame_extractor=FrameExtractor(command=settings.ffmpeg_command),
+        hard_validator=HardValidator(command=settings.ffprobe_command),
+        rule_validator=RuleValidator(),
+        runtime_policy=runtime_policy,
+        metrics=metrics,
+    )
+    worker = WorkerLoop(
+        store=store,
+        workflow_engine=workflow_engine,
+        lease_seconds=settings.worker_lease_seconds,
+        recovery_grace_seconds=settings.worker_recovery_grace_seconds,
+    )
+    return AppContext(
+        settings=settings,
+        store=store,
+        artifact_store=artifact_store,
+        task_service=task_service,
+        workflow_engine=workflow_engine,
+        worker=worker,
+        runtime_service=runtime_service,
+        runtime_policy=runtime_policy,
+        metrics=metrics,
+    )

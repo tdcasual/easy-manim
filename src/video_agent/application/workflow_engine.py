@@ -1,0 +1,337 @@
+from __future__ import annotations
+
+import time
+from pathlib import Path
+from typing import Any, Callable
+
+from video_agent.adapters.llm.client import LLMClient
+from video_agent.adapters.llm.script_sanitizer import sanitize_script_text
+from video_agent.adapters.llm.openai_compatible_client import (
+    ProviderAuthError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    ProviderTimeoutError,
+)
+from video_agent.adapters.rendering.frame_extractor import FrameExtractor
+from video_agent.adapters.rendering.manim_runner import ManimRunner
+from video_agent.adapters.storage.artifact_store import ArtifactStore
+from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.domain.enums import TaskPhase, TaskStatus, ValidationDecision
+from video_agent.domain.validation_models import ValidationIssue, ValidationReport
+from video_agent.observability.logging import build_log_event
+from video_agent.observability.metrics import MetricsCollector
+from video_agent.safety.runtime_policy import RuntimePolicy
+from video_agent.validation.hard_validation import HardValidator
+from video_agent.validation.rule_validation import RuleValidator
+from video_agent.validation.static_check import StaticCheckValidator
+
+
+class WorkflowEngine:
+    def __init__(
+        self,
+        store: SQLiteTaskStore,
+        artifact_store: ArtifactStore,
+        llm_client: LLMClient,
+        prompt_builder: Callable[..., str],
+        static_validator: StaticCheckValidator,
+        manim_runner: ManimRunner,
+        frame_extractor: FrameExtractor,
+        hard_validator: HardValidator,
+        rule_validator: RuleValidator,
+        runtime_policy: RuntimePolicy | None = None,
+        metrics: MetricsCollector | None = None,
+    ) -> None:
+        self.store = store
+        self.artifact_store = artifact_store
+        self.llm_client = llm_client
+        self.prompt_builder = prompt_builder
+        self.static_validator = static_validator
+        self.manim_runner = manim_runner
+        self.frame_extractor = frame_extractor
+        self.hard_validator = hard_validator
+        self.rule_validator = rule_validator
+        self.runtime_policy = runtime_policy or RuntimePolicy(work_root=artifact_store.root)
+        self.metrics = metrics or MetricsCollector()
+
+    def run_task(self, task_id: str) -> None:
+        task = self.store.get_task(task_id)
+        if task is None:
+            raise KeyError(f"Unknown task_id: {task_id}")
+        if task.status is TaskStatus.CANCELLED:
+            self.metrics.increment("tasks_cancelled")
+            self._log(task, TaskPhase.CANCELLED, "Task skipped because it was cancelled")
+            return
+
+        self.metrics.increment("task_runs")
+        task.status = TaskStatus.RUNNING
+        task.attempt_count += 1
+        self._transition(task, TaskPhase.PLANNING)
+
+        try:
+            prompt_text = self.prompt_builder(
+                prompt=task.prompt,
+                output_profile=task.output_profile,
+                feedback=task.feedback,
+            )
+
+            self._transition(task, TaskPhase.GENERATING_CODE)
+            generation_started = time.monotonic()
+            try:
+                script_text = sanitize_script_text(self.llm_client.generate_script(prompt_text))
+            except ProviderAuthError as exc:
+                self.metrics.increment("generation_failures")
+                self.metrics.record_timing("generation_seconds", time.monotonic() - generation_started)
+                self._log(task, TaskPhase.GENERATING_CODE, "LLM provider authentication failed", error=str(exc))
+                self._fail_task(
+                    task,
+                    ValidationReport(
+                        decision=ValidationDecision.FAIL,
+                        passed=False,
+                        issues=[ValidationIssue(code="provider_auth_error", message=str(exc))],
+                        summary="Provider authentication failed",
+                    ),
+                )
+                return
+            except ProviderRateLimitError as exc:
+                self.metrics.increment("generation_failures")
+                self.metrics.record_timing("generation_seconds", time.monotonic() - generation_started)
+                self._log(task, TaskPhase.GENERATING_CODE, "LLM provider rate limited request", error=str(exc))
+                self._fail_task(
+                    task,
+                    ValidationReport(
+                        decision=ValidationDecision.FAIL,
+                        passed=False,
+                        issues=[ValidationIssue(code="provider_rate_limited", message=str(exc))],
+                        summary="Provider rate limited request",
+                    ),
+                )
+                return
+            except ProviderTimeoutError as exc:
+                self.metrics.increment("generation_failures")
+                self.metrics.record_timing("generation_seconds", time.monotonic() - generation_started)
+                self._log(task, TaskPhase.GENERATING_CODE, "LLM provider timed out", error=str(exc))
+                self._fail_task(
+                    task,
+                    ValidationReport(
+                        decision=ValidationDecision.FAIL,
+                        passed=False,
+                        issues=[ValidationIssue(code="provider_timeout", message=str(exc))],
+                        summary="Provider timed out",
+                    ),
+                )
+                return
+            except ProviderResponseError as exc:
+                self.metrics.increment("generation_failures")
+                self.metrics.record_timing("generation_seconds", time.monotonic() - generation_started)
+                self._log(task, TaskPhase.GENERATING_CODE, "LLM generation failed", error=str(exc))
+                self._fail_task(
+                    task,
+                    ValidationReport(
+                        decision=ValidationDecision.FAIL,
+                        passed=False,
+                        issues=[ValidationIssue(code="generation_failed", message=str(exc))],
+                        summary="Generation failed",
+                    ),
+                )
+                return
+            self.metrics.increment("generation_runs")
+            self.metrics.record_timing("generation_seconds", time.monotonic() - generation_started)
+
+            script_path = self.artifact_store.script_path(task.task_id)
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.GENERATING_CODE, script_path, "script artifact"):
+                return
+            script_path = self.artifact_store.write_script(task.task_id, script_text)
+            task.current_script_artifact_id = self.store.register_artifact(
+                task.task_id,
+                "current_script",
+                script_path,
+            )
+            self.store.update_task(task)
+            self.artifact_store.write_task_snapshot(task)
+            self._log(task, TaskPhase.GENERATING_CODE, "Script generated", script_path=str(script_path))
+
+            self._transition(task, TaskPhase.STATIC_CHECK)
+            static_report = self.static_validator.validate(script_text)
+            if not static_report.passed:
+                self._fail_task(task, static_report)
+                return
+
+            self._transition(task, TaskPhase.RENDERING)
+            render_output_dir = self.artifact_store.final_video_path(task.task_id).parent
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.RENDERING, render_output_dir, "render output directory"):
+                return
+            render_result = self.manim_runner.render(
+                script_path,
+                render_output_dir,
+                timeout_seconds=self.runtime_policy.render_timeout_seconds,
+            )
+            self.metrics.increment("render_runs")
+            self.metrics.record_timing("render_seconds", render_result.duration_seconds)
+            if render_result.exit_code != 0 or not render_result.video_path.exists():
+                report = ValidationReport(
+                    decision=ValidationDecision.FAIL,
+                    passed=False,
+                    issues=[ValidationIssue(code="render_failed", message=render_result.stderr or "Render failed")],
+                    summary="Render failed",
+                )
+                self._log(
+                    task,
+                    TaskPhase.RENDERING,
+                    "Render failed",
+                    exit_code=render_result.exit_code,
+                    stderr=render_result.stderr,
+                )
+                self._fail_task(task, report)
+                return
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.RENDERING, render_result.video_path, "rendered video"):
+                return
+            task.best_result_artifact_id = self.store.register_artifact(
+                task.task_id,
+                "final_video",
+                render_result.video_path,
+                metadata={"duration_seconds": render_result.duration_seconds},
+            )
+            self.store.update_task(task)
+            self.artifact_store.write_task_snapshot(task)
+            self._log(task, TaskPhase.RENDERING, "Render completed", video_path=str(render_result.video_path))
+
+            self._transition(task, TaskPhase.FRAME_EXTRACT)
+            preview_dir = self.artifact_store.previews_dir(task.task_id)
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.FRAME_EXTRACT, preview_dir, "preview directory"):
+                return
+            preview_paths = self.frame_extractor.extract(render_result.video_path, preview_dir)
+            for preview_path in preview_paths:
+                self.store.register_artifact(task.task_id, "preview_frame", preview_path)
+            self._log(task, TaskPhase.FRAME_EXTRACT, "Preview extraction completed", preview_count=len(preview_paths))
+
+            self._transition(task, TaskPhase.VALIDATION)
+            validation_started = time.monotonic()
+            hard_report = self.hard_validator.validate(render_result.video_path)
+            rule_report = self.rule_validator.validate(render_result.video_path)
+            self.metrics.increment("validation_runs")
+            self.metrics.record_timing("validation_seconds", time.monotonic() - validation_started)
+            issues = [*hard_report.issues, *rule_report.issues]
+            passed = hard_report.passed and rule_report.passed
+            combined_report = ValidationReport(
+                decision=ValidationDecision.PASS if passed else ValidationDecision.FAIL,
+                passed=passed,
+                issues=issues,
+                summary="Validation passed" if passed else "Validation failed",
+                video_metadata=hard_report.video_metadata,
+                details={
+                    "hard": hard_report.model_dump(mode="json"),
+                    "rule": rule_report.model_dump(mode="json"),
+                },
+            )
+            validation_report_path = self.artifact_store.validation_report_path(task.task_id)
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.VALIDATION, validation_report_path, "validation report"):
+                return
+            report_path = self.artifact_store.write_validation_report(task.task_id, combined_report)
+            self.store.record_validation(task.task_id, combined_report)
+            self.store.register_artifact(task.task_id, "validation_report", report_path)
+
+            if passed:
+                task.status = TaskStatus.COMPLETED
+                task.phase = TaskPhase.COMPLETED
+                self.metrics.increment("tasks_completed")
+            else:
+                task.status = TaskStatus.FAILED
+                task.phase = TaskPhase.FAILED
+                self.metrics.increment("tasks_failed")
+            self.store.update_task(task)
+            self.artifact_store.write_task_snapshot(task)
+            self.store.append_event(task.task_id, "task_finished", {"status": task.status.value})
+            self._log(task, task.phase, "Task finished", status=task.status.value, passed=passed)
+        except Exception as exc:
+            self.metrics.increment("infra_failures")
+            self._log(task, task.phase, "Infrastructure failure", error=str(exc))
+            report = ValidationReport(
+                decision=ValidationDecision.FAIL,
+                passed=False,
+                issues=[ValidationIssue(code="infra_error", message=str(exc))],
+                summary="Infrastructure failure",
+            )
+            self._fail_task(task, report)
+
+    def _ensure_allowed_artifact_path(self, task, phase: TaskPhase, path: Path, description: str) -> bool:
+        candidate = Path(path)
+        if self.runtime_policy.is_allowed_write(candidate):
+            return True
+
+        self.metrics.increment("runtime_policy_violations")
+        self._log(
+            task,
+            phase,
+            "Runtime policy blocked artifact write",
+            blocked_path=str(candidate),
+            description=description,
+        )
+        report = ValidationReport(
+            decision=ValidationDecision.FAIL,
+            passed=False,
+            issues=[
+                ValidationIssue(
+                    code="runtime_policy_violation",
+                    message=f"Runtime policy blocked {description}: {candidate}",
+                )
+            ],
+            summary="Runtime policy violation",
+            details={"blocked_path": str(candidate), "description": description},
+        )
+        self._fail_task(task, report, persist_report_artifact=False, persist_snapshot=False)
+        return False
+
+    def _fail_task(
+        self,
+        task,
+        report: ValidationReport,
+        persist_report_artifact: bool = True,
+        persist_snapshot: bool = True,
+    ) -> None:
+        self.store.record_validation(task.task_id, report)
+        if persist_report_artifact:
+            report_path = self.artifact_store.validation_report_path(task.task_id)
+            if self.runtime_policy.is_allowed_write(report_path):
+                written_report_path = self.artifact_store.write_validation_report(task.task_id, report)
+                self.store.register_artifact(task.task_id, "validation_report", written_report_path)
+            else:
+                self._log(
+                    task,
+                    TaskPhase.FAILED,
+                    "Skipped validation report artifact due to runtime policy",
+                    blocked_path=str(report_path),
+                )
+        task.status = TaskStatus.FAILED
+        task.phase = TaskPhase.FAILED
+        self.store.update_task(task)
+        if persist_snapshot:
+            self.artifact_store.write_task_snapshot(task)
+        self.store.append_event(task.task_id, "task_failed", {"issues": [issue.code for issue in report.issues]})
+        self._log(
+            task,
+            TaskPhase.FAILED,
+            "Task failed",
+            issues=[issue.code for issue in report.issues],
+            summary=report.summary,
+        )
+        self.metrics.increment("tasks_failed")
+
+    def _transition(self, task, phase: TaskPhase) -> None:
+        task.phase = phase
+        self.store.update_task(task)
+        self.artifact_store.write_task_snapshot(task)
+        self.store.append_event(task.task_id, "phase_changed", {"phase": task.phase.value})
+        self._log(task, phase, "Phase changed")
+
+    def _log(self, task, phase: TaskPhase, message: str, **extra: Any) -> None:
+        event = build_log_event(
+            task_id=task.task_id,
+            phase=phase.value,
+            message=message,
+            attempt_count=task.attempt_count,
+            **extra,
+        )
+        self.store.append_event(task.task_id, "task_log", event)
+        log_path = self.artifact_store.task_log_path(task.task_id)
+        if self.runtime_policy.is_allowed_write(log_path):
+            self.artifact_store.append_task_log(task.task_id, event)

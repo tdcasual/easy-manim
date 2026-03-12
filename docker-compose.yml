@@ -1,0 +1,18 @@
+services:
+  server:
+    build: .
+    command: ["easy-manim-mcp", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000", "--no-embedded-worker"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  worker:
+    build: .
+    command: ["easy-manim-worker", "--data-dir", "data"]
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1

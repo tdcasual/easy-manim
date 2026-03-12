@@ -1,0 +1,20 @@
+{
+  "suite_id": "beta-prompt-suite",
+  "cases": [
+    {
+      "case_id": "smoke-blue-circle",
+      "prompt": "draw a blue circle with a title",
+      "tags": ["smoke", "core-shapes"]
+    },
+    {
+      "case_id": "core-green-square",
+      "prompt": "draw a green square with a label",
+      "tags": ["core-shapes"]
+    },
+    {
+      "case_id": "provider-axis-demo",
+      "prompt": "show a short axis animation with two labeled points",
+      "tags": ["real-provider"]
+    }
+  ]
+}

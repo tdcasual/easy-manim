@@ -1,0 +1,30 @@
+# Release Checklist
+
+- Reinstall editable package after entrypoint changes with `python -m pip install -e '.[dev]'`
+- Run `easy-manim-doctor --json` in the project virtualenv
+- Run `python -m pytest -q` in the project virtualenv
+- Run `python scripts/beta_smoke.py --mode ci`
+- Run `python scripts/release_candidate_gate.py --mode ci`
+- Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json`
+- Confirm the emitted run writes `summary.json` and `summary.md` under `data/evals/<run_id>/`
+- Run `easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip`
+- Start `easy-manim-mcp --transport stdio` and confirm the process stays up
+- Start `easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker` and confirm the process stays up
+- Start `easy-manim-worker --data-dir data` and confirm queued tasks are drained
+- Verify `get_runtime_status`, `list_video_tasks`, `get_task_events`, and `get_metrics_snapshot` return useful data
+- Verify one happy-path task reaches `completed`
+- Verify one invalid script or provider failure task reaches `failed`
+- Verify one failed task can be retried into a new child task
+- Verify queue guardrails by forcing `queue_full` or `attempt_limit_reached` in a local smoke env
+- Inspect `data/tasks/<task_id>/task.json`
+- Inspect `data/tasks/<task_id>/logs/events.jsonl`
+- Inspect `data/tasks/<task_id>/validations/validation_report_v1.json`
+- Confirm preview frames exist under `artifacts/previews/`
+- Confirm revision creates a child task instead of mutating the parent
+- Confirm cancelled queued tasks are not processed by the worker
+- Run `easy-manim-cleanup --data-dir data --older-than-hours 24 --status completed --dry-run`
+- Run `easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_id>.zip`
+- Copy `.env.beta.example` to `.env.beta` before real-provider trials
+- Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --json`
+- Export the corresponding qa bundle and attach it to the RC review
+- Record the go / no-go decision with `docs/templates/release-candidate-decision.md`
