@@ -10,6 +10,8 @@ class Settings(BaseModel):
     artifact_root: Optional[Path] = None
     eval_root: Optional[Path] = None
     manim_command: str = "manim"
+    latex_command: str = "latex"
+    dvisvgm_command: str = "dvisvgm"
     ffmpeg_command: str = "ffmpeg"
     ffprobe_command: str = "ffprobe"
     release_channel: str = "beta"

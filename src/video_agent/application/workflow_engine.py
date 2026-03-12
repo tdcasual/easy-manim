@@ -16,12 +16,14 @@ from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.runtime_service import RuntimeService
 from video_agent.domain.enums import TaskPhase, TaskStatus, ValidationDecision
 from video_agent.domain.validation_models import ValidationIssue, ValidationReport
 from video_agent.observability.logging import build_log_event
 from video_agent.observability.metrics import MetricsCollector
 from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.validation.hard_validation import HardValidator
+from video_agent.validation.latex_support import script_uses_latex
 from video_agent.validation.rule_validation import RuleValidator
 from video_agent.validation.static_check import StaticCheckValidator
 
@@ -38,6 +40,7 @@ class WorkflowEngine:
         frame_extractor: FrameExtractor,
         hard_validator: HardValidator,
         rule_validator: RuleValidator,
+        runtime_service: RuntimeService,
         runtime_policy: RuntimePolicy | None = None,
         metrics: MetricsCollector | None = None,
     ) -> None:
@@ -50,6 +53,7 @@ class WorkflowEngine:
         self.frame_extractor = frame_extractor
         self.hard_validator = hard_validator
         self.rule_validator = rule_validator
+        self.runtime_service = runtime_service
         self.runtime_policy = runtime_policy or RuntimePolicy(work_root=artifact_store.root)
         self.metrics = metrics or MetricsCollector()
 
@@ -157,6 +161,36 @@ class WorkflowEngine:
                 return
 
             self._transition(task, TaskPhase.RENDERING)
+            if script_uses_latex(script_text):
+                mathtex_status = self.runtime_service.inspect_mathtex_feature()
+                if not mathtex_status.available:
+                    missing = mathtex_status.missing_checks
+                    message = "Script uses MathTex/Tex but required LaTeX commands are unavailable"
+                    self._log(
+                        task,
+                        TaskPhase.RENDERING,
+                        "MathTex dependencies missing",
+                        missing_checks=missing,
+                    )
+                    self._fail_task(
+                        task,
+                        ValidationReport(
+                            decision=ValidationDecision.FAIL,
+                            passed=False,
+                            issues=[
+                                ValidationIssue(
+                                    code="latex_dependency_missing",
+                                    message=f"{message}: {', '.join(missing)}",
+                                )
+                            ],
+                            summary="Missing LaTeX runtime dependencies",
+                            details={
+                                "feature": "mathtex",
+                                "missing_checks": missing,
+                            },
+                        ),
+                    )
+                    return
             render_output_dir = self.artifact_store.final_video_path(task.task_id).parent
             if not self._ensure_allowed_artifact_path(task, TaskPhase.RENDERING, render_output_dir, "render output directory"):
                 return

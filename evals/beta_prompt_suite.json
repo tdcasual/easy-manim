@@ -15,6 +15,11 @@
       "case_id": "provider-axis-demo",
       "prompt": "show a short axis animation with two labeled points",
       "tags": ["real-provider"]
+    },
+    {
+      "case_id": "provider-mathtex-formula",
+      "prompt": "show the quadratic formula using MathTex and briefly highlight the discriminant term",
+      "tags": ["real-provider", "mathtex"]
     }
   ]
 }

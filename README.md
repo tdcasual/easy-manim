@@ -29,6 +29,13 @@ source .venv/bin/activate
 easy-manim-doctor --json
 ```
 
+For formula-heavy scenes that may use `MathTex` or `Tex`, also run:
+
+```bash
+source .venv/bin/activate
+easy-manim-doctor --json --require-latex
+```
+
 ## Run the MCP server
 ```bash
 source .venv/bin/activate
@@ -61,6 +68,7 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
 ```
 
 Use `docs/runbooks/real-provider-trial.md` for the trial procedure and `docs/templates/release-candidate-decision.md` to record the go / no-go decision.
+If the real-provider prompts may render formulas, make sure `latex` and `dvisvgm` are available first.
 
 ## Inspect and maintain beta data
 ```bash

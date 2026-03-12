@@ -16,15 +16,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--strict-provider", action="store_true")
+    parser.add_argument("--require-latex", action="store_true")
     metadata = get_release_metadata()
     parser.add_argument("--version", action="version", version=f"easy-manim {metadata['version']} ({metadata['channel']})")
     return parser
 
 
-
-def _status_ok(payload: dict[str, object], strict_provider: bool) -> bool:
+def _status_ok(payload: dict[str, object], strict_provider: bool, require_latex: bool) -> bool:
     checks = payload["checks"]
-    binaries_ok = all(item["available"] for item in checks.values())
+    required_check_names = {"manim", "ffmpeg", "ffprobe"}
+    if require_latex:
+        required_check_names.update({"latex", "dvisvgm"})
+    binaries_ok = all(checks[name]["available"] for name in required_check_names)
     provider = payload["provider"]
     provider_required = strict_provider or provider["mode"] != "stub"
     provider_ok = provider["configured"] if provider_required else True
@@ -45,7 +48,12 @@ def _render_text(payload: dict[str, object]) -> str:
     ]
     for name, item in payload["checks"].items():
         resolved = item["resolved_path"] or "missing"
-        lines.append(f"- {name}: available={item['available']} resolved={resolved}")
+        label = "required" if name in {"manim", "ffmpeg", "ffprobe"} else "optional"
+        lines.append(f"- {name}: available={item['available']} resolved={resolved} ({label})")
+    lines.append("features:")
+    for name, item in payload["features"].items():
+        missing = ", ".join(item["missing_checks"]) if item["missing_checks"] else "none"
+        lines.append(f"- {name}: available={item['available']} missing={missing}")
     return "\n".join(lines)
 
 
@@ -55,7 +63,7 @@ def main() -> None:
     args = parser.parse_args()
     settings = build_settings(args.data_dir)
     payload = RuntimeService(settings=settings).inspect().model_dump(mode="json")
-    ok = _status_ok(payload, strict_provider=args.strict_provider)
+    ok = _status_ok(payload, strict_provider=args.strict_provider, require_latex=args.require_latex)
 
     if args.json:
         print(json.dumps(payload))

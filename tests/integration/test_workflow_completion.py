@@ -153,3 +153,27 @@ def test_task_succeeds_when_provider_returns_markdown_fenced_code(tmp_path: Path
     snapshot = app_context.task_service.get_video_task(created.task_id)
 
     assert snapshot.status == "completed"
+
+
+def test_task_fails_before_render_when_mathtex_dependencies_are_missing(tmp_path: Path) -> None:
+    settings = _build_fake_pipeline_settings(tmp_path)
+    settings.latex_command = "missing-latex"
+    settings.dvisvgm_command = "missing-dvisvgm"
+    app_context = create_app_context(settings)
+    app_context.workflow_engine.llm_client = StubLLMClient(
+        script=(
+            "from manim import MathTex, Scene\n\n"
+            "class GeneratedScene(Scene):\n"
+            "    def construct(self):\n"
+            "        self.add(MathTex(r'x^2 + y^2 = z^2'))\n"
+        )
+    )
+    created = app_context.task_service.create_video_task(prompt="show a formula", idempotency_key="mathtex-missing")
+
+    app_context.worker.run_once()
+    snapshot = app_context.task_service.get_video_task(created.task_id)
+
+    assert snapshot.status == "failed"
+    assert snapshot.latest_validation_summary["issues"][0]["code"] == "latex_dependency_missing"
+    assert snapshot.latest_validation_summary["details"]["missing_checks"] == ["latex", "dvisvgm"]
+    assert app_context.metrics.counters.get("render_runs", 0) == 0

@@ -72,6 +72,7 @@ def create_app_context(settings: Settings) -> AppContext:
         frame_extractor=FrameExtractor(command=settings.ffmpeg_command),
         hard_validator=HardValidator(command=settings.ffprobe_command),
         rule_validator=RuleValidator(),
+        runtime_service=runtime_service,
         runtime_policy=runtime_policy,
         metrics=metrics,
     )

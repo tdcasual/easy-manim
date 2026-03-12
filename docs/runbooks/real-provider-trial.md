@@ -25,10 +25,14 @@ Required variables in `.env.beta`:
 - `EASY_MANIM_LLM_API_KEY=<provider-api-key>`
 - `EASY_MANIM_RELEASE_CHANNEL=rc`
 
+If the selected prompts may render formulas with `MathTex` / `Tex`, also ensure:
+- `latex` is available on PATH, or `EASY_MANIM_LATEX_COMMAND` points to it
+- `dvisvgm` is available on PATH, or `EASY_MANIM_DVISVGM_COMMAND` points to it
+
 ## Preflight
 ```bash
 source .venv/bin/activate
-easy-manim-doctor --json
+easy-manim-doctor --json --require-latex
 python scripts/release_candidate_gate.py --mode ci
 ```
 

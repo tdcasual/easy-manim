@@ -19,6 +19,11 @@ class RuntimeCheckResult(BaseModel):
     resolved_path: Optional[str] = None
 
 
+class RuntimeFeatureStatus(BaseModel):
+    available: bool
+    missing_checks: list[str] = Field(default_factory=list)
+
+
 class RuntimeProviderStatus(BaseModel):
     mode: str
     configured: bool
@@ -54,14 +59,19 @@ class RuntimeStatus(BaseModel):
     worker: RuntimeWorkerStatus
     release: RuntimeReleaseStatus
     checks: dict[str, RuntimeCheckResult]
+    features: dict[str, RuntimeFeatureStatus]
 
 
 class RuntimeService:
+    CORE_CHECK_NAMES = ("manim", "ffmpeg", "ffprobe")
+    MATHTEX_CHECK_NAMES = ("latex", "dvisvgm")
+
     def __init__(self, settings: Settings, store: SQLiteTaskStore | None = None) -> None:
         self.settings = settings
         self.store = store
 
     def inspect(self) -> RuntimeStatus:
+        checks = self.inspect_checks()
         return RuntimeStatus(
             storage=RuntimeStorageStatus(
                 data_dir=str(self.settings.data_dir),
@@ -81,11 +91,27 @@ class RuntimeService:
                 version=get_release_metadata()["version"],
                 channel=self.settings.release_channel,
             ),
-            checks={
-                "manim": self._check_command(self.settings.manim_command),
-                "ffmpeg": self._check_command(self.settings.ffmpeg_command),
-                "ffprobe": self._check_command(self.settings.ffprobe_command),
+            checks=checks,
+            features={
+                "mathtex": self.inspect_mathtex_feature(checks),
             },
+        )
+
+    def inspect_checks(self) -> dict[str, RuntimeCheckResult]:
+        return {
+            "manim": self._check_command(self.settings.manim_command),
+            "ffmpeg": self._check_command(self.settings.ffmpeg_command),
+            "ffprobe": self._check_command(self.settings.ffprobe_command),
+            "latex": self._check_command(self.settings.latex_command),
+            "dvisvgm": self._check_command(self.settings.dvisvgm_command),
+        }
+
+    def inspect_mathtex_feature(self, checks: dict[str, RuntimeCheckResult] | None = None) -> RuntimeFeatureStatus:
+        effective_checks = checks or self.inspect_checks()
+        missing = [name for name in self.MATHTEX_CHECK_NAMES if not effective_checks[name].available]
+        return RuntimeFeatureStatus(
+            available=len(missing) == 0,
+            missing_checks=missing,
         )
 
     def _load_workers(self) -> list[RuntimeWorkerHeartbeat]:
