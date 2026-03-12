@@ -217,31 +217,33 @@ class WorkflowEngine:
                 )
                 self._fail_task(task, report)
                 return
-            if not self._ensure_allowed_artifact_path(task, TaskPhase.RENDERING, render_result.video_path, "rendered video"):
+            final_video_path = self.artifact_store.final_video_path(task.task_id)
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.RENDERING, final_video_path, "rendered video"):
                 return
+            final_video_path = self.artifact_store.promote_final_video(task.task_id, render_result.video_path)
             task.best_result_artifact_id = self.store.register_artifact(
                 task.task_id,
                 "final_video",
-                render_result.video_path,
+                final_video_path,
                 metadata={"duration_seconds": render_result.duration_seconds},
             )
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
-            self._log(task, TaskPhase.RENDERING, "Render completed", video_path=str(render_result.video_path))
+            self._log(task, TaskPhase.RENDERING, "Render completed", video_path=str(final_video_path))
 
             self._transition(task, TaskPhase.FRAME_EXTRACT)
             preview_dir = self.artifact_store.previews_dir(task.task_id)
             if not self._ensure_allowed_artifact_path(task, TaskPhase.FRAME_EXTRACT, preview_dir, "preview directory"):
                 return
-            preview_paths = self.frame_extractor.extract(render_result.video_path, preview_dir)
+            preview_paths = self.frame_extractor.extract(final_video_path, preview_dir)
             for preview_path in preview_paths:
                 self.store.register_artifact(task.task_id, "preview_frame", preview_path)
             self._log(task, TaskPhase.FRAME_EXTRACT, "Preview extraction completed", preview_count=len(preview_paths))
 
             self._transition(task, TaskPhase.VALIDATION)
             validation_started = time.monotonic()
-            hard_report = self.hard_validator.validate(render_result.video_path)
-            rule_report = self.rule_validator.validate(render_result.video_path)
+            hard_report = self.hard_validator.validate(final_video_path)
+            rule_report = self.rule_validator.validate(final_video_path)
             self.metrics.increment("validation_runs")
             self.metrics.record_timing("validation_seconds", time.monotonic() - validation_started)
             issues = [*hard_report.issues, *rule_report.issues]

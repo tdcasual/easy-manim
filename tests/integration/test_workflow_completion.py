@@ -100,7 +100,8 @@ def test_get_video_result_returns_artifacts_for_completed_task(tmp_path: Path) -
     app_context.worker.run_once()
     result = app_context.task_service.get_video_result(created.task_id)
 
-    assert result.video_resource.endswith("final_video.mp4")
+    assert result.video_resource == f"video-task://{created.task_id}/artifacts/final_video.mp4"
+    assert app_context.artifact_store.final_video_path(created.task_id).exists()
     assert len(result.preview_frame_resources) >= 1
 
 

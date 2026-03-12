@@ -54,6 +54,17 @@ class ArtifactStore:
     def final_video_path(self, task_id: str) -> Path:
         return self.ensure_task_dirs(task_id) / "artifacts" / "final_video.mp4"
 
+    def promote_final_video(self, task_id: str, rendered_video_path: Path) -> Path:
+        source = Path(rendered_video_path)
+        target = self.final_video_path(task_id)
+        if source == target:
+            return target
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            target.unlink()
+        shutil.move(str(source), str(target))
+        return target
+
     def previews_dir(self, task_id: str) -> Path:
         return self.ensure_task_dirs(task_id) / "artifacts" / "previews"
 

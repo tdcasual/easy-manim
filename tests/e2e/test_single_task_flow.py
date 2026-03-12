@@ -79,5 +79,6 @@ def test_single_task_flow(tmp_path: Path) -> None:
 
     assert snapshot.status == "completed"
     result = app_context.task_service.get_video_result(created.task_id)
-    assert result.video_resource.endswith("final_video.mp4")
+    assert result.video_resource == f"video-task://{created.task_id}/artifacts/final_video.mp4"
+    assert app_context.artifact_store.final_video_path(created.task_id).exists()
     assert len(result.preview_frame_resources) >= 1
