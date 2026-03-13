@@ -242,8 +242,8 @@ class WorkflowEngine:
 
             self._transition(task, TaskPhase.VALIDATION)
             validation_started = time.monotonic()
-            hard_report = self.hard_validator.validate(final_video_path)
-            rule_report = self.rule_validator.validate(final_video_path)
+            hard_report = self.hard_validator.validate(final_video_path, profile=task.validation_profile)
+            rule_report = self.rule_validator.validate(final_video_path, profile=task.validation_profile)
             self.metrics.increment("validation_runs")
             self.metrics.record_timing("validation_seconds", time.monotonic() - validation_started)
             issues = [*hard_report.issues, *rule_report.issues]

@@ -51,6 +51,20 @@ easy-manim-worker --data-dir data
    - `data/tasks/<task_id>/logs/events.jsonl`
    - `data/tasks/<task_id>/validations/validation_report_v1.json`
 
+You can tighten validation per task with `validation_profile`, for example:
+
+```json
+{
+  "min_duration_seconds": 5.0,
+  "min_width": 1280,
+  "min_height": 720,
+  "check_black_frames": true
+}
+```
+
+- use higher thresholds for release-candidate prompts
+- disable a heuristic only when the operator understands the tradeoff and the task bundle will still be reviewed manually
+
 ## Deterministic evaluation runs
 Use the smoke subset for deterministic checks:
 
