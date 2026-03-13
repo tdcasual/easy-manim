@@ -1,9 +1,24 @@
 from __future__ import annotations
 
+from typing import Any
+
 from video_agent.domain.models import VideoTask
 
 
 class RevisionService:
+    def build_metadata(
+        self,
+        base_task: VideoTask,
+        *,
+        revision_mode: str,
+        preserve_working_parts: bool,
+    ) -> dict[str, Any]:
+        return {
+            "revision_mode": revision_mode,
+            "preserve_working_parts": preserve_working_parts,
+            "source_task_id": base_task.task_id,
+        }
+
     def create_revision(
         self,
         base_task: VideoTask,

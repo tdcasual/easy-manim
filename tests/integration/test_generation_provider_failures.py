@@ -74,3 +74,4 @@ def test_generation_auth_failure_writes_failure_context_artifact(tmp_path, monke
     assert payload["summary"] == "Provider authentication failed"
     assert payload["provider_error"] == "bad key"
     assert payload["current_script_resource"] is None
+    assert payload["semantic_diagnostics"] == []

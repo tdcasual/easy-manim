@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from video_agent.config import Settings
+from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.server.app import create_app_context
 
 
@@ -99,3 +100,22 @@ def test_auto_repair_task_requires_failed_parent(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="failed parent"):
         app_context.task_service.create_auto_repair_task(created.task_id, feedback="fix render failure")
+
+
+def test_auto_repair_task_records_targeted_repair_metadata(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(prompt="draw a circle", idempotency_key="auto-repair-meta")
+    parent_task = app_context.store.get_task(created.task_id)
+    assert parent_task is not None
+    parent_task.status = TaskStatus.FAILED
+    parent_task.phase = TaskPhase.FAILED
+    app_context.store.update_task(parent_task)
+
+    child = app_context.task_service.create_auto_repair_task(created.task_id, feedback="fix render failure")
+    events = app_context.task_service.get_task_events(child.task_id)
+    creation_events = [item for item in events if item["event_type"] == "auto_repair_created"]
+
+    assert len(creation_events) == 1
+    assert creation_events[0]["payload"]["revision_mode"] == "targeted_repair"
+    assert creation_events[0]["payload"]["preserve_working_parts"] is True
+    assert creation_events[0]["payload"]["source_task_id"] == created.task_id

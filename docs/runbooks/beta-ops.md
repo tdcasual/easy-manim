@@ -120,7 +120,8 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
   - `unsupported_helper_kwargs`
   - `coordinate_object_method_call`
   - `missing_scene_subclass`
-- if auto-repair is enabled, confirm `get_video_task` and `get_task_events` show an `auto_repair_decision`, then inspect the child task feedback for the semantic hints that were forwarded into the repair prompt
+- if auto-repair is enabled, confirm `get_video_task` and `get_task_events` show an `auto_repair_decision`, then inspect the child task feedback for the targeted-repair instructions and source script resource
+- `auto_repair_created` events should now surface revision metadata such as `revision_mode=targeted_repair` and `preserve_working_parts=true`
 
 ## Cleanup old beta data
 ```bash

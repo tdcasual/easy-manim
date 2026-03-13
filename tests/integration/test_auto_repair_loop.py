@@ -108,6 +108,26 @@ def test_auto_repair_feedback_includes_semantic_diagnostics(tmp_path: Path, monk
     assert "color, opacity" in (child_task.feedback or "")
 
 
+def test_auto_repair_feedback_is_patch_oriented(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: HelperKwargLLMClient(), raising=False)
+    app = create_app_context(_build_failing_render_settings(tmp_path))
+    created = app.task_service.create_video_task(prompt="draw a circle")
+
+    app.worker.run_once()
+
+    tasks = app.store.list_tasks(limit=10)
+    child_ids = [item["task_id"] for item in tasks if item["task_id"] != created.task_id]
+    child_task = app.store.get_task(child_ids[0])
+    feedback = child_task.feedback or ""
+
+    assert child_task is not None
+    assert "Targeted repair only." in feedback
+    assert "Preserve working code outside the failing region." in feedback
+    assert "Revise only the minimal failing region or behavior." in feedback
+    assert "Return a full updated Python script." in feedback
+    assert f"video-task://{created.task_id}/artifacts/current_script.py" in feedback
+
+
 def test_auto_repair_does_not_retry_non_repairable_failure(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: FailingLLMClient(), raising=False)
     settings = _build_failing_render_settings(

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.errors import AdmissionControlError
+from video_agent.application.repair_prompt_builder import build_targeted_repair_feedback
 from video_agent.application.task_service import TaskService
 from video_agent.config import Settings
 from video_agent.domain.enums import TaskStatus
@@ -83,57 +84,10 @@ class AutoRepairService:
 
     def _build_feedback(self, task_id: str, issue_code: str) -> str:
         failure_context = self._load_failure_context(task_id)
-        lines = [
-            "Previous attempt failed. Revise the Manim script to fix the problem while preserving the parts that already work.",
-            f"Failure code: {issue_code}.",
-        ]
-
-        if summary := failure_context.get("summary"):
-            lines.append(f"Summary: {summary}.")
-        if failure_message := failure_context.get("failure_message"):
-            lines.append(f"Failure message: {self._condense(failure_message)}.")
-        if stderr := failure_context.get("stderr"):
-            lines.append(f"Render stderr: {self._condense(stderr)}.")
-        if provider_error := failure_context.get("provider_error"):
-            lines.append(f"Provider error: {self._condense(provider_error)}.")
-        missing_checks = failure_context.get("missing_checks") or []
-        if missing_checks:
-            lines.append(f"Missing runtime checks: {', '.join(str(item) for item in missing_checks)}.")
-        semantic_diagnostics = failure_context.get("semantic_diagnostics") or []
-        for item in semantic_diagnostics[:3]:
-            lines.append(self._format_semantic_diagnostic(item))
-        if script_resource := failure_context.get("current_script_resource"):
-            lines.append(f"Use {script_resource} as the starting point for the revision.")
-
-        return " ".join(lines)
+        return build_targeted_repair_feedback(issue_code=issue_code, failure_context=failure_context)
 
     def _load_failure_context(self, task_id: str) -> dict[str, Any]:
         path = self.artifact_store.failure_context_path(task_id)
         if not path.exists():
             return {}
         return json.loads(path.read_text())
-
-    @staticmethod
-    def _condense(value: str, limit: int = 400) -> str:
-        condensed = " ".join(str(value).split())
-        if len(condensed) <= limit:
-            return condensed
-        return condensed[: limit - 3] + "..."
-
-    def _format_semantic_diagnostic(self, item: dict[str, Any]) -> str:
-        code = item.get("code") or "unknown"
-        line = item.get("line")
-        call_name = item.get("call_name")
-        keywords = item.get("keywords") or []
-        parts = [f"Semantic diagnosis: {code}"]
-        if call_name:
-            parts.append(f"on {call_name}")
-        if line:
-            parts.append(f"at line {line}")
-        if keywords:
-            parts.append(f"with keywords {', '.join(str(keyword) for keyword in keywords)}")
-        message = item.get("message")
-        detail = " ".join(parts) + "."
-        if message:
-            detail = f"{detail} {self._condense(str(message))}."
-        return detail

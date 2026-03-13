@@ -143,6 +143,11 @@ class TaskService:
         preserve_working_parts: bool = True,
     ) -> CreateVideoTaskResult:
         base_task = self._require_task(base_task_id)
+        metadata = self.revision_service.build_metadata(
+            base_task,
+            revision_mode="preserve_context_revision" if preserve_working_parts else "full_regeneration",
+            preserve_working_parts=preserve_working_parts,
+        )
         child_task = self.revision_service.create_revision(
             base_task=base_task,
             feedback=feedback,
@@ -152,7 +157,7 @@ class TaskService:
             base_task=base_task,
             child_task=child_task,
             event_type="revision_created",
-            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback},
+            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
 
     def retry_video_task(self, task_id: str) -> CreateVideoTaskResult:
@@ -161,12 +166,17 @@ class TaskService:
             raise ValueError("retry_video_task requires a failed parent task")
         self._enforce_attempt_limit(base_task.root_task_id)
 
+        metadata = self.revision_service.build_metadata(
+            base_task,
+            revision_mode="full_regeneration",
+            preserve_working_parts=True,
+        )
         child_task = self.revision_service.create_retry(base_task)
         return self._persist_child_task(
             base_task=base_task,
             child_task=child_task,
             event_type="retry_created",
-            event_payload={"parent_task_id": base_task.task_id},
+            event_payload={"parent_task_id": base_task.task_id, **metadata},
         )
 
     def create_auto_repair_task(self, task_id: str, feedback: str) -> CreateVideoTaskResult:
@@ -175,12 +185,17 @@ class TaskService:
             raise ValueError("create_auto_repair_task requires a failed parent task")
         self._enforce_attempt_limit(base_task.root_task_id)
 
+        metadata = self.revision_service.build_metadata(
+            base_task,
+            revision_mode="targeted_repair",
+            preserve_working_parts=True,
+        )
         child_task = self.revision_service.create_auto_repair(base_task, feedback=feedback)
         return self._persist_child_task(
             base_task=base_task,
             child_task=child_task,
             event_type="auto_repair_created",
-            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback},
+            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
 
     def cancel_video_task(self, task_id: str) -> None:
