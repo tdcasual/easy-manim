@@ -31,6 +31,8 @@ easy-manim-doctor --json
 - In `stub` mode, missing provider credentials do not fail the doctor check.
 - In `openai_compatible` mode, add `--strict-provider` or set provider env vars before beta smoke tests.
 - For formula-heavy prompts that may use `MathTex` or `Tex`, run `easy-manim-doctor --json --require-latex` before real-provider trials.
+- Without `--require-latex`, runtime diagnostics only confirm that `latex` / `dvisvgm` commands are discoverable.
+- With `--require-latex`, the doctor performs a small TeX-to-SVG smoke run so it can catch broken LaTeX setups even when both binaries exist on PATH.
 
 ## Run tests
 ```bash

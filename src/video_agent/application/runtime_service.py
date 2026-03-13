@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.config import Settings
+from video_agent.validation.runtime_smoke import run_mathtex_smoke
 from video_agent.version import get_release_metadata
 
 
@@ -20,8 +21,10 @@ class RuntimeCheckResult(BaseModel):
 
 
 class RuntimeFeatureStatus(BaseModel):
+    checked: bool = False
     available: bool
     missing_checks: list[str] = Field(default_factory=list)
+    smoke_error: Optional[str] = None
 
 
 class RuntimeProviderStatus(BaseModel):
@@ -70,7 +73,7 @@ class RuntimeService:
         self.settings = settings
         self.store = store
 
-    def inspect(self) -> RuntimeStatus:
+    def inspect(self, run_feature_smoke: bool = False) -> RuntimeStatus:
         checks = self.inspect_checks()
         return RuntimeStatus(
             storage=RuntimeStorageStatus(
@@ -93,7 +96,7 @@ class RuntimeService:
             ),
             checks=checks,
             features={
-                "mathtex": self.inspect_mathtex_feature(checks),
+                "mathtex": self.inspect_mathtex_feature(checks, run_smoke=run_feature_smoke),
             },
         )
 
@@ -106,12 +109,39 @@ class RuntimeService:
             "dvisvgm": self._check_command(self.settings.dvisvgm_command),
         }
 
-    def inspect_mathtex_feature(self, checks: dict[str, RuntimeCheckResult] | None = None) -> RuntimeFeatureStatus:
+    def inspect_mathtex_feature(
+        self,
+        checks: dict[str, RuntimeCheckResult] | None = None,
+        *,
+        run_smoke: bool = False,
+    ) -> RuntimeFeatureStatus:
         effective_checks = checks or self.inspect_checks()
         missing = [name for name in self.MATHTEX_CHECK_NAMES if not effective_checks[name].available]
+        if missing:
+            return RuntimeFeatureStatus(
+                checked=False,
+                available=False,
+                missing_checks=missing,
+                smoke_error=None,
+            )
+        if not run_smoke:
+            return RuntimeFeatureStatus(
+                checked=False,
+                available=True,
+                missing_checks=[],
+                smoke_error=None,
+            )
+
+        smoke_result = run_mathtex_smoke(
+            work_dir=self.settings.data_dir / ".runtime-smoke" / "mathtex",
+            latex_command=self.settings.latex_command,
+            dvisvgm_command=self.settings.dvisvgm_command,
+        )
         return RuntimeFeatureStatus(
-            available=len(missing) == 0,
-            missing_checks=missing,
+            checked=smoke_result.checked,
+            available=smoke_result.available,
+            missing_checks=[],
+            smoke_error=smoke_result.error,
         )
 
     def _load_workers(self) -> list[RuntimeWorkerHeartbeat]:

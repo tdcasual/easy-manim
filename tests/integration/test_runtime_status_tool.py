@@ -36,7 +36,9 @@ def test_runtime_status_tool_reports_binary_and_provider_state(tmp_path: Path) -
     assert payload["storage"]["data_dir"].endswith("data")
     assert set(payload["checks"]).issuperset({"manim", "ffmpeg", "ffprobe", "latex", "dvisvgm"})
     assert payload["features"]["mathtex"]["available"] is True
+    assert payload["features"]["mathtex"]["checked"] is False
     assert payload["features"]["mathtex"]["missing_checks"] == []
+    assert payload["features"]["mathtex"]["smoke_error"] is None
     assert payload["worker"]["embedded"] is False
     assert payload["release"]["version"]
     assert payload["release"]["channel"] == "beta"

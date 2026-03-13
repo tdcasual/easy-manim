@@ -25,13 +25,12 @@ def build_parser() -> argparse.ArgumentParser:
 def _status_ok(payload: dict[str, object], strict_provider: bool, require_latex: bool) -> bool:
     checks = payload["checks"]
     required_check_names = {"manim", "ffmpeg", "ffprobe"}
-    if require_latex:
-        required_check_names.update({"latex", "dvisvgm"})
     binaries_ok = all(checks[name]["available"] for name in required_check_names)
     provider = payload["provider"]
     provider_required = strict_provider or provider["mode"] != "stub"
     provider_ok = provider["configured"] if provider_required else True
-    return binaries_ok and provider_ok
+    mathtex_ok = payload["features"]["mathtex"]["available"] if require_latex else True
+    return binaries_ok and provider_ok and mathtex_ok
 
 
 
@@ -53,7 +52,10 @@ def _render_text(payload: dict[str, object]) -> str:
     lines.append("features:")
     for name, item in payload["features"].items():
         missing = ", ".join(item["missing_checks"]) if item["missing_checks"] else "none"
-        lines.append(f"- {name}: available={item['available']} missing={missing}")
+        smoke_error = item["smoke_error"] or "none"
+        lines.append(
+            f"- {name}: available={item['available']} checked={item['checked']} missing={missing} smoke_error={smoke_error}"
+        )
     return "\n".join(lines)
 
 
@@ -62,7 +64,7 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     settings = build_settings(args.data_dir)
-    payload = RuntimeService(settings=settings).inspect().model_dump(mode="json")
+    payload = RuntimeService(settings=settings).inspect(run_feature_smoke=args.require_latex).model_dump(mode="json")
     ok = _status_ok(payload, strict_provider=args.strict_provider, require_latex=args.require_latex)
 
     if args.json:
