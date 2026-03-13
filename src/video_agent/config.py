@@ -25,6 +25,7 @@ class Settings(BaseModel):
     llm_max_retries: int = 2
     run_embedded_worker: bool = True
     worker_poll_interval_seconds: float = 0.2
+    worker_id: str = "worker-1"
     worker_lease_seconds: int = 30
     worker_recovery_grace_seconds: int = 5
     worker_stale_after_seconds: int = 30

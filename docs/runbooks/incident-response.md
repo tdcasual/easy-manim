@@ -43,11 +43,26 @@ easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_i
 ```
 - Escalation boundary: raise the retry cap only after capturing a support bundle and deciding why retries are repeating
 
+## Auto-repair stops creating children
+- Symptom: task snapshots show `auto_repair_summary.stopped_reason`
+- Likely cause: auto-repair is disabled, the issue code is not retryable, or the lineage already exhausted `EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT`
+- First checks:
+  - inspect MCP tool `get_video_task`
+  - inspect `data/tasks/<root_task_id>/logs/events.jsonl`
+  - verify the configured retryable issue codes and child budget
+- Exact commands:
+```bash
+source .venv/bin/activate
+cat data/tasks/<root_task_id>/logs/events.jsonl
+```
+- Escalation boundary: raise the budget only after confirming the last child failed for a genuinely fixable issue rather than repeating the same root cause
+
 ## Rendering or validation suddenly fails
 - Symptom: task reaches `failed` with `render_failed`, `runtime_policy_violation`, or `infra_error`
 - Likely cause: local binaries changed, output paths are invalid, or a local exception escaped normalization
 - First checks:
   - `easy-manim-doctor --json`
+  - inspect `get_video_task` for `auto_repair_summary`
   - inspect `data/tasks/<task_id>/artifacts/failure_context.json`
   - inspect `data/tasks/<task_id>/logs/events.jsonl`
   - inspect `data/tasks/<task_id>/validations/validation_report_v1.json`

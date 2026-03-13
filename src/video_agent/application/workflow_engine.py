@@ -378,6 +378,17 @@ class WorkflowEngine:
                 "child_task_id": auto_repair_decision.child_task_id,
             },
         )
+        if task.root_task_id and task.root_task_id != task.task_id:
+            self.store.append_event(
+                task.root_task_id,
+                "auto_repair_decision",
+                {
+                    "created": auto_repair_decision.created,
+                    "reason": auto_repair_decision.reason,
+                    "issue_code": auto_repair_decision.issue_code,
+                    "child_task_id": auto_repair_decision.child_task_id,
+                },
+            )
         self._log(
             task,
             TaskPhase.FAILED,

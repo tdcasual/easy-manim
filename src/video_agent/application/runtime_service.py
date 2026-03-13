@@ -35,6 +35,7 @@ class RuntimeProviderStatus(BaseModel):
 
 class RuntimeWorkerHeartbeat(BaseModel):
     worker_id: str
+    identity: str
     last_seen_at: str
     details: dict[str, object] = Field(default_factory=dict)
     stale: bool
@@ -156,6 +157,7 @@ class RuntimeService:
             workers.append(
                 RuntimeWorkerHeartbeat(
                     worker_id=item["worker_id"],
+                    identity=str(item["details"].get("worker_identity", item["worker_id"])),
                     last_seen_at=item["last_seen_at"],
                     details=item["details"],
                     stale=stale,

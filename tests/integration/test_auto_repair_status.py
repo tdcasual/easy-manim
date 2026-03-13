@@ -3,7 +3,6 @@ from pathlib import Path
 
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
-from video_agent.server.mcp_tools import create_video_task_tool, get_video_task_tool
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -53,28 +52,17 @@ def _build_auto_repair_settings(tmp_path: Path) -> Settings:
     )
 
 
-def test_create_video_task_tool_returns_task_id(temp_settings) -> None:
-    app_context = create_app_context(temp_settings)
-    payload = create_video_task_tool(app_context, {"prompt": "draw a circle"})
-    assert payload["task_id"]
-    assert payload["status"] == "queued"
+def test_get_video_task_exposes_auto_repair_summary(tmp_path: Path) -> None:
+    app = create_app_context(_build_auto_repair_settings(tmp_path))
+    created = app.task_service.create_video_task(prompt="draw a circle")
 
+    app.worker.run_once()
+    app.worker.run_once()
 
-def test_get_video_task_tool_returns_snapshot(temp_settings) -> None:
-    app_context = create_app_context(temp_settings)
-    created = create_video_task_tool(app_context, {"prompt": "draw a circle"})
-    snapshot = get_video_task_tool(app_context, {"task_id": created["task_id"]})
-    assert snapshot["task_id"] == created["task_id"]
+    snapshot = app.task_service.get_video_task(created.task_id)
 
-
-def test_get_video_task_tool_returns_auto_repair_summary(tmp_path: Path) -> None:
-    app_context = create_app_context(_build_auto_repair_settings(tmp_path))
-    created = create_video_task_tool(app_context, {"prompt": "draw a circle"})
-
-    app_context.worker.run_once()
-    app_context.worker.run_once()
-
-    snapshot = get_video_task_tool(app_context, {"task_id": created["task_id"]})
-
-    assert snapshot["artifact_summary"]["repair_children"] == 1
-    assert snapshot["auto_repair_summary"]["stopped_reason"] == "budget_exhausted"
+    assert snapshot.artifact_summary["repair_children"] == 1
+    assert snapshot.latest_validation_summary
+    assert snapshot.auto_repair_summary["enabled"] is True
+    assert snapshot.auto_repair_summary["remaining_budget"] == 0
+    assert snapshot.auto_repair_summary["stopped_reason"] == "budget_exhausted"

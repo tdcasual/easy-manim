@@ -31,6 +31,7 @@ class VideoTaskSnapshot(BaseModel):
     inherited_from_task_id: Optional[str] = None
     latest_validation_summary: dict[str, Any] = Field(default_factory=dict)
     artifact_summary: dict[str, Any] = Field(default_factory=dict)
+    auto_repair_summary: dict[str, Any] = Field(default_factory=dict)
 
 
 class VideoResult(BaseModel):
@@ -86,10 +87,13 @@ class TaskService:
     def get_video_task(self, task_id: str) -> VideoTaskSnapshot:
         task = self._require_task(task_id)
         latest_validation = self.store.get_latest_validation(task_id)
+        root_task_id = task.root_task_id or task.task_id
+        repair_children = max(0, self.store.count_lineage_tasks(root_task_id) - 1)
         artifact_summary = {
             "script_count": len(self.store.list_artifacts(task_id, "current_script")),
             "video_count": len(self.store.list_artifacts(task_id, "final_video")),
             "preview_count": len(self.store.list_artifacts(task_id, "preview_frame")),
+            "repair_children": repair_children,
         }
         validation_summary = latest_validation.model_dump(mode="json") if latest_validation else {}
         return VideoTaskSnapshot(
@@ -102,6 +106,7 @@ class TaskService:
             inherited_from_task_id=task.inherited_from_task_id,
             latest_validation_summary=validation_summary,
             artifact_summary=artifact_summary,
+            auto_repair_summary=self._build_auto_repair_summary(root_task_id, repair_children),
         )
 
     def get_video_result(self, task_id: str) -> VideoResult:
@@ -219,6 +224,30 @@ class TaskService:
 
     def _resource_ref(self, task_id: str, file_path: Path) -> str:
         return self.artifact_store.resource_uri(task_id, file_path)
+
+    def _build_auto_repair_summary(self, root_task_id: str, repair_children: int) -> dict[str, Any]:
+        latest_decision = self._latest_auto_repair_decision(root_task_id)
+        remaining_budget = max(0, self.settings.auto_repair_max_children_per_root - repair_children)
+        stopped_reason = None
+        latest_child_task_id = None
+        if latest_decision is not None:
+            latest_child_task_id = latest_decision.get("child_task_id")
+            if latest_decision.get("reason") != "created":
+                stopped_reason = latest_decision.get("reason")
+
+        return {
+            "enabled": self.settings.auto_repair_enabled,
+            "repair_children": repair_children,
+            "remaining_budget": remaining_budget,
+            "stopped_reason": stopped_reason,
+            "latest_child_task_id": latest_child_task_id,
+        }
+
+    def _latest_auto_repair_decision(self, root_task_id: str) -> dict[str, Any] | None:
+        for event in reversed(self.store.list_events(root_task_id, limit=200)):
+            if event["event_type"] == "auto_repair_decision":
+                return event["payload"]
+        return None
 
     def _persist_child_task(
         self,

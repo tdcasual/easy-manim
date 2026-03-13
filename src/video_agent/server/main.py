@@ -91,6 +91,7 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         llm_max_retries=_env_int("EASY_MANIM_LLM_MAX_RETRIES", 2),
         run_embedded_worker=run_embedded_worker,
         worker_poll_interval_seconds=_env_float("EASY_MANIM_WORKER_POLL_INTERVAL_SECONDS", 0.2),
+        worker_id=os.getenv("EASY_MANIM_WORKER_ID", "worker-1"),
         worker_lease_seconds=_env_int("EASY_MANIM_WORKER_LEASE_SECONDS", 30),
         worker_recovery_grace_seconds=_env_int("EASY_MANIM_WORKER_RECOVERY_GRACE_SECONDS", 5),
         worker_stale_after_seconds=_env_int("EASY_MANIM_WORKER_STALE_AFTER_SECONDS", 30),

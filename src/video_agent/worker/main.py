@@ -13,6 +13,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the easy-manim standalone worker")
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
     parser.add_argument("--poll-interval", type=float, default=None)
+    parser.add_argument("--worker-id", default=None)
     parser.add_argument("--once", action="store_true")
     return parser
 
@@ -22,6 +23,8 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     settings = build_settings(args.data_dir, run_embedded_worker=False)
+    if args.worker_id:
+        settings.worker_id = args.worker_id
     app_context = create_app_context(settings)
     poll_interval = args.poll_interval if args.poll_interval is not None else settings.worker_poll_interval_seconds
 

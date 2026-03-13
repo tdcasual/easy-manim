@@ -36,7 +36,7 @@ class WorkerLoop:
         return 1
 
     def _record_heartbeat(self, last_processed_task_id: str | None = None, processed_count: int = 0) -> None:
-        details = {"processed_count": processed_count}
+        details = {"processed_count": processed_count, "worker_identity": self.worker_id}
         if last_processed_task_id is not None:
             details["last_processed_task_id"] = last_processed_task_id
         self.store.record_worker_heartbeat(self.worker_id, details)

@@ -12,9 +12,11 @@
 - Start `easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker` and confirm the process stays up
 - Start `easy-manim-worker --data-dir data` and confirm queued tasks are drained
 - Verify `get_runtime_status`, `list_video_tasks`, `get_task_events`, and `get_metrics_snapshot` return useful data
+- Verify worker heartbeats expose the configured worker identity
 - Verify one happy-path task reaches `completed`
 - Verify one invalid script or provider failure task reaches `failed`
 - Verify one failed task can be retried into a new child task
+- Verify `get_video_task` exposes `artifact_summary.repair_children` and `auto_repair_summary`
 - Verify queue guardrails by forcing `queue_full` or `attempt_limit_reached` in a local smoke env
 - Inspect `data/tasks/<task_id>/task.json`
 - Inspect `data/tasks/<task_id>/logs/events.jsonl`

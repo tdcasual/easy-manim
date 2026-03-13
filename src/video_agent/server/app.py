@@ -79,6 +79,7 @@ def create_app_context(settings: Settings) -> AppContext:
     worker = WorkerLoop(
         store=store,
         workflow_engine=workflow_engine,
+        worker_id=settings.worker_id,
         lease_seconds=settings.worker_lease_seconds,
         recovery_grace_seconds=settings.worker_recovery_grace_seconds,
     )
