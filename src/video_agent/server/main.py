@@ -47,6 +47,13 @@ def _env_float(name: str, default: float) -> float:
     return float(value)
 
 
+def _env_csv(name: str, default: list[str]) -> list[str]:
+    value = os.getenv(name)
+    if value is None:
+        return list(default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 def _render_environment() -> dict[str, str]:
     keys = (
         "TEXMFCNF",
@@ -89,6 +96,23 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         worker_stale_after_seconds=_env_int("EASY_MANIM_WORKER_STALE_AFTER_SECONDS", 30),
         max_queued_tasks=_env_int("EASY_MANIM_MAX_QUEUED_TASKS", 20),
         max_attempts_per_root_task=_env_int("EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK", 5),
+        auto_repair_enabled=_env_bool("EASY_MANIM_AUTO_REPAIR_ENABLED", False),
+        auto_repair_max_children_per_root=_env_int("EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT", 1),
+        auto_repair_retryable_issue_codes=_env_csv(
+            "EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES",
+            [
+                "render_failed",
+                "generation_failed",
+                "syntax_error",
+                "missing_scene",
+                "black_frames",
+                "frozen_tail",
+                "encoding_error",
+                "min_width_not_met",
+                "min_height_not_met",
+                "min_duration_not_met",
+            ],
+        ),
     )
 
 

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
 
@@ -89,3 +91,11 @@ def test_worker_stops_processing_cancelled_task(tmp_path: Path) -> None:
     app_context.task_service.cancel_video_task(created.task_id)
     processed = app_context.worker.run_once()
     assert processed == 0
+
+
+def test_auto_repair_task_requires_failed_parent(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(prompt="draw a circle", idempotency_key="auto-repair-parent")
+
+    with pytest.raises(ValueError, match="failed parent"):
+        app_context.task_service.create_auto_repair_task(created.task_id, feedback="fix render failure")

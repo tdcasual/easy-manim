@@ -16,6 +16,7 @@ from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.failure_context import build_failure_context
 from video_agent.application.runtime_service import RuntimeService
 from video_agent.domain.enums import TaskPhase, TaskStatus, ValidationDecision
@@ -57,6 +58,11 @@ class WorkflowEngine:
         self.runtime_service = runtime_service
         self.runtime_policy = runtime_policy or RuntimePolicy(work_root=artifact_store.root)
         self.metrics = metrics or MetricsCollector()
+        self.auto_repair_service = AutoRepairService(
+            store=store,
+            artifact_store=artifact_store,
+            settings=runtime_service.settings,
+        )
 
     def run_task(self, task_id: str) -> None:
         task = self.store.get_task(task_id)
@@ -361,6 +367,26 @@ class WorkflowEngine:
                 "Skipped failure context artifact due to runtime policy",
                 blocked_path=str(failure_context_path),
             )
+        auto_repair_decision = self.auto_repair_service.maybe_schedule_repair(task)
+        self.store.append_event(
+            task.task_id,
+            "auto_repair_decision",
+            {
+                "created": auto_repair_decision.created,
+                "reason": auto_repair_decision.reason,
+                "issue_code": auto_repair_decision.issue_code,
+                "child_task_id": auto_repair_decision.child_task_id,
+            },
+        )
+        self._log(
+            task,
+            TaskPhase.FAILED,
+            "Auto repair evaluated",
+            created=auto_repair_decision.created,
+            reason=auto_repair_decision.reason,
+            issue_code=auto_repair_decision.issue_code,
+            child_task_id=auto_repair_decision.child_task_id,
+        )
         self._log(
             task,
             TaskPhase.FAILED,

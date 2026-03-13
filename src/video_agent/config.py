@@ -30,6 +30,22 @@ class Settings(BaseModel):
     worker_stale_after_seconds: int = 30
     max_queued_tasks: int = 20
     max_attempts_per_root_task: int = 5
+    auto_repair_enabled: bool = False
+    auto_repair_max_children_per_root: int = 1
+    auto_repair_retryable_issue_codes: list[str] = Field(
+        default_factory=lambda: [
+            "render_failed",
+            "generation_failed",
+            "syntax_error",
+            "missing_scene",
+            "black_frames",
+            "frozen_tail",
+            "encoding_error",
+            "min_width_not_met",
+            "min_height_not_met",
+            "min_duration_not_met",
+        ]
+    )
 
     @model_validator(mode="after")
     def derive_paths(self) -> "Settings":

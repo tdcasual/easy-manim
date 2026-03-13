@@ -95,6 +95,8 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
 ## Queue and retry guardrails
 - `queue_full`: too many active queued/running/revising tasks; wait for drain or raise `EASY_MANIM_MAX_QUEUED_TASKS`
 - `attempt_limit_reached`: a retry lineage exceeded `EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK`; export the task bundle before raising the cap
+- auto-repair is opt-in via `EASY_MANIM_AUTO_REPAIR_ENABLED`; keep `EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT` small because it is a bounded assist, not a substitute for operator review
+- limit auto-repair to explicitly retryable issue codes with `EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES`
 
 ## Worker heartbeat interpretation
 - a recent worker heartbeat with `stale=false` means the worker loop is alive

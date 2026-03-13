@@ -138,19 +138,11 @@ class TaskService:
             feedback=feedback,
             preserve_working_parts=preserve_working_parts,
         )
-        persisted = self.store.create_task(child_task)
-        self.artifact_store.ensure_task_dirs(persisted.task_id)
-        self.artifact_store.write_task_snapshot(persisted)
-        self.store.append_event(
-            persisted.task_id,
-            "revision_created",
-            {"parent_task_id": base_task.task_id, "feedback": feedback},
-        )
-        return CreateVideoTaskResult(
-            task_id=persisted.task_id,
-            status=persisted.status,
-            poll_after_ms=self.settings.default_poll_after_ms,
-            resource_refs=[self._task_resource_ref(persisted.task_id)],
+        return self._persist_child_task(
+            base_task=base_task,
+            child_task=child_task,
+            event_type="revision_created",
+            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback},
         )
 
     def retry_video_task(self, task_id: str) -> CreateVideoTaskResult:
@@ -160,19 +152,25 @@ class TaskService:
         self._enforce_attempt_limit(base_task.root_task_id)
 
         child_task = self.revision_service.create_retry(base_task)
-        persisted = self.store.create_task(child_task)
-        self.artifact_store.ensure_task_dirs(persisted.task_id)
-        self.artifact_store.write_task_snapshot(persisted)
-        self.store.append_event(
-            persisted.task_id,
-            "retry_created",
-            {"parent_task_id": base_task.task_id},
+        return self._persist_child_task(
+            base_task=base_task,
+            child_task=child_task,
+            event_type="retry_created",
+            event_payload={"parent_task_id": base_task.task_id},
         )
-        return CreateVideoTaskResult(
-            task_id=persisted.task_id,
-            status=persisted.status,
-            poll_after_ms=self.settings.default_poll_after_ms,
-            resource_refs=[self._task_resource_ref(persisted.task_id)],
+
+    def create_auto_repair_task(self, task_id: str, feedback: str) -> CreateVideoTaskResult:
+        base_task = self._require_task(task_id)
+        if base_task.status is not TaskStatus.FAILED:
+            raise ValueError("create_auto_repair_task requires a failed parent task")
+        self._enforce_attempt_limit(base_task.root_task_id)
+
+        child_task = self.revision_service.create_auto_repair(base_task, feedback=feedback)
+        return self._persist_child_task(
+            base_task=base_task,
+            child_task=child_task,
+            event_type="auto_repair_created",
+            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback},
         )
 
     def cancel_video_task(self, task_id: str) -> None:
@@ -220,5 +218,22 @@ class TaskService:
         return f"video-task://{task_id}/task.json"
 
     def _resource_ref(self, task_id: str, file_path: Path) -> str:
-        relative_path = file_path.relative_to(self.artifact_store.task_dir(task_id))
-        return f"video-task://{task_id}/{relative_path.as_posix()}"
+        return self.artifact_store.resource_uri(task_id, file_path)
+
+    def _persist_child_task(
+        self,
+        base_task: VideoTask,
+        child_task: VideoTask,
+        event_type: str,
+        event_payload: dict[str, Any],
+    ) -> CreateVideoTaskResult:
+        persisted = self.store.create_task(child_task)
+        self.artifact_store.ensure_task_dirs(persisted.task_id)
+        self.artifact_store.write_task_snapshot(persisted)
+        self.store.append_event(persisted.task_id, event_type, event_payload)
+        return CreateVideoTaskResult(
+            task_id=persisted.task_id,
+            status=persisted.status,
+            poll_after_ms=self.settings.default_poll_after_ms,
+            resource_refs=[self._task_resource_ref(persisted.task_id)],
+        )

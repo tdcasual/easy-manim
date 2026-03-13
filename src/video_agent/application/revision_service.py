@@ -22,3 +22,10 @@ class RevisionService:
             feedback=feedback,
             preserve_working_parts=True,
         )
+
+    def create_auto_repair(self, base_task: VideoTask, feedback: str) -> VideoTask:
+        return VideoTask.from_revision(
+            parent=base_task,
+            feedback=feedback,
+            preserve_working_parts=True,
+        )
