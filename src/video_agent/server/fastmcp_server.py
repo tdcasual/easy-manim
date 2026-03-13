@@ -119,6 +119,10 @@ def create_mcp_server(
     def script_resource(task_id: str) -> str:
         return _read_text_resource(context, f"video-task://{task_id}/artifacts/current_script.py")
 
+    @mcp.resource("video-task://{task_id}/artifacts/failure_context.json", mime_type="application/json")
+    def failure_context_resource(task_id: str) -> str:
+        return _read_text_resource(context, f"video-task://{task_id}/artifacts/failure_context.json")
+
     @mcp.resource("video-task://{task_id}/artifacts/final_video.mp4", mime_type="video/mp4")
     def video_resource(task_id: str) -> bytes:
         return _read_binary_resource(context, task_id, Path("artifacts/final_video.mp4"))

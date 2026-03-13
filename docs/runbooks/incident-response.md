@@ -48,12 +48,14 @@ easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_i
 - Likely cause: local binaries changed, output paths are invalid, or a local exception escaped normalization
 - First checks:
   - `easy-manim-doctor --json`
+  - inspect `data/tasks/<task_id>/artifacts/failure_context.json`
   - inspect `data/tasks/<task_id>/logs/events.jsonl`
   - inspect `data/tasks/<task_id>/validations/validation_report_v1.json`
 - Exact commands:
 ```bash
 source .venv/bin/activate
 easy-manim-doctor --json
+cat data/tasks/<task_id>/artifacts/failure_context.json
 cat data/tasks/<task_id>/logs/events.jsonl
 cat data/tasks/<task_id>/validations/validation_report_v1.json
 ```

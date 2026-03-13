@@ -16,6 +16,7 @@ from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.failure_context import build_failure_context
 from video_agent.application.runtime_service import RuntimeService
 from video_agent.domain.enums import TaskPhase, TaskStatus, ValidationDecision
 from video_agent.domain.validation_models import ValidationIssue, ValidationReport
@@ -343,6 +344,23 @@ class WorkflowEngine:
         if persist_snapshot:
             self.artifact_store.write_task_snapshot(task)
         self.store.append_event(task.task_id, "task_failed", {"issues": [issue.code for issue in report.issues]})
+        failure_context_path = self.artifact_store.failure_context_path(task.task_id)
+        if self.runtime_policy.is_allowed_write(failure_context_path):
+            failure_context = build_failure_context(
+                task=task,
+                report=report,
+                artifact_store=self.artifact_store,
+                events=self.store.list_events(task.task_id),
+            )
+            written_failure_context_path = self.artifact_store.write_failure_context(task.task_id, failure_context)
+            self.store.register_artifact(task.task_id, "failure_context", written_failure_context_path)
+        else:
+            self._log(
+                task,
+                TaskPhase.FAILED,
+                "Skipped failure context artifact due to runtime policy",
+                blocked_path=str(failure_context_path),
+            )
         self._log(
             task,
             TaskPhase.FAILED,

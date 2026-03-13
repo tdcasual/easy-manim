@@ -51,6 +51,14 @@ class ArtifactStore:
         target.write_text(script_text)
         return target
 
+    def failure_context_path(self, task_id: str) -> Path:
+        return self.task_dir(task_id) / "artifacts" / "failure_context.json"
+
+    def write_failure_context(self, task_id: str, payload: dict[str, Any]) -> Path:
+        target = self.ensure_task_dirs(task_id) / "artifacts" / "failure_context.json"
+        target.write_text(json.dumps(payload, indent=2))
+        return target
+
     def final_video_path(self, task_id: str) -> Path:
         return self.ensure_task_dirs(task_id) / "artifacts" / "final_video.mp4"
 
@@ -90,6 +98,12 @@ class ArtifactStore:
         target = self.eval_run_dir(run_id) / "summary.md"
         target.write_text(content)
         return target
+
+    def task_relative_path(self, task_id: str, path: Path) -> Path:
+        return Path(path).relative_to(self.task_dir(task_id))
+
+    def resource_uri(self, task_id: str, path: Path) -> str:
+        return f"video-task://{task_id}/{self.task_relative_path(task_id, path).as_posix()}"
 
     def delete_task_dir(self, task_id: str) -> None:
         shutil.rmtree(self.task_dir(task_id), ignore_errors=True)

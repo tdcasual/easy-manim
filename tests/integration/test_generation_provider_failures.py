@@ -1,3 +1,5 @@
+import json
+
 import video_agent.server.app as app_module
 from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.adapters.llm.openai_compatible_client import ProviderAuthError
@@ -48,3 +50,27 @@ def test_generation_auth_failure_becomes_standardized_validation_issue(tmp_path,
 
     assert snapshot.status == "failed"
     assert snapshot.latest_validation_summary["issues"][0]["code"] == "provider_auth_error"
+
+
+def test_generation_auth_failure_writes_failure_context_artifact(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: FailingLLMClient(), raising=False)
+    settings = _settings(
+        tmp_path,
+        llm_provider="openai_compatible",
+        llm_model="gpt-4.1-mini",
+        llm_base_url="https://example.test/v1",
+        llm_api_key="secret",
+    )
+    app = create_app_context(settings)
+    created = app.task_service.create_video_task(prompt="draw a circle")
+
+    app.worker.run_once()
+
+    failure_context_path = app.artifact_store.task_dir(created.task_id) / "artifacts" / "failure_context.json"
+    payload = json.loads(failure_context_path.read_text())
+
+    assert payload["task_id"] == created.task_id
+    assert payload["failure_code"] == "provider_auth_error"
+    assert payload["summary"] == "Provider authentication failed"
+    assert payload["provider_error"] == "bad key"
+    assert payload["current_script_resource"] is None
