@@ -28,6 +28,7 @@ Required variables in `.env.beta`:
 If the selected prompts may render formulas with `MathTex` / `Tex`, also ensure:
 - `latex` is available on PATH, or `EASY_MANIM_LATEX_COMMAND` points to it
 - `dvisvgm` is available on PATH, or `EASY_MANIM_DVISVGM_COMMAND` points to it
+- any required `TEXMF*` environment variables are exported in the shell **before** launching the MCP server or worker, so the render subprocess inherits them
 
 ## Preflight
 ```bash

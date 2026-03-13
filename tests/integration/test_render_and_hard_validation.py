@@ -54,3 +54,30 @@ def test_rendered_video_passes_hard_validation(tmp_path: Path) -> None:
     assert report.passed is True
     assert report.video_metadata.width == 1280
     assert report.video_metadata.duration_seconds == 2.5
+
+
+def test_manim_runner_passes_explicit_environment_to_subprocess(tmp_path: Path) -> None:
+    script_path = tmp_path / "scene.py"
+    script_path.write_text(FAKE_SCRIPT)
+    output_dir = tmp_path / "out"
+
+    fake_manim = tmp_path / "fake_manim_env.sh"
+    _write_executable(
+        fake_manim,
+        "#!/bin/sh\n"
+        "if [ \"$TEXMFCNF\" != \"/expected/path\" ]; then exit 41; fi\n"
+        "printf '%s' \"$TEXMFCNF\" > \"$5/env-captured.txt\"\n"
+        "script_name=$(basename \"$2\" .py)\n"
+        "mkdir -p \"$5/videos/$script_name/480p15\"\n"
+        "printf 'fake-video' > \"$5/videos/$script_name/480p15/$7\"\n",
+    )
+
+    render_result = ManimRunner(command=str(fake_manim)).render(
+        script_path,
+        output_dir,
+        timeout_seconds=30,
+        env={"TEXMFCNF": "/expected/path"},
+    )
+
+    assert render_result.exit_code == 0
+    assert (output_dir / "env-captured.txt").read_text() == "/expected/path"

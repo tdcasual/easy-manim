@@ -25,6 +25,7 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
         "if [ \"$1\" != \"-ql\" ]; then exit 11; fi\n"
         "if [ \"$4\" != \"--media_dir\" ]; then exit 12; fi\n"
         "if [ \"$6\" != \"-o\" ]; then exit 13; fi\n"
+        "printf '%s' \"$TEXMFCNF\" > \"$5/env-captured.txt\"\n"
         "script_name=$(basename \"$2\" .py)\n"
         "mkdir -p \"$5/videos/$script_name/480p15\"\n"
         "printf 'normal-video' > \"$5/videos/$script_name/480p15/$7\"\n"
@@ -178,3 +179,15 @@ def test_task_fails_before_render_when_mathtex_dependencies_are_missing(tmp_path
     assert snapshot.latest_validation_summary["issues"][0]["code"] == "latex_dependency_missing"
     assert snapshot.latest_validation_summary["details"]["missing_checks"] == ["latex", "dvisvgm"]
     assert app_context.metrics.counters.get("render_runs", 0) == 0
+
+
+def test_workflow_forwards_configured_render_environment(tmp_path: Path) -> None:
+    settings = _build_fake_pipeline_settings(tmp_path)
+    settings.render_environment = {"TEXMFCNF": "/configured/path"}
+    app_context = create_app_context(settings)
+    created = app_context.task_service.create_video_task(prompt="draw a circle", idempotency_key="render-env")
+
+    app_context.worker.run_once()
+
+    captured = app_context.artifact_store.task_dir(created.task_id) / "artifacts" / "env-captured.txt"
+    assert captured.read_text() == "/configured/path"

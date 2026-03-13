@@ -68,7 +68,7 @@ def create_app_context(settings: Settings) -> AppContext:
         llm_client=_build_llm_client(settings),
         prompt_builder=build_generation_prompt,
         static_validator=StaticCheckValidator(),
-        manim_runner=ManimRunner(command=settings.manim_command),
+        manim_runner=ManimRunner(command=settings.manim_command, base_env=settings.render_environment),
         frame_extractor=FrameExtractor(command=settings.ffmpeg_command),
         hard_validator=HardValidator(command=settings.ffprobe_command),
         rule_validator=RuleValidator(),

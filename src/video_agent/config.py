@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class Settings(BaseModel):
@@ -14,6 +14,7 @@ class Settings(BaseModel):
     dvisvgm_command: str = "dvisvgm"
     ffmpeg_command: str = "ffmpeg"
     ffprobe_command: str = "ffprobe"
+    render_environment: dict[str, str] = Field(default_factory=dict)
     release_channel: str = "beta"
     default_poll_after_ms: int = 2000
     llm_provider: str = "stub"

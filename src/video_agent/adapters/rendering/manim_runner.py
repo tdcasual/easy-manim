@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -17,15 +18,27 @@ class RenderResult(BaseModel):
 
 
 class ManimRunner:
-    def __init__(self, command: str = "manim") -> None:
+    def __init__(self, command: str = "manim", base_env: dict[str, str] | None = None) -> None:
         self.command = command
+        self.base_env = dict(base_env or {})
 
-    def render(self, script_path: Path, output_dir: Path, timeout_seconds: float | None = None) -> RenderResult:
+    def render(
+        self,
+        script_path: Path,
+        output_dir: Path,
+        timeout_seconds: float | None = None,
+        env: dict[str, str] | None = None,
+    ) -> RenderResult:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         scene_name = self._extract_scene_name(Path(script_path))
         output_name = "final_video.mp4"
         start = time.monotonic()
+        effective_env = None
+        if self.base_env or env:
+            effective_env = dict(os.environ)
+            effective_env.update(self.base_env)
+            effective_env.update(env or {})
         try:
             completed = subprocess.run(
                 [
@@ -42,6 +55,7 @@ class ManimRunner:
                 text=True,
                 check=False,
                 timeout=timeout_seconds,
+                env=effective_env,
             )
             stdout = completed.stdout
             stderr = completed.stderr
