@@ -48,6 +48,7 @@ easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_i
 - Likely cause: auto-repair is disabled, the issue code is not retryable, or the lineage already exhausted `EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT`
 - First checks:
   - inspect MCP tool `get_video_task`
+  - inspect `repair_state` on the root task snapshot for the latest issue code and whether repair was attempted
   - inspect `data/tasks/<root_task_id>/logs/events.jsonl`
   - verify the configured retryable issue codes and child budget
 - Exact commands:

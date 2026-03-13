@@ -91,6 +91,10 @@ def test_task_becomes_completed_only_after_validation_passes(tmp_path: Path) -> 
     assert processed == 1
     assert snapshot.status == "completed"
     assert snapshot.latest_validation_summary["passed"] is True
+    assert snapshot.repair_state["attempted"] is False
+    assert snapshot.repair_state["child_count"] == 0
+    assert snapshot.repair_state["last_issue_code"] is None
+    assert snapshot.repair_state["stop_reason"] is None
 
 
 

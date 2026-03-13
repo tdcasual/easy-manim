@@ -19,6 +19,13 @@ from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.failure_context import build_failure_context
 from video_agent.application.runtime_service import RuntimeService
+from video_agent.application.workflow_phases import (
+    combined_validation_report,
+    latex_dependency_report,
+    provider_failure_report,
+    render_failure_report,
+    terminal_task_state,
+)
 from video_agent.domain.enums import TaskPhase, TaskStatus, ValidationDecision
 from video_agent.domain.validation_models import ValidationIssue, ValidationReport
 from video_agent.observability.logging import build_log_event
@@ -95,12 +102,7 @@ class WorkflowEngine:
                 self._log(task, TaskPhase.GENERATING_CODE, "LLM provider authentication failed", error=str(exc))
                 self._fail_task(
                     task,
-                    ValidationReport(
-                        decision=ValidationDecision.FAIL,
-                        passed=False,
-                        issues=[ValidationIssue(code="provider_auth_error", message=str(exc))],
-                        summary="Provider authentication failed",
-                    ),
+                    provider_failure_report("provider_auth_error", "Provider authentication failed", str(exc)),
                 )
                 return
             except ProviderRateLimitError as exc:
@@ -109,12 +111,7 @@ class WorkflowEngine:
                 self._log(task, TaskPhase.GENERATING_CODE, "LLM provider rate limited request", error=str(exc))
                 self._fail_task(
                     task,
-                    ValidationReport(
-                        decision=ValidationDecision.FAIL,
-                        passed=False,
-                        issues=[ValidationIssue(code="provider_rate_limited", message=str(exc))],
-                        summary="Provider rate limited request",
-                    ),
+                    provider_failure_report("provider_rate_limited", "Provider rate limited request", str(exc)),
                 )
                 return
             except ProviderTimeoutError as exc:
@@ -123,12 +120,7 @@ class WorkflowEngine:
                 self._log(task, TaskPhase.GENERATING_CODE, "LLM provider timed out", error=str(exc))
                 self._fail_task(
                     task,
-                    ValidationReport(
-                        decision=ValidationDecision.FAIL,
-                        passed=False,
-                        issues=[ValidationIssue(code="provider_timeout", message=str(exc))],
-                        summary="Provider timed out",
-                    ),
+                    provider_failure_report("provider_timeout", "Provider timed out", str(exc)),
                 )
                 return
             except ProviderResponseError as exc:
@@ -137,12 +129,7 @@ class WorkflowEngine:
                 self._log(task, TaskPhase.GENERATING_CODE, "LLM generation failed", error=str(exc))
                 self._fail_task(
                     task,
-                    ValidationReport(
-                        decision=ValidationDecision.FAIL,
-                        passed=False,
-                        issues=[ValidationIssue(code="generation_failed", message=str(exc))],
-                        summary="Generation failed",
-                    ),
+                    provider_failure_report("generation_failed", "Generation failed", str(exc)),
                 )
                 return
             self.metrics.increment("generation_runs")
@@ -181,21 +168,7 @@ class WorkflowEngine:
                     )
                     self._fail_task(
                         task,
-                        ValidationReport(
-                            decision=ValidationDecision.FAIL,
-                            passed=False,
-                            issues=[
-                                ValidationIssue(
-                                    code="latex_dependency_missing",
-                                    message=f"{message}: {', '.join(missing)}",
-                                )
-                            ],
-                            summary="Missing LaTeX runtime dependencies",
-                            details={
-                                "feature": "mathtex",
-                                "missing_checks": missing,
-                            },
-                        ),
+                        latex_dependency_report(message, missing),
                     )
                     return
             render_output_dir = self.artifact_store.final_video_path(task.task_id).parent
@@ -209,12 +182,7 @@ class WorkflowEngine:
             self.metrics.increment("render_runs")
             self.metrics.record_timing("render_seconds", render_result.duration_seconds)
             if render_result.exit_code != 0 or not render_result.video_path.exists():
-                report = ValidationReport(
-                    decision=ValidationDecision.FAIL,
-                    passed=False,
-                    issues=[ValidationIssue(code="render_failed", message=render_result.stderr or "Render failed")],
-                    summary="Render failed",
-                )
+                report = render_failure_report(render_result.stderr)
                 self._log(
                     task,
                     TaskPhase.RENDERING,
@@ -253,19 +221,7 @@ class WorkflowEngine:
             rule_report = self.rule_validator.validate(final_video_path, profile=task.validation_profile)
             self.metrics.increment("validation_runs")
             self.metrics.record_timing("validation_seconds", time.monotonic() - validation_started)
-            issues = [*hard_report.issues, *rule_report.issues]
-            passed = hard_report.passed and rule_report.passed
-            combined_report = ValidationReport(
-                decision=ValidationDecision.PASS if passed else ValidationDecision.FAIL,
-                passed=passed,
-                issues=issues,
-                summary="Validation passed" if passed else "Validation failed",
-                video_metadata=hard_report.video_metadata,
-                details={
-                    "hard": hard_report.model_dump(mode="json"),
-                    "rule": rule_report.model_dump(mode="json"),
-                },
-            )
+            combined_report = combined_validation_report(hard_report, rule_report)
             validation_report_path = self.artifact_store.validation_report_path(task.task_id)
             if not self._ensure_allowed_artifact_path(task, TaskPhase.VALIDATION, validation_report_path, "validation report"):
                 return
@@ -273,18 +229,15 @@ class WorkflowEngine:
             self.store.record_validation(task.task_id, combined_report)
             self.store.register_artifact(task.task_id, "validation_report", report_path)
 
-            if passed:
-                task.status = TaskStatus.COMPLETED
-                task.phase = TaskPhase.COMPLETED
+            task.status, task.phase = terminal_task_state(combined_report)
+            if combined_report.passed:
                 self.metrics.increment("tasks_completed")
             else:
-                task.status = TaskStatus.FAILED
-                task.phase = TaskPhase.FAILED
                 self.metrics.increment("tasks_failed")
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
             self.store.append_event(task.task_id, "task_finished", {"status": task.status.value})
-            self._log(task, task.phase, "Task finished", status=task.status.value, passed=passed)
+            self._log(task, task.phase, "Task finished", status=task.status.value, passed=combined_report.passed)
         except Exception as exc:
             self.metrics.increment("infra_failures")
             self._log(task, task.phase, "Infrastructure failure", error=str(exc))
@@ -368,6 +321,7 @@ class WorkflowEngine:
                 blocked_path=str(failure_context_path),
             )
         auto_repair_decision = self.auto_repair_service.maybe_schedule_repair(task)
+        self._record_repair_state(task, report, auto_repair_decision)
         self.store.append_event(
             task.task_id,
             "auto_repair_decision",
@@ -406,6 +360,22 @@ class WorkflowEngine:
             summary=report.summary,
         )
         self.metrics.increment("tasks_failed")
+
+    def _record_repair_state(self, task, report: ValidationReport, auto_repair_decision) -> None:
+        root_task_id = task.root_task_id or task.task_id
+        root_task = self.store.get_task(root_task_id)
+        if root_task is None:
+            return
+
+        root_task.repair_attempted = root_task.repair_attempted or auto_repair_decision.created or (
+            auto_repair_decision.reason not in {"disabled", "task_not_failed"}
+        )
+        root_task.repair_child_count = max(0, self.store.count_lineage_tasks(root_task_id) - 1)
+        if report.issues:
+            root_task.repair_last_issue_code = report.issues[0].code
+        root_task.repair_stop_reason = None if auto_repair_decision.created else auto_repair_decision.reason
+        self.store.update_task(root_task)
+        self.artifact_store.write_task_snapshot(root_task)
 
     def _transition(self, task, phase: TaskPhase) -> None:
         task.phase = phase

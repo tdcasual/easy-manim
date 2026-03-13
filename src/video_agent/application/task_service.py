@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.errors import AdmissionControlError
+from video_agent.application.repair_state import build_repair_state_snapshot
 from video_agent.application.revision_service import RevisionService
 from video_agent.config import Settings
 from video_agent.domain.enums import TaskPhase, TaskStatus
@@ -31,6 +32,7 @@ class VideoTaskSnapshot(BaseModel):
     inherited_from_task_id: Optional[str] = None
     latest_validation_summary: dict[str, Any] = Field(default_factory=dict)
     artifact_summary: dict[str, Any] = Field(default_factory=dict)
+    repair_state: dict[str, Any] = Field(default_factory=dict)
     auto_repair_summary: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -88,6 +90,7 @@ class TaskService:
         task = self._require_task(task_id)
         latest_validation = self.store.get_latest_validation(task_id)
         root_task_id = task.root_task_id or task.task_id
+        root_task = self._require_task(root_task_id)
         repair_children = max(0, self.store.count_lineage_tasks(root_task_id) - 1)
         artifact_summary = {
             "script_count": len(self.store.list_artifacts(task_id, "current_script")),
@@ -96,6 +99,7 @@ class TaskService:
             "repair_children": repair_children,
         }
         validation_summary = latest_validation.model_dump(mode="json") if latest_validation else {}
+        repair_state = build_repair_state_snapshot(root_task, repair_children)
         return VideoTaskSnapshot(
             task_id=task.task_id,
             status=task.status,
@@ -106,6 +110,7 @@ class TaskService:
             inherited_from_task_id=task.inherited_from_task_id,
             latest_validation_summary=validation_summary,
             artifact_summary=artifact_summary,
+            repair_state=repair_state.model_dump(mode="json"),
             auto_repair_summary=self._build_auto_repair_summary(root_task_id, repair_children),
         )
 
@@ -226,20 +231,18 @@ class TaskService:
         return self.artifact_store.resource_uri(task_id, file_path)
 
     def _build_auto_repair_summary(self, root_task_id: str, repair_children: int) -> dict[str, Any]:
+        root_task = self._require_task(root_task_id)
         latest_decision = self._latest_auto_repair_decision(root_task_id)
         remaining_budget = max(0, self.settings.auto_repair_max_children_per_root - repair_children)
-        stopped_reason = None
         latest_child_task_id = None
         if latest_decision is not None:
             latest_child_task_id = latest_decision.get("child_task_id")
-            if latest_decision.get("reason") != "created":
-                stopped_reason = latest_decision.get("reason")
 
         return {
             "enabled": self.settings.auto_repair_enabled,
             "repair_children": repair_children,
             "remaining_budget": remaining_budget,
-            "stopped_reason": stopped_reason,
+            "stopped_reason": root_task.repair_stop_reason,
             "latest_child_task_id": latest_child_task_id,
         }
 

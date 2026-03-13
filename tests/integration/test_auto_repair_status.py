@@ -63,6 +63,10 @@ def test_get_video_task_exposes_auto_repair_summary(tmp_path: Path) -> None:
 
     assert snapshot.artifact_summary["repair_children"] == 1
     assert snapshot.latest_validation_summary
+    assert snapshot.repair_state["attempted"] is True
+    assert snapshot.repair_state["child_count"] == 1
+    assert snapshot.repair_state["last_issue_code"] == "render_failed"
+    assert snapshot.repair_state["stop_reason"] == "budget_exhausted"
     assert snapshot.auto_repair_summary["enabled"] is True
     assert snapshot.auto_repair_summary["remaining_budget"] == 0
     assert snapshot.auto_repair_summary["stopped_reason"] == "budget_exhausted"

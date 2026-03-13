@@ -25,6 +25,10 @@ class VideoTask(BaseModel):
     output_profile: dict[str, Any] = Field(default_factory=dict)
     validation_profile: dict[str, Any] = Field(default_factory=dict)
     attempt_count: int = 0
+    repair_attempted: bool = False
+    repair_child_count: int = 0
+    repair_last_issue_code: Optional[str] = None
+    repair_stop_reason: Optional[str] = None
     current_script_artifact_id: Optional[str] = None
     best_result_artifact_id: Optional[str] = None
     created_at: datetime = Field(default_factory=_utcnow)
