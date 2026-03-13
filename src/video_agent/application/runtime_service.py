@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.config import Settings
+from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.validation.runtime_smoke import run_mathtex_smoke
 from video_agent.version import get_release_metadata
 
@@ -57,11 +58,21 @@ class RuntimeReleaseStatus(BaseModel):
     channel: str
 
 
+class RuntimeSandboxStatus(BaseModel):
+    network_disabled: bool
+    temp_root: str
+    temp_root_allowed: bool
+    process_limit: int | None = None
+    memory_limit_mb: int | None = None
+    resource_limits_supported: bool
+
+
 class RuntimeStatus(BaseModel):
     storage: RuntimeStorageStatus
     provider: RuntimeProviderStatus
     worker: RuntimeWorkerStatus
     release: RuntimeReleaseStatus
+    sandbox: RuntimeSandboxStatus
     checks: dict[str, RuntimeCheckResult]
     features: dict[str, RuntimeFeatureStatus]
 
@@ -70,9 +81,15 @@ class RuntimeService:
     CORE_CHECK_NAMES = ("manim", "ffmpeg", "ffprobe")
     MATHTEX_CHECK_NAMES = ("latex", "dvisvgm")
 
-    def __init__(self, settings: Settings, store: SQLiteTaskStore | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        store: SQLiteTaskStore | None = None,
+        runtime_policy: RuntimePolicy | None = None,
+    ) -> None:
         self.settings = settings
         self.store = store
+        self.runtime_policy = runtime_policy
 
     def inspect(self, run_feature_smoke: bool = False) -> RuntimeStatus:
         checks = self.inspect_checks()
@@ -95,6 +112,7 @@ class RuntimeService:
                 version=get_release_metadata()["version"],
                 channel=self.settings.release_channel,
             ),
+            sandbox=RuntimeSandboxStatus.model_validate(self._sandbox_status()),
             checks=checks,
             features={
                 "mathtex": self.inspect_mathtex_feature(checks, run_smoke=run_feature_smoke),
@@ -171,6 +189,17 @@ class RuntimeService:
         if self.settings.llm_provider == "openai_compatible":
             return bool(self.settings.llm_base_url and self.settings.llm_api_key)
         return False
+
+    def _sandbox_status(self) -> dict[str, object]:
+        policy = self.runtime_policy or RuntimePolicy(
+            work_root=self.settings.artifact_root,
+            render_timeout_seconds=self.settings.render_timeout_seconds,
+            network_disabled=self.settings.sandbox_network_disabled,
+            process_limit=self.settings.sandbox_process_limit,
+            memory_limit_mb=self.settings.sandbox_memory_limit_mb,
+            temp_root=self.settings.sandbox_temp_root,
+        )
+        return policy.describe()
 
     def _check_command(self, command: str) -> RuntimeCheckResult:
         executable = self._extract_executable(command)

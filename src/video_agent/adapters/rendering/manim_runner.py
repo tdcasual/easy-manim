@@ -8,6 +8,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from video_agent.safety.runtime_policy import RuntimePolicy
+
 
 class RenderResult(BaseModel):
     video_path: Path
@@ -28,6 +30,7 @@ class ManimRunner:
         output_dir: Path,
         timeout_seconds: float | None = None,
         env: dict[str, str] | None = None,
+        sandbox_policy: RuntimePolicy | None = None,
     ) -> RenderResult:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -35,7 +38,11 @@ class ManimRunner:
         output_name = "final_video.mp4"
         start = time.monotonic()
         effective_env = None
-        if self.base_env or env:
+        preexec_fn = None
+        if sandbox_policy is not None:
+            effective_env = sandbox_policy.prepare_render_environment(self.base_env, env)
+            preexec_fn = sandbox_policy.build_preexec_fn()
+        elif self.base_env or env:
             effective_env = dict(os.environ)
             effective_env.update(self.base_env)
             effective_env.update(env or {})
@@ -56,6 +63,7 @@ class ManimRunner:
                 check=False,
                 timeout=timeout_seconds,
                 env=effective_env,
+                preexec_fn=preexec_fn,
             )
             stdout = completed.stdout
             stderr = completed.stderr

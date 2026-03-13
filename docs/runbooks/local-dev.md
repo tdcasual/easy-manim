@@ -21,6 +21,12 @@ python -m pip install -e '.[dev]'
 - override `EASY_MANIM_MANIM_COMMAND`, `EASY_MANIM_FFMPEG_COMMAND`, and `EASY_MANIM_FFPROBE_COMMAND` when testing with custom binaries
 - override `EASY_MANIM_LATEX_COMMAND` and `EASY_MANIM_DVISVGM_COMMAND` when TeX tools are not discoverable on PATH
 - use `EASY_MANIM_MAX_QUEUED_TASKS` and `EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK` to tune beta safety rails
+- sandbox controls:
+  - `EASY_MANIM_RENDER_TIMEOUT_SECONDS`
+  - `EASY_MANIM_SANDBOX_NETWORK_DISABLED`
+  - `EASY_MANIM_SANDBOX_PROCESS_LIMIT`
+  - `EASY_MANIM_SANDBOX_MEMORY_LIMIT_MB`
+  - `EASY_MANIM_SANDBOX_TEMP_ROOT`
 - if TeX conversion depends on variables such as `TEXMFCNF`, export them **before** starting `easy-manim-mcp` or `easy-manim-worker`; the render subprocess now snapshots that environment from the service process
 
 ## Run doctor
@@ -82,6 +88,7 @@ easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_i
 - task logs are written to `data/tasks/<task_id>/logs/events.jsonl`
 - artifacts are written under `data/tasks/<task_id>/`
 - worker heartbeats are persisted in SQLite and surfaced through `get_runtime_status`
+- `get_runtime_status` now exposes the active sandbox profile, including temp root validity and optional network / process / memory restrictions
 
 ## Current limitation
 - task storage is still SQLite + local filesystem only; this is beta-ready, not distributed-queue ready.

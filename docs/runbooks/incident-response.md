@@ -76,3 +76,17 @@ cat data/tasks/<task_id>/logs/events.jsonl
 cat data/tasks/<task_id>/validations/validation_report_v1.json
 ```
 - Escalation boundary: if diagnostics show correct binaries and reproducible failures, capture the exported task bundle and escalate with logs
+
+## Sandbox policy blocks render launch
+- Symptom: task reaches `failed` with `sandbox_policy_violation`
+- Likely cause: configured sandbox temp root escaped the artifact work root, or the local sandbox profile no longer matches the current data directory
+- First checks:
+  - inspect `get_runtime_status` for the `sandbox` section
+  - inspect `data/tasks/<task_id>/artifacts/failure_context.json` for `sandbox_policy`
+  - confirm `EASY_MANIM_SANDBOX_TEMP_ROOT` remains under `data/tasks/`
+- Exact commands:
+```bash
+source .venv/bin/activate
+cat data/tasks/<task_id>/artifacts/failure_context.json
+```
+- Escalation boundary: only relax sandbox settings after confirming the temp root is intentionally outside the artifact root

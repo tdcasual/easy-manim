@@ -39,6 +39,13 @@ def _env_int(name: str, default: int) -> int:
     return int(value)
 
 
+def _env_optional_int(name: str) -> int | None:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return None
+    return int(value)
+
+
 
 def _env_float(name: str, default: float) -> float:
     value = os.getenv(name)
@@ -68,6 +75,13 @@ def _render_environment() -> dict[str, str]:
     return {key: value for key in keys if (value := os.getenv(key))}
 
 
+def _env_path(name: str) -> Path | None:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return None
+    return Path(value)
+
+
 
 def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings:
     return Settings(
@@ -81,6 +95,11 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         ffmpeg_command=os.getenv("EASY_MANIM_FFMPEG_COMMAND", "ffmpeg"),
         ffprobe_command=os.getenv("EASY_MANIM_FFPROBE_COMMAND", "ffprobe"),
         render_environment=_render_environment(),
+        render_timeout_seconds=_env_int("EASY_MANIM_RENDER_TIMEOUT_SECONDS", 300),
+        sandbox_network_disabled=_env_bool("EASY_MANIM_SANDBOX_NETWORK_DISABLED", False),
+        sandbox_process_limit=_env_optional_int("EASY_MANIM_SANDBOX_PROCESS_LIMIT"),
+        sandbox_memory_limit_mb=_env_optional_int("EASY_MANIM_SANDBOX_MEMORY_LIMIT_MB"),
+        sandbox_temp_root=_env_path("EASY_MANIM_SANDBOX_TEMP_ROOT"),
         release_channel=os.getenv("EASY_MANIM_RELEASE_CHANNEL", "beta"),
         default_poll_after_ms=_env_int("EASY_MANIM_DEFAULT_POLL_AFTER_MS", 2000),
         llm_provider=os.getenv("EASY_MANIM_LLM_PROVIDER", "stub"),

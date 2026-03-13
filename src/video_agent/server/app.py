@@ -59,8 +59,15 @@ def create_app_context(settings: Settings) -> AppContext:
     store.initialize()
     artifact_store = ArtifactStore(settings.artifact_root, eval_root=settings.eval_root)
     task_service = TaskService(store=store, artifact_store=artifact_store, settings=settings)
-    runtime_service = RuntimeService(settings=settings, store=store)
-    runtime_policy = RuntimePolicy(work_root=settings.artifact_root)
+    runtime_policy = RuntimePolicy(
+        work_root=settings.artifact_root,
+        render_timeout_seconds=settings.render_timeout_seconds,
+        network_disabled=settings.sandbox_network_disabled,
+        process_limit=settings.sandbox_process_limit,
+        memory_limit_mb=settings.sandbox_memory_limit_mb,
+        temp_root=settings.sandbox_temp_root,
+    )
+    runtime_service = RuntimeService(settings=settings, store=store, runtime_policy=runtime_policy)
     metrics = MetricsCollector()
     workflow_engine = WorkflowEngine(
         store=store,

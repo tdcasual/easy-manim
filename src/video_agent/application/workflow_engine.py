@@ -30,7 +30,7 @@ from video_agent.domain.enums import TaskPhase, TaskStatus, ValidationDecision
 from video_agent.domain.validation_models import ValidationIssue, ValidationReport
 from video_agent.observability.logging import build_log_event
 from video_agent.observability.metrics import MetricsCollector
-from video_agent.safety.runtime_policy import RuntimePolicy
+from video_agent.safety.runtime_policy import RuntimePolicy, RuntimePolicyError
 from video_agent.validation.hard_validation import HardValidator
 from video_agent.validation.latex_support import script_uses_latex
 from video_agent.validation.rule_validation import RuleValidator
@@ -174,11 +174,34 @@ class WorkflowEngine:
             render_output_dir = self.artifact_store.final_video_path(task.task_id).parent
             if not self._ensure_allowed_artifact_path(task, TaskPhase.RENDERING, render_output_dir, "render output directory"):
                 return
-            render_result = self.manim_runner.render(
-                script_path,
-                render_output_dir,
-                timeout_seconds=self.runtime_policy.render_timeout_seconds,
-            )
+            try:
+                render_result = self.manim_runner.render(
+                    script_path,
+                    render_output_dir,
+                    timeout_seconds=self.runtime_policy.render_timeout_seconds,
+                    sandbox_policy=self.runtime_policy,
+                )
+            except RuntimePolicyError as exc:
+                sandbox_policy = {"code": exc.code, "message": str(exc), **exc.details}
+                self.metrics.increment("runtime_policy_violations")
+                self._log(
+                    task,
+                    TaskPhase.RENDERING,
+                    "Sandbox policy blocked render launch",
+                    sandbox_policy=sandbox_policy,
+                    sandbox_error=str(exc),
+                )
+                self._fail_task(
+                    task,
+                    ValidationReport(
+                        decision=ValidationDecision.FAIL,
+                        passed=False,
+                        issues=[ValidationIssue(code="sandbox_policy_violation", message=str(exc))],
+                        summary="Sandbox policy violation",
+                        details={"sandbox_policy": sandbox_policy},
+                    ),
+                )
+                return
             self.metrics.increment("render_runs")
             self.metrics.record_timing("render_seconds", render_result.duration_seconds)
             if render_result.exit_code != 0 or not render_result.video_path.exists():

@@ -40,6 +40,7 @@ def build_failure_context(
             artifact_store.resource_uri(task.task_id, current_script_path) if current_script_exists else None
         ),
         "semantic_diagnostics": semantic_diagnostics,
+        "sandbox_policy": report.details.get("sandbox_policy") if report.details else None,
     }
     return failure_context
 

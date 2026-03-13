@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from video_agent.adapters.rendering.manim_runner import ManimRunner
+from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.validation.hard_validation import HardValidator
 
 
@@ -81,3 +82,43 @@ def test_manim_runner_passes_explicit_environment_to_subprocess(tmp_path: Path) 
 
     assert render_result.exit_code == 0
     assert (output_dir / "env-captured.txt").read_text() == "/expected/path"
+
+
+def test_manim_runner_applies_sandbox_environment(tmp_path: Path) -> None:
+    work_root = tmp_path / "sandbox-root"
+    script_path = work_root / "scene.py"
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text(FAKE_SCRIPT)
+    output_dir = work_root / "out"
+    sandbox_tmp = work_root / ".sandbox" / "tmp"
+
+    fake_manim = tmp_path / "fake_manim_sandbox.sh"
+    _write_executable(
+        fake_manim,
+        "#!/bin/sh\n"
+        "printf '%s\\n%s\\n%s\\n' \"$TMPDIR\" \"$http_proxy\" \"$NO_PROXY\" > \"$5/sandbox-env.txt\"\n"
+        "script_name=$(basename \"$2\" .py)\n"
+        "mkdir -p \"$5/videos/$script_name/480p15\"\n"
+        "printf 'fake-video' > \"$5/videos/$script_name/480p15/$7\"\n",
+    )
+
+    policy = RuntimePolicy(
+        work_root=work_root,
+        network_disabled=True,
+        temp_root=sandbox_tmp,
+        process_limit=1,
+        memory_limit_mb=128,
+    )
+    render_result = ManimRunner(command=str(fake_manim)).render(
+        script_path,
+        output_dir,
+        timeout_seconds=30,
+        env={"http_proxy": "http://blocked.test"},
+        sandbox_policy=policy,
+    )
+
+    captured = (output_dir / "sandbox-env.txt").read_text().splitlines()
+    assert render_result.exit_code == 0
+    assert captured[0] == str(sandbox_tmp)
+    assert captured[1] == ""
+    assert captured[2] == "*"

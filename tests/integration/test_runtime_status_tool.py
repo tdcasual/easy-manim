@@ -40,5 +40,9 @@ def test_runtime_status_tool_reports_binary_and_provider_state(tmp_path: Path) -
     assert payload["features"]["mathtex"]["missing_checks"] == []
     assert payload["features"]["mathtex"]["smoke_error"] is None
     assert payload["worker"]["embedded"] is False
+    assert payload["sandbox"]["network_disabled"] is False
+    assert payload["sandbox"]["temp_root_allowed"] is True
+    assert payload["sandbox"]["process_limit"] is None
+    assert payload["sandbox"]["memory_limit_mb"] is None
     assert payload["release"]["version"]
     assert payload["release"]["channel"] == "beta"
