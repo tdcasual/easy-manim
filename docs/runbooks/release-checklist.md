@@ -6,7 +6,9 @@
 - Run `python scripts/beta_smoke.py --mode ci`
 - Run `python scripts/release_candidate_gate.py --mode ci`
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json`
+- Set `EASY_MANIM_AUTO_REPAIR_ENABLED=true`, then run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag repair --json`
 - Confirm the emitted run writes `summary.json` and `summary.md` under `data/evals/<run_id>/`
+- Confirm `summary.json` includes `report.repair` with repair attempt / success metrics
 - Run `easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip`
 - Start `easy-manim-mcp --transport stdio` and confirm the process stays up
 - Start `easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker` and confirm the process stays up
@@ -29,4 +31,5 @@
 - Copy `.env.beta.example` to `.env.beta` before real-provider trials
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --json`
 - Export the corresponding qa bundle and attach it to the RC review
+- Verify the repair-tagged slice meets the configured repair success threshold before marking RC as go
 - Record the go / no-go decision with `docs/templates/release-candidate-decision.md`

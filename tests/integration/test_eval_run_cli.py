@@ -87,3 +87,43 @@ def test_eval_run_cli_writes_summary_json(tmp_path: Path) -> None:
     assert payload["total_cases"] >= 1
     assert (data_dir / "evals" / payload["run_id"] / "summary.json").exists()
     assert completed.returncode == 0
+
+
+def test_eval_run_cli_reports_repair_metrics(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    commands = _build_fake_commands(tmp_path)
+    env = os.environ.copy()
+    env["PATH"] = "/usr/bin:/bin"
+    env["EASY_MANIM_MANIM_COMMAND"] = str(commands["manim"])
+    env["EASY_MANIM_FFMPEG_COMMAND"] = str(commands["ffmpeg"])
+    env["EASY_MANIM_FFPROBE_COMMAND"] = str(commands["ffprobe"])
+    env["EASY_MANIM_AUTO_REPAIR_ENABLED"] = "true"
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "video_agent.eval.main",
+            "--data-dir",
+            str(data_dir),
+            "--suite",
+            "evals/beta_prompt_suite.json",
+            "--include-tag",
+            "repair",
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+    payload = json.loads(completed.stdout)
+
+    assert payload["total_cases"] == 1
+    assert payload["items"][0]["repair_attempted"] is True
+    assert payload["items"][0]["repair_success"] is True
+    assert payload["report"]["repair"]["case_count"] == 1
+    assert payload["report"]["repair"]["repair_attempt_rate"] == 1.0
+    assert payload["report"]["repair"]["repair_success_rate"] == 1.0
+    assert completed.returncode == 0

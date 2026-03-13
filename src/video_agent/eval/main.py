@@ -36,7 +36,9 @@ def main() -> None:
     if args.json:
         print(json.dumps(payload))
     else:
-        print(f"{payload['run_id']} {payload['suite_id']} {payload['total_cases']}")
+        repair_report = payload["report"].get("repair", {})
+        repair_success_rate = repair_report.get("repair_success_rate", 0.0)
+        print(f"{payload['run_id']} {payload['suite_id']} {payload['total_cases']} repair_success_rate={repair_success_rate:.2f}")
 
 if __name__ == "__main__":
     main()

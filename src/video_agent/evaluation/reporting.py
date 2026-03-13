@@ -45,4 +45,16 @@ def render_eval_report_markdown(summary: dict[str, Any]) -> str:
             lines.append(f"- `{code}`: {count}")
     else:
         lines.append("- None")
+    repair_report = summary["report"].get("repair")
+    if repair_report:
+        lines.extend(
+            [
+                "",
+                "## Repair Slice",
+                f"- Repair Cases: {repair_report['case_count']}",
+                f"- Repair Attempt Rate: {repair_report['repair_attempt_rate']:.2%}",
+                f"- Repair Success Rate: {repair_report['repair_success_rate']:.2%}",
+                f"- Avg Children / Repaired Root: {repair_report['average_children_per_repaired_root']}",
+            ]
+        )
     return "\n".join(lines) + "\n"

@@ -6,6 +6,7 @@ Run the curated `real-provider` subset from `evals/beta_prompt_suite.json`, coll
 ## Choose the RC subset
 - The release-candidate subset is defined by the `real-provider` tag in `evals/beta_prompt_suite.json`.
 - Keep the deterministic smoke subset for CI with `--include-tag smoke`.
+- Keep the deterministic repair subset for CI / preflight with `--include-tag repair`.
 - Use the real-provider subset only in a manually supervised environment with real credentials.
 
 ## Prepare the environment
@@ -24,6 +25,7 @@ Required variables in `.env.beta`:
 - `EASY_MANIM_LLM_BASE_URL=<provider-base-url>`
 - `EASY_MANIM_LLM_API_KEY=<provider-api-key>`
 - `EASY_MANIM_RELEASE_CHANNEL=rc`
+- `EASY_MANIM_AUTO_REPAIR_ENABLED=true`
 
 If the selected prompts may render formulas with `MathTex` / `Tex`, also ensure:
 - `latex` is available on PATH, or `EASY_MANIM_LATEX_COMMAND` points to it
@@ -35,6 +37,7 @@ If the selected prompts may render formulas with `MathTex` / `Tex`, also ensure:
 source .venv/bin/activate
 easy-manim-doctor --json --require-latex
 python scripts/release_candidate_gate.py --mode ci
+easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag repair --json
 ```
 
 ## Run the real-provider evaluation
@@ -60,6 +63,7 @@ The qa bundle should contain the run summary plus task-local artifacts under `ta
 Capture the following during review:
 - prompts that failed or regressed
 - top failure codes from `summary.json`
+- repair attempt / success rates from the deterministic repair slice
 - render quality issues not caught by validators
 - provider-specific latency or reliability observations
 - whether any issues block beta-to-RC promotion

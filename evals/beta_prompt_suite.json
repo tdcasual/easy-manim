@@ -20,6 +20,11 @@
       "case_id": "provider-mathtex-formula",
       "prompt": "show the quadratic formula using MathTex and briefly highlight the discriminant term",
       "tags": ["real-provider", "mathtex"]
+    },
+    {
+      "case_id": "repair-missing-scene",
+      "prompt": "repair a broken manim script that forgot to define a Scene subclass",
+      "tags": ["repair", "semantic-repair"]
     }
   ]
 }

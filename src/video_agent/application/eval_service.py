@@ -1,21 +1,40 @@
 from __future__ import annotations
 
 import time
+from contextlib import contextmanager
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.evaluation.corpus import load_prompt_suite
+from video_agent.evaluation.repair_reporting import build_repair_report
 from video_agent.evaluation.reporting import build_eval_report, render_eval_report_markdown
 from video_agent.server.app import AppContext
+
+
+GOOD_REPAIR_SCRIPT = (
+    "from manim import Circle, Create, Scene\n\n"
+    "class RepairedScene(Scene):\n"
+    "    def construct(self):\n"
+    "        circle = Circle()\n"
+    "        self.play(Create(circle))\n"
+)
+BROKEN_REPAIR_SCRIPT = "from manim import Circle\ncircle = Circle()\n"
 
 
 class EvaluationCaseResult(BaseModel):
     case_id: str
     task_id: str
+    root_task_id: str
     status: str
     duration_seconds: float
+    tags: list[str] = Field(default_factory=list)
     issue_codes: list[str] = Field(default_factory=list)
+    repair_attempted: bool = False
+    repair_children: int = 0
+    repair_success: bool = False
+    repair_stop_reason: str | None = None
 
 
 class EvaluationRunSummary(BaseModel):
@@ -39,29 +58,32 @@ class EvaluationService:
 
         for case in cases:
             started = time.monotonic()
-            created = self.context.task_service.create_video_task(
-                prompt=case.prompt,
-                idempotency_key=f"eval:{run_id}:{case.case_id}",
-            )
-            while True:
-                processed = self.context.worker.run_once()
-                snapshot = self.context.task_service.get_video_task(created.task_id)
-                if snapshot.status in {"completed", "failed", "cancelled"}:
-                    break
-                if processed == 0:
-                    time.sleep(self.context.settings.worker_poll_interval_seconds)
-            issues = [item["code"] for item in snapshot.latest_validation_summary.get("issues", [])]
+            with self._override_llm_client_for_case(case.tags):
+                created = self.context.task_service.create_video_task(
+                    prompt=case.prompt,
+                    idempotency_key=f"eval:{run_id}:{case.case_id}",
+                )
+                root_snapshot, terminal_snapshot = self._wait_for_lineage(created.task_id)
+            issues = [item["code"] for item in terminal_snapshot.latest_validation_summary.get("issues", [])]
             items.append(
                 EvaluationCaseResult(
                     case_id=case.case_id,
-                    task_id=created.task_id,
-                    status=snapshot.status,
+                    task_id=terminal_snapshot.task_id,
+                    root_task_id=created.task_id,
+                    status=terminal_snapshot.status,
                     duration_seconds=round(time.monotonic() - started, 4),
+                    tags=list(case.tags),
                     issue_codes=issues,
+                    repair_attempted=bool(root_snapshot.repair_state.get("attempted")),
+                    repair_children=int(root_snapshot.repair_state.get("child_count", 0) or 0),
+                    repair_success=bool(root_snapshot.repair_state.get("attempted")) and terminal_snapshot.status == "completed",
+                    repair_stop_reason=root_snapshot.repair_state.get("stop_reason"),
                 )
             )
 
-        report = build_eval_report([item.model_dump(mode="json") for item in items])
+        item_payloads = [item.model_dump(mode="json") for item in items]
+        report = build_eval_report(item_payloads)
+        report["repair"] = build_repair_report(item_payloads)
         summary = EvaluationRunSummary(
             run_id=run_id,
             suite_id=suite.suite_id,
@@ -74,3 +96,42 @@ class EvaluationService:
         self.context.artifact_store.write_eval_summary(run_id, payload)
         self.context.artifact_store.write_eval_summary_markdown(run_id, render_eval_report_markdown(payload))
         return summary
+
+    def _wait_for_lineage(self, root_task_id: str):
+        terminal_statuses = {"completed", "failed", "cancelled"}
+        while True:
+            processed = self.context.worker.run_once()
+            root_snapshot = self.context.task_service.get_video_task(root_task_id)
+            latest_child_id = root_snapshot.auto_repair_summary.get("latest_child_task_id")
+            terminal_task_id = latest_child_id or root_task_id
+            terminal_snapshot = self.context.task_service.get_video_task(terminal_task_id)
+            if terminal_snapshot.status in terminal_statuses:
+                if latest_child_id is None or terminal_snapshot.task_id == latest_child_id:
+                    return root_snapshot, terminal_snapshot
+            if processed == 0:
+                time.sleep(self.context.settings.worker_poll_interval_seconds)
+
+    @contextmanager
+    def _override_llm_client_for_case(self, tags: list[str]):
+        if "repair" not in tags or self.context.settings.llm_provider != "stub":
+            yield
+            return
+
+        original_client = self.context.workflow_engine.llm_client
+        self.context.workflow_engine.llm_client = _SequenceLLMClient([BROKEN_REPAIR_SCRIPT, GOOD_REPAIR_SCRIPT])
+        try:
+            yield
+        finally:
+            self.context.workflow_engine.llm_client = original_client
+
+
+class _SequenceLLMClient(StubLLMClient):
+    def __init__(self, scripts: list[str]) -> None:
+        super().__init__(script=scripts[-1] if scripts else GOOD_REPAIR_SCRIPT)
+        self._scripts = list(scripts)
+        self._fallback = scripts[-1] if scripts else GOOD_REPAIR_SCRIPT
+
+    def generate_script(self, prompt_text: str) -> str:
+        if self._scripts:
+            return self._scripts.pop(0)
+        return self._fallback
