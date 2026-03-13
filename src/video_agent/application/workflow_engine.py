@@ -311,6 +311,15 @@ class WorkflowEngine:
                 artifact_store=self.artifact_store,
                 events=self.store.list_events(task.task_id),
             )
+            semantic_diagnostics = failure_context.get("semantic_diagnostics") or []
+            if semantic_diagnostics:
+                self._log(
+                    task,
+                    TaskPhase.FAILED,
+                    "Semantic diagnostics captured",
+                    count=len(semantic_diagnostics),
+                    codes=[item.get("code") for item in semantic_diagnostics],
+                )
             written_failure_context_path = self.artifact_store.write_failure_context(task.task_id, failure_context)
             self.store.register_artifact(task.task_id, "failure_context", written_failure_context_path)
         else:

@@ -114,6 +114,14 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
 - `queue_full`: admission control rejected a new task
 - `attempt_limit_reached`: admission control rejected a retry
 
+## Semantic repair inspection
+- inspect `data/tasks/<task_id>/artifacts/failure_context.json` for `semantic_diagnostics`
+- expect structured entries such as:
+  - `unsupported_helper_kwargs`
+  - `coordinate_object_method_call`
+  - `missing_scene_subclass`
+- if auto-repair is enabled, confirm `get_video_task` and `get_task_events` show an `auto_repair_decision`, then inspect the child task feedback for the semantic hints that were forwarded into the repair prompt
+
 ## Cleanup old beta data
 ```bash
 source .venv/bin/activate

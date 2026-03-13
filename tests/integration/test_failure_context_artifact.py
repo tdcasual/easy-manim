@@ -2,6 +2,7 @@ import asyncio
 import json
 from pathlib import Path
 
+import video_agent.server.app as app_module
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
 from video_agent.server.fastmcp_server import create_mcp_server
@@ -51,7 +52,21 @@ def _build_failing_render_settings(tmp_path: Path) -> Settings:
     )
 
 
-def test_failed_task_writes_failure_context_artifact(tmp_path: Path) -> None:
+class HelperKwargLLMClient:
+    def generate_script(self, prompt_text: str) -> str:
+        return (
+            "from manim import Axes, RED, Scene\n\n"
+            "class GeneratedScene(Scene):\n"
+            "    def construct(self):\n"
+            "        axes = Axes()\n"
+            "        point_a = axes.c2p(1, 2)\n"
+            "        helper = axes.get_v_line(point_a, color=RED, opacity=0.5)\n"
+            "        self.add(axes, helper)\n"
+        )
+
+
+def test_failed_task_writes_failure_context_artifact(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: HelperKwargLLMClient(), raising=False)
     app = create_app_context(_build_failing_render_settings(tmp_path))
     created = app.task_service.create_video_task(prompt="draw a circle")
 
@@ -66,6 +81,12 @@ def test_failed_task_writes_failure_context_artifact(tmp_path: Path) -> None:
     assert payload["summary"] == "Render failed"
     assert "simulated render failure" in payload["stderr"]
     assert payload["current_script_resource"] == f"video-task://{created.task_id}/artifacts/current_script.py"
+    assert any(
+        item["code"] == "unsupported_helper_kwargs"
+        and item["call_name"] == "get_v_line"
+        and item["keywords"] == ["color", "opacity"]
+        for item in payload["semantic_diagnostics"]
+    )
 
 
 def test_failure_context_artifact_is_available_as_mcp_resource(tmp_path: Path) -> None:

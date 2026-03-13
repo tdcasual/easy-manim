@@ -5,6 +5,7 @@ from typing import Any
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.domain.models import VideoTask
 from video_agent.domain.validation_models import ValidationReport
+from video_agent.validation.script_diagnostics import collect_script_diagnostics
 
 
 def build_failure_context(
@@ -16,6 +17,11 @@ def build_failure_context(
     top_issue = report.issues[0] if report.issues else None
     current_script_path = artifact_store.script_path(task.task_id)
     current_script_exists = current_script_path.exists()
+    semantic_diagnostics = []
+    if current_script_exists:
+        semantic_diagnostics = [
+            item.model_dump(mode="json") for item in collect_script_diagnostics(current_script_path.read_text())
+        ]
 
     failure_context = {
         "task_id": task.task_id,
@@ -33,6 +39,7 @@ def build_failure_context(
         "current_script_resource": (
             artifact_store.resource_uri(task.task_id, current_script_path) if current_script_exists else None
         ),
+        "semantic_diagnostics": semantic_diagnostics,
     }
     return failure_context
 

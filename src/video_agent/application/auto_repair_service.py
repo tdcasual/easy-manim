@@ -99,6 +99,9 @@ class AutoRepairService:
         missing_checks = failure_context.get("missing_checks") or []
         if missing_checks:
             lines.append(f"Missing runtime checks: {', '.join(str(item) for item in missing_checks)}.")
+        semantic_diagnostics = failure_context.get("semantic_diagnostics") or []
+        for item in semantic_diagnostics[:3]:
+            lines.append(self._format_semantic_diagnostic(item))
         if script_resource := failure_context.get("current_script_resource"):
             lines.append(f"Use {script_resource} as the starting point for the revision.")
 
@@ -116,3 +119,21 @@ class AutoRepairService:
         if len(condensed) <= limit:
             return condensed
         return condensed[: limit - 3] + "..."
+
+    def _format_semantic_diagnostic(self, item: dict[str, Any]) -> str:
+        code = item.get("code") or "unknown"
+        line = item.get("line")
+        call_name = item.get("call_name")
+        keywords = item.get("keywords") or []
+        parts = [f"Semantic diagnosis: {code}"]
+        if call_name:
+            parts.append(f"on {call_name}")
+        if line:
+            parts.append(f"at line {line}")
+        if keywords:
+            parts.append(f"with keywords {', '.join(str(keyword) for keyword in keywords)}")
+        message = item.get("message")
+        detail = " ".join(parts) + "."
+        if message:
+            detail = f"{detail} {self._condense(str(message))}."
+        return detail
