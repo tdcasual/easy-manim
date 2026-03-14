@@ -21,6 +21,12 @@ python -m pip install -e '.[dev]'
 - override `EASY_MANIM_MANIM_COMMAND`, `EASY_MANIM_FFMPEG_COMMAND`, and `EASY_MANIM_FFPROBE_COMMAND` when testing with custom binaries
 - override `EASY_MANIM_LATEX_COMMAND` and `EASY_MANIM_DVISVGM_COMMAND` when TeX tools are not discoverable on PATH
 - use `EASY_MANIM_MAX_QUEUED_TASKS` and `EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK` to tune beta safety rails
+- production render defaults:
+  - `EASY_MANIM_DEFAULT_QUALITY_PRESET=development|preview|production`
+  - `EASY_MANIM_DEFAULT_FRAME_RATE=<positive integer>`
+  - `EASY_MANIM_DEFAULT_PIXEL_WIDTH=<positive integer>`
+  - `EASY_MANIM_DEFAULT_PIXEL_HEIGHT=<positive integer>`
+  - per-task `output_profile` values still override these defaults
 - sandbox controls:
   - `EASY_MANIM_RENDER_TIMEOUT_SECONDS`
   - `EASY_MANIM_SANDBOX_NETWORK_DISABLED`
@@ -87,6 +93,7 @@ easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_i
 - server startup can run a local background worker loop or skip it for two-process mode
 - task logs are written to `data/tasks/<task_id>/logs/events.jsonl`
 - artifacts are written under `data/tasks/<task_id>/`
+- scene plans are persisted under `data/tasks/<task_id>/artifacts/scene_plan.json`
 - worker heartbeats are persisted in SQLite and surfaced through `get_runtime_status`
 - `get_runtime_status` now exposes the active sandbox profile, including temp root validity and optional network / process / memory restrictions
 

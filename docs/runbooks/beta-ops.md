@@ -49,7 +49,10 @@ easy-manim-worker --data-dir data
 5. If needed, inspect:
    - `data/tasks/<task_id>/task.json`
    - `data/tasks/<task_id>/logs/events.jsonl`
+   - `data/tasks/<task_id>/artifacts/scene_plan.json`
    - `data/tasks/<task_id>/validations/validation_report_v1.json`
+
+You can pass `style_hints` alongside `prompt`, `output_profile`, and `validation_profile` when creating a task. Use it for operator-controlled guidance such as tone, pacing, or layout intent; the workflow will persist a deterministic scene plan before generation.
 
 You can tighten validation per task with `validation_profile`, for example:
 
@@ -64,6 +67,7 @@ You can tighten validation per task with `validation_profile`, for example:
 
 - use higher thresholds for release-candidate prompts
 - disable a heuristic only when the operator understands the tradeoff and the task bundle will still be reviewed manually
+- preview quality checks may add issue codes such as `near_blank_preview` and `static_previews`; treat them as visual quality failures even when the render technically succeeded
 
 ## Deterministic evaluation runs
 Use the smoke subset for deterministic checks:
@@ -73,9 +77,25 @@ source .venv/bin/activate
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json
 ```
 
+Use the quality slice when you want a narrow read on visual quality regressions:
+
+```bash
+source .venv/bin/activate
+easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag quality --json
+```
+
+Use the real-provider quality intersection when you want only prompts that are both manually supervised and quality-sensitive:
+
+```bash
+source .venv/bin/activate
+easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --include-tag quality --match-all-tags --json
+```
+
 Artifacts are written under `data/evals/<run_id>/`:
 - `summary.json`
 - `summary.md`
+
+Quality-enabled eval summaries now include `report.quality`, with pass-rate, median quality score, and aggregated quality issue counts. The CLI text output also prints `quality_pass_rate=...` for quick inspection.
 
 Export a reviewer bundle with:
 
@@ -113,6 +133,8 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
 - `infra_error`: unexpected local exception outside normalized failure mapping
 - `queue_full`: admission control rejected a new task
 - `attempt_limit_reached`: admission control rejected a retry
+- `near_blank_preview`: preview frames start effectively blank
+- `static_previews`: preview frames show too little motion across the sampled sequence
 
 ## Semantic repair inspection
 - inspect `data/tasks/<task_id>/artifacts/failure_context.json` for `semantic_diagnostics`
@@ -143,5 +165,6 @@ easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_i
 - verify `easy-manim-worker` is running if the server started with `--no-embedded-worker`
 - inspect `logs/events.jsonl` for the latest task phase and error message
 - inspect `get_task_events` for the failing task
+- inspect `artifacts/scene_plan.json` to confirm the planner chose the expected scene class, transition style, and animation recipes
 - check `validation_report_v1.json` for normalized issue codes
 - confirm the configured `manim`, `ffmpeg`, and `ffprobe` binaries are reachable

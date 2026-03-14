@@ -6,9 +6,14 @@
 - Run `python scripts/beta_smoke.py --mode ci`
 - Run `python scripts/release_candidate_gate.py --mode ci`
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json`
+- Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag quality --json`
+- Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --include-tag quality --match-all-tags --json` once `.env.beta` and real credentials are loaded
 - Set `EASY_MANIM_AUTO_REPAIR_ENABLED=true`, then run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag repair --json`
 - Confirm the emitted run writes `summary.json` and `summary.md` under `data/evals/<run_id>/`
 - Confirm `summary.json` includes `report.repair` with repair attempt / success metrics
+- Confirm the quality-slice `summary.json` includes `report.quality` with pass rate, median quality score, and issue-code counts
+- Confirm the real-provider quality intersection includes only prompts tagged with both `real-provider` and `quality`
+- Confirm the quality-slice `summary.md` includes a `Quality Slice` section
 - Run `easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip`
 - Start `easy-manim-mcp --transport stdio` and confirm the process stays up
 - Start `easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker` and confirm the process stays up
@@ -22,8 +27,10 @@
 - Verify queue guardrails by forcing `queue_full` or `attempt_limit_reached` in a local smoke env
 - Inspect `data/tasks/<task_id>/task.json`
 - Inspect `data/tasks/<task_id>/logs/events.jsonl`
+- Inspect `data/tasks/<task_id>/artifacts/scene_plan.json`
 - Inspect `data/tasks/<task_id>/validations/validation_report_v1.json`
 - Confirm preview frames exist under `artifacts/previews/`
+- Confirm preview validation did not surface `near_blank_preview` or `static_previews` for the release candidate prompt set
 - Confirm revision creates a child task instead of mutating the parent
 - Confirm cancelled queued tasks are not processed by the worker
 - Run `easy-manim-cleanup --data-dir data --older-than-hours 24 --status completed --dry-run`

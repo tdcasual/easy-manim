@@ -46,6 +46,13 @@ source .venv/bin/activate
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --json
 ```
 
+To isolate only the quality-sensitive real-provider prompts, run the tag intersection slice:
+
+```bash
+source .venv/bin/activate
+easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --include-tag quality --match-all-tags --json
+```
+
 ## Collect evidence
 After the run completes, record the emitted `run_id` and collect:
 - `data/evals/<run_id>/summary.json`
