@@ -68,4 +68,20 @@ def render_eval_report_markdown(summary: dict[str, Any]) -> str:
                 f"- Median Quality Score: {quality_report['median_quality_score']}",
             ]
         )
+    live_report = summary["report"].get("live")
+    if live_report:
+        lines.extend(
+            [
+                "",
+                "## Live Slice",
+                f"- Live Cases: {live_report['case_count']}",
+                f"- Live Pass Rate: {live_report['pass_rate']:.2%}",
+                f"- Formula Pass Rate: {live_report['formula_pass_rate']:.2%}",
+            ]
+        )
+        domain_failures = live_report.get("risk_domain_failure_counts", {})
+        if domain_failures:
+            lines.append("- Risk Domain Failures:")
+            for domain, count in sorted(domain_failures.items()):
+                lines.append(f"  - `{domain}`: {count}")
     return "\n".join(lines) + "\n"

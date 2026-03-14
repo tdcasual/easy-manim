@@ -57,6 +57,7 @@ easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --inclu
 After the run completes, record the emitted `run_id` and collect:
 - `data/evals/<run_id>/summary.json`
 - `data/evals/<run_id>/summary.md`
+- `data/evals/<run_id>/review_digest.md`
 - a qa bundle exported with:
 
 ```bash
@@ -66,10 +67,34 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
 
 The qa bundle should contain the run summary plus task-local artifacts under `tasks/<task_id>/` for reviewer inspection.
 
+## Evaluate the live gate
+Run the manual live-provider gate against the quality-sensitive real-provider run:
+
+```bash
+source .venv/bin/activate
+python scripts/live_provider_gate.py --summary data/evals/<run_id>/summary.json
+```
+
+To compare against the previously approved live baseline:
+
+```bash
+source .venv/bin/activate
+python scripts/live_provider_gate.py \
+  --summary data/evals/<run_id>/summary.json \
+  --baseline-summary data/evals/<previous_run_id>/summary.json
+```
+
+The gate evaluates:
+- overall live pass rate
+- formula-specific live pass rate
+- risk-domain failure regressions versus the prior approved summary
+
 ## Operator review notes
 Capture the following during review:
 - prompts that failed or regressed
+- items listed in `review_digest.md`
 - top failure codes from `summary.json`
+- top risk-domain failure counts from `summary.json.report.live`
 - repair attempt / success rates from the deterministic repair slice
 - render quality issues not caught by validators
 - provider-specific latency or reliability observations

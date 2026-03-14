@@ -107,6 +107,11 @@ class ArtifactStore:
         target.write_text(content)
         return target
 
+    def write_eval_reviewer_digest(self, run_id: str, content: str) -> Path:
+        target = self.eval_run_dir(run_id) / "review_digest.md"
+        target.write_text(content)
+        return target
+
     def task_relative_path(self, task_id: str, path: Path) -> Path:
         return Path(path).relative_to(self.task_dir(task_id))
 

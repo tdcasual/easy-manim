@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from video_agent.evaluation.corpus import load_prompt_suite
 
 
@@ -50,3 +52,55 @@ def test_official_suite_has_multiple_real_provider_quality_cases() -> None:
     )
 
     assert len(suite.cases) >= 15
+
+
+def test_load_prompt_suite_preserves_live_case_metadata(tmp_path: Path) -> None:
+    fixture = tmp_path / "suite.json"
+    fixture.write_text(
+        """
+        {
+          "suite_id": "live-demo",
+          "cases": [
+            {
+              "case_id": "formula-live",
+              "prompt": "show the quadratic formula",
+              "tags": ["real-provider", "quality", "mathtex"],
+              "risk_domains": ["formula", "layout"],
+              "review_focus": ["formula legibility", "term emphasis"],
+              "baseline_group": "live-rc-core",
+              "manual_review_required": true
+            }
+          ]
+        }
+        """
+    )
+
+    suite = load_prompt_suite(fixture)
+
+    case = suite.cases[0]
+    assert case.risk_domains == ["formula", "layout"]
+    assert case.review_focus == ["formula legibility", "term emphasis"]
+    assert case.baseline_group == "live-rc-core"
+    assert case.manual_review_required is True
+
+
+def test_load_prompt_suite_rejects_unknown_risk_domains(tmp_path: Path) -> None:
+    fixture = tmp_path / "suite.json"
+    fixture.write_text(
+        """
+        {
+          "suite_id": "live-demo",
+          "cases": [
+            {
+              "case_id": "bad-risk",
+              "prompt": "draw a circle",
+              "tags": ["real-provider"],
+              "risk_domains": ["made-up-domain"]
+            }
+          ]
+        }
+        """
+    )
+
+    with pytest.raises(ValueError, match="unknown risk_domains"):
+        load_prompt_suite(fixture)

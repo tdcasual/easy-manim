@@ -162,6 +162,9 @@ def test_eval_run_cli_reports_quality_metrics(tmp_path: Path) -> None:
     assert payload["total_cases"] >= 1
     assert payload["report"]["quality"]["case_count"] >= 1
     assert "median_quality_score" in payload["report"]["quality"]
+    assert payload["report"]["live"]["case_count"] >= 1
+    assert "risk_domain_counts" in payload["report"]["live"]
+    assert "formula_pass_rate" in payload["report"]["live"]
     assert completed.returncode == 0
 
 

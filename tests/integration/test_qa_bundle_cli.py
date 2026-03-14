@@ -105,5 +105,7 @@ def test_qa_bundle_cli_exports_eval_bundle(tmp_path: Path) -> None:
 
     assert completed.returncode == 0
     with zipfile.ZipFile(bundle_path) as bundle:
-        assert "summary.json" in bundle.namelist()
-        assert "summary.md" in bundle.namelist()
+        names = bundle.namelist()
+        assert "summary.json" in names
+        assert "summary.md" in names
+        assert "review_digest.md" in names

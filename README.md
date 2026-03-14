@@ -56,7 +56,7 @@ easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --inclu
 easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip
 ```
 
-Evaluation artifacts are written under `data/evals/<run_id>/` and include `summary.json` plus `summary.md`.
+Evaluation artifacts are written under `data/evals/<run_id>/` and include `summary.json`, `summary.md`, and `review_digest.md`.
 
 ## Release-candidate flow
 ```bash
@@ -64,6 +64,7 @@ source .venv/bin/activate
 cp .env.beta.example .env.beta
 python scripts/release_candidate_gate.py --mode ci
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --json
+python scripts/live_provider_gate.py --summary data/evals/<run_id>/summary.json
 easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip
 ```
 

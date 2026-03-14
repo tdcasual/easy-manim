@@ -18,6 +18,7 @@ class QABundleService:
 
         summary_json_path = run_dir / "summary.json"
         summary_markdown_path = run_dir / "summary.md"
+        review_digest_path = run_dir / "review_digest.md"
         if not summary_json_path.exists():
             raise FileNotFoundError(f"Evaluation summary does not exist: {summary_json_path}")
         if not summary_markdown_path.exists():
@@ -35,6 +36,8 @@ class QABundleService:
         with ZipFile(output_path, "w", compression=ZIP_DEFLATED) as bundle:
             bundle.write(summary_json_path, arcname="summary.json")
             bundle.write(summary_markdown_path, arcname="summary.md")
+            if review_digest_path.exists():
+                bundle.write(review_digest_path, arcname="review_digest.md")
             for task_id in task_ids:
                 task_dir = self.artifact_store.task_dir(task_id)
                 if not task_dir.exists():

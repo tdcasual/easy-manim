@@ -9,11 +9,13 @@
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag quality --json`
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --include-tag quality --match-all-tags --json` once `.env.beta` and real credentials are loaded
 - Set `EASY_MANIM_AUTO_REPAIR_ENABLED=true`, then run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag repair --json`
-- Confirm the emitted run writes `summary.json` and `summary.md` under `data/evals/<run_id>/`
+- Confirm the emitted run writes `summary.json`, `summary.md`, and `review_digest.md` under `data/evals/<run_id>/`
 - Confirm `summary.json` includes `report.repair` with repair attempt / success metrics
 - Confirm the quality-slice `summary.json` includes `report.quality` with pass rate, median quality score, and issue-code counts
+- Confirm the real-provider slice `summary.json` includes `report.live` with pass rate, formula pass rate, and risk-domain failure counts
 - Confirm the real-provider quality intersection includes only prompts tagged with both `real-provider` and `quality`
 - Confirm the quality-slice `summary.md` includes a `Quality Slice` section
+- Confirm the live-run `summary.md` includes a `Live Slice` section
 - Run `easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip`
 - Start `easy-manim-mcp --transport stdio` and confirm the process stays up
 - Start `easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker` and confirm the process stays up
@@ -37,6 +39,7 @@
 - Run `easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_id>.zip`
 - Copy `.env.beta.example` to `.env.beta` before real-provider trials
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --json`
+- Run `python scripts/live_provider_gate.py --summary data/evals/<run_id>/summary.json`
 - Export the corresponding qa bundle and attach it to the RC review
 - Verify the repair-tagged slice meets the configured repair success threshold before marking RC as go
 - Record the go / no-go decision with `docs/templates/release-candidate-decision.md`

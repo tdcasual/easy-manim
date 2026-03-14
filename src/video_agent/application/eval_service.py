@@ -8,8 +8,10 @@ from pydantic import BaseModel, Field
 
 from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.evaluation.corpus import load_prompt_suite
+from video_agent.evaluation.live_reporting import build_live_report
 from video_agent.evaluation.quality_reporting import build_quality_report
 from video_agent.evaluation.repair_reporting import build_repair_report
+from video_agent.evaluation.reviewer_digest import render_reviewer_digest
 from video_agent.evaluation.reporting import build_eval_report, render_eval_report_markdown
 from video_agent.server.app import AppContext
 
@@ -48,6 +50,10 @@ class EvaluationCaseResult(BaseModel):
     repair_stop_reason: str | None = None
     quality_issue_codes: list[str] = Field(default_factory=list)
     quality_score: float = 0.0
+    risk_domains: list[str] = Field(default_factory=list)
+    review_focus: list[str] = Field(default_factory=list)
+    baseline_group: str | None = None
+    manual_review_required: bool = False
 
 
 class EvaluationRunSummary(BaseModel):
@@ -100,6 +106,10 @@ class EvaluationService:
                     repair_stop_reason=root_snapshot.repair_state.get("stop_reason"),
                     quality_issue_codes=quality_issue_codes,
                     quality_score=self._quality_score(terminal_snapshot.status, quality_issue_codes),
+                    risk_domains=list(case.risk_domains),
+                    review_focus=list(case.review_focus),
+                    baseline_group=case.baseline_group,
+                    manual_review_required=case.manual_review_required,
                 )
             )
 
@@ -107,6 +117,7 @@ class EvaluationService:
         report = build_eval_report(item_payloads)
         report["repair"] = build_repair_report(item_payloads)
         report["quality"] = build_quality_report(item_payloads)
+        report["live"] = build_live_report(item_payloads)
         summary = EvaluationRunSummary(
             run_id=run_id,
             suite_id=suite.suite_id,
@@ -118,6 +129,7 @@ class EvaluationService:
         payload = summary.model_dump(mode="json")
         self.context.artifact_store.write_eval_summary(run_id, payload)
         self.context.artifact_store.write_eval_summary_markdown(run_id, render_eval_report_markdown(payload))
+        self.context.artifact_store.write_eval_reviewer_digest(run_id, render_reviewer_digest(payload))
         return summary
 
     def _wait_for_lineage(self, root_task_id: str):
