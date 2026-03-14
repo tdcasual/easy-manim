@@ -1,0 +1,35 @@
+{
+  "suite_id": "beta-long-tail-regressions",
+  "cases": [
+    {
+      "case_id": "provider-sine-wave-annotated",
+      "prompt": "show a sine wave and clearly label its amplitude and period with readable callouts and balanced spacing",
+      "tags": ["real-provider", "quality", "graph", "annotation", "teaching"]
+    },
+    {
+      "case_id": "provider-exponential-growth-focus",
+      "prompt": "plot y = 2^x, highlight the point (3, 8), and add a short concluding takeaway about rapid growth with a clean layout",
+      "tags": ["real-provider", "quality", "graph", "labels", "teaching"]
+    },
+    {
+      "case_id": "provider-cosine-wave-annotated",
+      "prompt": "show a cosine wave with one full period highlighted and label the start, peak, and period with readable annotations and balanced spacing",
+      "tags": ["real-provider", "quality", "graph", "annotation", "teaching"]
+    },
+    {
+      "case_id": "provider-linear-slope-triangle",
+      "prompt": "plot y = 0.5x + 1 on axes, highlight a slope triangle from x = 0 to x = 2, and label rise and run clearly with readable spacing",
+      "tags": ["real-provider", "quality", "graph", "labels", "teaching"]
+    },
+    {
+      "case_id": "provider-distance-formula-points",
+      "prompt": "show the distance formula using MathTex, briefly highlight the square root term, and end with a relayout that connects the formula to two labeled points A and B",
+      "tags": ["real-provider", "quality", "mathtex", "labels", "teaching"]
+    },
+    {
+      "case_id": "provider-pythagorean-triangle-focus",
+      "prompt": "show a right triangle with legs labeled a and b, place the equation a^2 + b^2 = c^2 nearby, and clearly highlight the hypotenuse c with a short concluding takeaway",
+      "tags": ["real-provider", "quality", "geometry", "labels", "teaching"]
+    }
+  ]
+}
