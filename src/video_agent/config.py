@@ -16,6 +16,10 @@ class Settings(BaseModel):
     ffprobe_command: str = "ffprobe"
     render_environment: dict[str, str] = Field(default_factory=dict)
     render_timeout_seconds: int = 300
+    default_quality_preset: str = "development"
+    default_frame_rate: int | None = None
+    default_pixel_width: int | None = None
+    default_pixel_height: int | None = None
     sandbox_network_disabled: bool = False
     sandbox_process_limit: int | None = None
     sandbox_memory_limit_mb: int | None = None
@@ -44,6 +48,7 @@ class Settings(BaseModel):
             "generation_failed",
             "syntax_error",
             "missing_scene",
+            "unsafe_transformmatchingtex_slice",
             "black_frames",
             "frozen_tail",
             "encoding_error",
@@ -67,4 +72,10 @@ class Settings(BaseModel):
             self.sandbox_process_limit = None
         if self.sandbox_memory_limit_mb is not None and self.sandbox_memory_limit_mb <= 0:
             self.sandbox_memory_limit_mb = None
+        if self.default_frame_rate is not None and self.default_frame_rate <= 0:
+            self.default_frame_rate = None
+        if self.default_pixel_width is not None and self.default_pixel_width <= 0:
+            self.default_pixel_width = None
+        if self.default_pixel_height is not None and self.default_pixel_height <= 0:
+            self.default_pixel_height = None
         return self

@@ -51,6 +51,14 @@ class ArtifactStore:
         target.write_text(script_text)
         return target
 
+    def scene_plan_path(self, task_id: str) -> Path:
+        return self.task_dir(task_id) / "artifacts" / "scene_plan.json"
+
+    def write_scene_plan(self, task_id: str, payload: dict[str, Any]) -> Path:
+        target = self.ensure_task_dirs(task_id) / "artifacts" / "scene_plan.json"
+        target.write_text(json.dumps(payload, indent=2))
+        return target
+
     def failure_context_path(self, task_id: str) -> Path:
         return self.task_dir(task_id) / "artifacts" / "failure_context.json"
 

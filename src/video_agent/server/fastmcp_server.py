@@ -50,6 +50,7 @@ def create_mcp_server(
         prompt: str,
         idempotency_key: str | None = None,
         output_profile: dict[str, Any] | None = None,
+        style_hints: dict[str, Any] | None = None,
         validation_profile: dict[str, Any] | None = None,
         feedback: str | None = None,
     ) -> dict[str, Any]:
@@ -59,6 +60,7 @@ def create_mcp_server(
                 "prompt": prompt,
                 "idempotency_key": idempotency_key,
                 "output_profile": output_profile,
+                "style_hints": style_hints,
                 "validation_profile": validation_profile,
                 "feedback": feedback,
             },

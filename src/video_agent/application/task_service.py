@@ -65,6 +65,7 @@ class TaskService:
         prompt: str,
         idempotency_key: Optional[str] = None,
         output_profile: Optional[dict[str, Any]] = None,
+        style_hints: Optional[dict[str, Any]] = None,
         validation_profile: Optional[dict[str, Any]] = None,
         feedback: Optional[str] = None,
     ) -> CreateVideoTaskResult:
@@ -73,6 +74,7 @@ class TaskService:
             prompt=prompt,
             feedback=feedback,
             output_profile=output_profile or {},
+            style_hints=style_hints or {},
             validation_profile=validation_profile or {},
         )
         persisted = self.store.create_task(task, idempotency_key=idempotency_key)

@@ -19,6 +19,7 @@ from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.failure_context import build_failure_context
 from video_agent.application.runtime_service import RuntimeService
+from video_agent.application.scene_plan import build_scene_plan
 from video_agent.application.workflow_phases import (
     combined_validation_report,
     latex_dependency_report,
@@ -33,6 +34,7 @@ from video_agent.observability.metrics import MetricsCollector
 from video_agent.safety.runtime_policy import RuntimePolicy, RuntimePolicyError
 from video_agent.validation.hard_validation import HardValidator
 from video_agent.validation.latex_support import script_uses_latex
+from video_agent.validation.preview_quality import PreviewQualityValidator
 from video_agent.validation.rule_validation import RuleValidator
 from video_agent.validation.static_check import StaticCheckValidator
 
@@ -62,6 +64,7 @@ class WorkflowEngine:
         self.frame_extractor = frame_extractor
         self.hard_validator = hard_validator
         self.rule_validator = rule_validator
+        self.preview_quality_validator = PreviewQualityValidator()
         self.runtime_service = runtime_service
         self.runtime_policy = runtime_policy or RuntimePolicy(work_root=artifact_store.root)
         self.metrics = metrics or MetricsCollector()
@@ -86,10 +89,30 @@ class WorkflowEngine:
         self._transition(task, TaskPhase.PLANNING)
 
         try:
+            render_profile = self._resolve_render_profile(task)
+            scene_plan = build_scene_plan(
+                prompt=task.prompt,
+                output_profile=render_profile,
+                style_hints=task.style_hints,
+            )
+            scene_plan_path = self.artifact_store.scene_plan_path(task.task_id)
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.PLANNING, scene_plan_path, "scene plan artifact"):
+                return
+            written_scene_plan_path = self.artifact_store.write_scene_plan(task.task_id, scene_plan.model_dump(mode="json"))
+            self.store.register_artifact(task.task_id, "scene_plan", written_scene_plan_path)
+            self._log(
+                task,
+                TaskPhase.PLANNING,
+                "Scene plan generated",
+                scene_class=scene_plan.scene_class,
+                camera_strategy=scene_plan.camera_strategy,
+            )
             prompt_text = self.prompt_builder(
                 prompt=task.prompt,
-                output_profile=task.output_profile,
+                output_profile=render_profile,
                 feedback=task.feedback,
+                style_hints=task.style_hints,
+                scene_plan=scene_plan,
             )
 
             self._transition(task, TaskPhase.GENERATING_CODE)
@@ -178,6 +201,10 @@ class WorkflowEngine:
                 render_result = self.manim_runner.render(
                     script_path,
                     render_output_dir,
+                    quality_preset=render_profile["quality_preset"],
+                    frame_rate=render_profile["frame_rate"],
+                    pixel_width=render_profile["pixel_width"],
+                    pixel_height=render_profile["pixel_height"],
                     timeout_seconds=self.runtime_policy.render_timeout_seconds,
                     sandbox_policy=self.runtime_policy,
                 )
@@ -242,9 +269,10 @@ class WorkflowEngine:
             validation_started = time.monotonic()
             hard_report = self.hard_validator.validate(final_video_path, profile=task.validation_profile)
             rule_report = self.rule_validator.validate(final_video_path, profile=task.validation_profile)
+            preview_report = self.preview_quality_validator.validate(preview_paths, profile=task.validation_profile)
             self.metrics.increment("validation_runs")
             self.metrics.record_timing("validation_seconds", time.monotonic() - validation_started)
-            combined_report = combined_validation_report(hard_report, rule_report)
+            combined_report = combined_validation_report(hard_report, rule_report, preview_report)
             validation_report_path = self.artifact_store.validation_report_path(task.task_id)
             if not self._ensure_allowed_artifact_path(task, TaskPhase.VALIDATION, validation_report_path, "validation report"):
                 return
@@ -408,6 +436,30 @@ class WorkflowEngine:
         root_task.repair_stop_reason = None if auto_repair_decision.created else auto_repair_decision.reason
         self.store.update_task(root_task)
         self.artifact_store.write_task_snapshot(root_task)
+
+    def _resolve_render_profile(self, task) -> dict[str, Any]:
+        settings = self.runtime_service.settings
+        profile = task.output_profile or {}
+        return {
+            "quality_preset": str(profile.get("quality_preset", settings.default_quality_preset)),
+            "frame_rate": self._optional_positive_int(profile.get("frame_rate", settings.default_frame_rate)),
+            "pixel_width": self._optional_positive_int(
+                profile.get("pixel_width", profile.get("width", settings.default_pixel_width))
+            ),
+            "pixel_height": self._optional_positive_int(
+                profile.get("pixel_height", profile.get("height", settings.default_pixel_height))
+            ),
+        }
+
+    @staticmethod
+    def _optional_positive_int(value: Any) -> int | None:
+        if value in (None, ""):
+            return None
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if parsed > 0 else None
 
     def _transition(self, task, phase: TaskPhase) -> None:
         task.phase = phase

@@ -195,3 +195,41 @@ def test_workflow_forwards_configured_render_environment(tmp_path: Path) -> None
 
     captured = app_context.artifact_store.task_dir(created.task_id) / "artifacts" / "env-captured.txt"
     assert captured.read_text() == "/configured/path"
+
+
+def test_workflow_persists_scene_plan_artifact(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="show an axis animation and highlight the midpoint",
+        idempotency_key="scene-plan",
+        output_profile={"quality_preset": "production"},
+        style_hints={"tone": "clean", "pace": "steady"},
+    )
+
+    app_context.worker.run_once()
+
+    scene_plan_path = app_context.artifact_store.task_dir(created.task_id) / "artifacts" / "scene_plan.json"
+    assert scene_plan_path.exists()
+    payload = json.loads(scene_plan_path.read_text())
+    assert payload["scene_class"] == "MovingCameraScene"
+    assert payload["camera_strategy"] == "auto_zoom"
+    assert payload["pacing_strategy"] == "measured"
+    assert "avoid_blank_opening_frame" in payload["quality_directives"]
+
+
+def test_scene_plan_uses_resolved_default_quality_profile(tmp_path: Path) -> None:
+    settings = _build_fake_pipeline_settings(tmp_path)
+    settings.default_quality_preset = "production"
+    app_context = create_app_context(settings)
+    created = app_context.task_service.create_video_task(
+        prompt="show the quadratic formula and briefly highlight the discriminant",
+        idempotency_key="scene-plan-default-quality",
+    )
+
+    app_context.worker.run_once()
+
+    scene_plan_path = app_context.artifact_store.task_dir(created.task_id) / "artifacts" / "scene_plan.json"
+    payload = json.loads(scene_plan_path.read_text())
+
+    assert "avoid_blank_opening_frame" in payload["quality_directives"]
+    assert "favor_readable_spacing" in payload["quality_directives"]

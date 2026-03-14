@@ -21,3 +21,4 @@ def test_settings_exposes_llm_and_worker_runtime_fields() -> None:
     assert settings.worker_stale_after_seconds == 30
     assert settings.max_queued_tasks == 20
     assert settings.max_attempts_per_root_task == 5
+    assert "unsafe_transformmatchingtex_slice" in settings.auto_repair_retryable_issue_codes

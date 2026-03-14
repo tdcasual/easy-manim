@@ -40,19 +40,29 @@ def render_failure_report(stderr: str) -> ValidationReport:
     )
 
 
-def combined_validation_report(hard_report: ValidationReport, rule_report: ValidationReport) -> ValidationReport:
-    issues = [*hard_report.issues, *rule_report.issues]
-    passed = hard_report.passed and rule_report.passed
+def combined_validation_report(
+    hard_report: ValidationReport,
+    rule_report: ValidationReport,
+    preview_report: ValidationReport | None = None,
+) -> ValidationReport:
+    reports = [hard_report, rule_report]
+    if preview_report is not None:
+        reports.append(preview_report)
+    issues = [issue for report in reports for issue in report.issues]
+    passed = all(report.passed for report in reports)
+    details = {
+        "hard": hard_report.model_dump(mode="json"),
+        "rule": rule_report.model_dump(mode="json"),
+    }
+    if preview_report is not None:
+        details["preview"] = preview_report.model_dump(mode="json")
     return ValidationReport(
         decision=ValidationDecision.PASS if passed else ValidationDecision.FAIL,
         passed=passed,
         issues=issues,
         summary="Validation passed" if passed else "Validation failed",
         video_metadata=hard_report.video_metadata,
-        details={
-            "hard": hard_report.model_dump(mode="json"),
-            "rule": rule_report.model_dump(mode="json"),
-        },
+        details=details,
     )
 
 

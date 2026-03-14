@@ -13,6 +13,7 @@ def create_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict
             prompt=payload["prompt"],
             idempotency_key=payload.get("idempotency_key"),
             output_profile=payload.get("output_profile"),
+            style_hints=payload.get("style_hints"),
             validation_profile=payload.get("validation_profile"),
             feedback=payload.get("feedback"),
         )

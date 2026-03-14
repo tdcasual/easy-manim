@@ -57,4 +57,15 @@ def render_eval_report_markdown(summary: dict[str, Any]) -> str:
                 f"- Avg Children / Repaired Root: {repair_report['average_children_per_repaired_root']}",
             ]
         )
+    quality_report = summary["report"].get("quality")
+    if quality_report:
+        lines.extend(
+            [
+                "",
+                "## Quality Slice",
+                f"- Quality Cases: {quality_report['case_count']}",
+                f"- Quality Pass Rate: {quality_report['pass_rate']:.2%}",
+                f"- Median Quality Score: {quality_report['median_quality_score']}",
+            ]
+        )
     return "\n".join(lines) + "\n"

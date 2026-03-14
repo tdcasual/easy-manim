@@ -40,6 +40,7 @@ def build_failure_context(
             artifact_store.resource_uri(task.task_id, current_script_path) if current_script_exists else None
         ),
         "semantic_diagnostics": semantic_diagnostics,
+        "preview_issue_codes": _preview_issue_codes(report),
         "sandbox_policy": report.details.get("sandbox_policy") if report.details else None,
     }
     return failure_context
@@ -60,3 +61,15 @@ def _provider_error_for_issue(issue_code: str | None, events: list[dict[str, Any
     if error is None:
         return None
     return str(error)
+
+
+def _preview_issue_codes(report: ValidationReport) -> list[str]:
+    if not report.details:
+        return []
+    preview = report.details.get("preview")
+    if not isinstance(preview, dict):
+        return []
+    issues = preview.get("issues")
+    if not isinstance(issues, list):
+        return []
+    return [str(item.get("code")) for item in issues if isinstance(item, dict) and item.get("code")]

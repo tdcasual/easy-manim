@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.evaluation.corpus import load_prompt_suite
+from video_agent.evaluation.quality_reporting import build_quality_report
 from video_agent.evaluation.repair_reporting import build_repair_report
 from video_agent.evaluation.reporting import build_eval_report, render_eval_report_markdown
 from video_agent.server.app import AppContext
@@ -21,6 +22,16 @@ GOOD_REPAIR_SCRIPT = (
     "        self.play(Create(circle))\n"
 )
 BROKEN_REPAIR_SCRIPT = "from manim import Circle\ncircle = Circle()\n"
+QUALITY_ISSUE_CODES = {
+    "near_blank_preview",
+    "static_previews",
+    "black_frames",
+    "frozen_tail",
+    "encoding_error",
+    "min_width_not_met",
+    "min_height_not_met",
+    "min_duration_not_met",
+}
 
 
 class EvaluationCaseResult(BaseModel):
@@ -35,6 +46,8 @@ class EvaluationCaseResult(BaseModel):
     repair_children: int = 0
     repair_success: bool = False
     repair_stop_reason: str | None = None
+    quality_issue_codes: list[str] = Field(default_factory=list)
+    quality_score: float = 0.0
 
 
 class EvaluationRunSummary(BaseModel):
@@ -50,8 +63,14 @@ class EvaluationService:
     def __init__(self, context: AppContext) -> None:
         self.context = context
 
-    def run_suite(self, suite_path: str, include_tags: set[str] | None = None, limit: int | None = None) -> EvaluationRunSummary:
-        suite = load_prompt_suite(suite_path, include_tags=include_tags)
+    def run_suite(
+        self,
+        suite_path: str,
+        include_tags: set[str] | None = None,
+        limit: int | None = None,
+        match_all_tags: bool = False,
+    ) -> EvaluationRunSummary:
+        suite = load_prompt_suite(suite_path, include_tags=include_tags, match_all_tags=match_all_tags)
         cases = suite.cases[:limit] if limit is not None else suite.cases
         run_id = str(uuid4())
         items: list[EvaluationCaseResult] = []
@@ -65,6 +84,7 @@ class EvaluationService:
                 )
                 root_snapshot, terminal_snapshot = self._wait_for_lineage(created.task_id)
             issues = [item["code"] for item in terminal_snapshot.latest_validation_summary.get("issues", [])]
+            quality_issue_codes = [code for code in issues if code in QUALITY_ISSUE_CODES]
             items.append(
                 EvaluationCaseResult(
                     case_id=case.case_id,
@@ -78,12 +98,15 @@ class EvaluationService:
                     repair_children=int(root_snapshot.repair_state.get("child_count", 0) or 0),
                     repair_success=bool(root_snapshot.repair_state.get("attempted")) and terminal_snapshot.status == "completed",
                     repair_stop_reason=root_snapshot.repair_state.get("stop_reason"),
+                    quality_issue_codes=quality_issue_codes,
+                    quality_score=self._quality_score(terminal_snapshot.status, quality_issue_codes),
                 )
             )
 
         item_payloads = [item.model_dump(mode="json") for item in items]
         report = build_eval_report(item_payloads)
         report["repair"] = build_repair_report(item_payloads)
+        report["quality"] = build_quality_report(item_payloads)
         summary = EvaluationRunSummary(
             run_id=run_id,
             suite_id=suite.suite_id,
@@ -123,6 +146,14 @@ class EvaluationService:
             yield
         finally:
             self.context.workflow_engine.llm_client = original_client
+
+    @staticmethod
+    def _quality_score(status: str, quality_issue_codes: list[str]) -> float:
+        score = 1.0
+        if status != "completed":
+            score -= 0.4
+        score -= 0.2 * len(quality_issue_codes)
+        return max(0.0, round(score, 4))
 
 
 class _SequenceLLMClient(StubLLMClient):

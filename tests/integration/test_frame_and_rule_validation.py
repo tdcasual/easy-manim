@@ -1,6 +1,9 @@
 from pathlib import Path
 
+from PIL import Image
+
 from video_agent.adapters.rendering.frame_extractor import FrameExtractor
+from video_agent.validation.preview_quality import PreviewQualityValidator
 from video_agent.validation.rule_validation import RuleValidator
 
 
@@ -39,3 +42,14 @@ def test_rule_validator_detects_black_video(tmp_path: Path) -> None:
     report = RuleValidator().validate(black_video_path)
     assert report.passed is False
     assert any(issue.code == "black_frames" for issue in report.issues)
+
+
+def test_preview_quality_validator_detects_static_previews(tmp_path: Path) -> None:
+    frame_a = tmp_path / "frame_001.png"
+    frame_b = tmp_path / "frame_002.png"
+    Image.new("RGB", (320, 180), (180, 180, 180)).save(frame_a)
+    Image.new("RGB", (320, 180), (180, 180, 180)).save(frame_b)
+
+    report = PreviewQualityValidator().validate([frame_a, frame_b], profile={"check_static_previews": True})
+
+    assert any(issue.code == "static_previews" for issue in report.issues)

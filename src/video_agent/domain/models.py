@@ -23,6 +23,7 @@ class VideoTask(BaseModel):
     prompt: str
     feedback: Optional[str] = None
     output_profile: dict[str, Any] = Field(default_factory=dict)
+    style_hints: dict[str, Any] = Field(default_factory=dict)
     validation_profile: dict[str, Any] = Field(default_factory=dict)
     attempt_count: int = 0
     repair_attempted: bool = False
@@ -54,6 +55,7 @@ class VideoTask(BaseModel):
             prompt=parent.prompt,
             feedback=feedback,
             output_profile=parent.output_profile,
+            style_hints=parent.style_hints,
             validation_profile=parent.validation_profile,
             current_script_artifact_id=parent.current_script_artifact_id if preserve_working_parts else None,
             best_result_artifact_id=parent.best_result_artifact_id if preserve_working_parts else None,

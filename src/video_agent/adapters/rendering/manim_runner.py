@@ -28,6 +28,11 @@ class ManimRunner:
         self,
         script_path: Path,
         output_dir: Path,
+        *,
+        quality_preset: str = "development",
+        frame_rate: int | None = None,
+        pixel_width: int | None = None,
+        pixel_height: int | None = None,
         timeout_seconds: float | None = None,
         env: dict[str, str] | None = None,
         sandbox_policy: RuntimePolicy | None = None,
@@ -46,18 +51,25 @@ class ManimRunner:
             effective_env = dict(os.environ)
             effective_env.update(self.base_env)
             effective_env.update(env or {})
+        command = [
+            self.command,
+            self._quality_flag(quality_preset),
+            str(script_path),
+            scene_name,
+            "--media_dir",
+            str(output_dir),
+            "-o",
+            output_name,
+        ]
+        if frame_rate is not None:
+            command.extend(["--frame_rate", str(frame_rate)])
+        if pixel_width is not None:
+            command.extend(["--pixel_width", str(pixel_width)])
+        if pixel_height is not None:
+            command.extend(["--pixel_height", str(pixel_height)])
         try:
             completed = subprocess.run(
-                [
-                    self.command,
-                    "-ql",
-                    str(script_path),
-                    scene_name,
-                    "--media_dir",
-                    str(output_dir),
-                    "-o",
-                    output_name,
-                ],
+                command,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -84,6 +96,15 @@ class ManimRunner:
             exit_code=exit_code,
             duration_seconds=duration,
         )
+
+    @staticmethod
+    def _quality_flag(quality_preset: str) -> str:
+        presets = {
+            "development": "-ql",
+            "preview": "-qm",
+            "production": "-qh",
+        }
+        return presets.get(quality_preset, "-ql")
 
     def _extract_scene_name(self, script_path: Path) -> str:
         tree = ast.parse(script_path.read_text())

@@ -67,6 +67,22 @@ def test_get_video_task_tool_returns_snapshot(temp_settings) -> None:
     assert snapshot["task_id"] == created["task_id"]
 
 
+def test_create_video_task_tool_accepts_style_hints(temp_settings) -> None:
+    app_context = create_app_context(temp_settings)
+    created = create_video_task_tool(
+        app_context,
+        {
+            "prompt": "draw a circle",
+            "style_hints": {"tone": "clean", "pace": "steady"},
+        },
+    )
+
+    task = app_context.store.get_task(created["task_id"])
+
+    assert task is not None
+    assert task.style_hints == {"tone": "clean", "pace": "steady"}
+
+
 def test_get_video_task_tool_returns_auto_repair_summary(tmp_path: Path) -> None:
     app_context = create_app_context(_build_auto_repair_settings(tmp_path))
     created = create_video_task_tool(app_context, {"prompt": "draw a circle"})
