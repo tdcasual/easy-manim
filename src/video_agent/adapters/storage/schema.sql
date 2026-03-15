@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS video_tasks (
     task_id TEXT PRIMARY KEY,
     root_task_id TEXT NOT NULL,
     parent_task_id TEXT,
+    agent_id TEXT,
     status TEXT NOT NULL,
     phase TEXT NOT NULL,
     prompt TEXT NOT NULL,
@@ -10,6 +11,26 @@ CREATE TABLE IF NOT EXISTS video_tasks (
     current_script_artifact_id TEXT,
     best_result_artifact_id TEXT,
     task_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_profiles (
+    agent_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    profile_json TEXT NOT NULL,
+    policy_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_tokens (
+    token_hash TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    scopes_json TEXT NOT NULL,
+    override_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

@@ -18,6 +18,7 @@ class VideoTask(BaseModel):
     root_task_id: Optional[str] = None
     parent_task_id: Optional[str] = None
     inherited_from_task_id: Optional[str] = None
+    agent_id: Optional[str] = None
     status: TaskStatus = TaskStatus.QUEUED
     phase: TaskPhase = TaskPhase.QUEUED
     prompt: str
@@ -25,6 +26,8 @@ class VideoTask(BaseModel):
     output_profile: dict[str, Any] = Field(default_factory=dict)
     style_hints: dict[str, Any] = Field(default_factory=dict)
     validation_profile: dict[str, Any] = Field(default_factory=dict)
+    effective_request_profile: dict[str, Any] = Field(default_factory=dict)
+    effective_profile_digest: Optional[str] = None
     attempt_count: int = 0
     repair_attempted: bool = False
     repair_child_count: int = 0
@@ -52,11 +55,14 @@ class VideoTask(BaseModel):
             root_task_id=parent.root_task_id,
             parent_task_id=parent.task_id,
             inherited_from_task_id=parent.task_id,
+            agent_id=parent.agent_id,
             prompt=parent.prompt,
             feedback=feedback,
             output_profile=parent.output_profile,
             style_hints=parent.style_hints,
             validation_profile=parent.validation_profile,
+            effective_request_profile=parent.effective_request_profile,
+            effective_profile_digest=parent.effective_profile_digest,
             current_script_artifact_id=parent.current_script_artifact_id if preserve_working_parts else None,
             best_result_artifact_id=parent.best_result_artifact_id if preserve_working_parts else None,
         )

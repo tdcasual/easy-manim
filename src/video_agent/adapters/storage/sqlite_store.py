@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
+from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
 from video_agent.domain.validation_models import ValidationReport
@@ -31,6 +32,7 @@ class SQLiteTaskStore:
         with self._connect() as connection:
             schema_path = Path(__file__).with_name("schema.sql")
             connection.executescript(schema_path.read_text())
+            self._ensure_column(connection, "video_tasks", "agent_id", "TEXT")
 
     def create_task(self, task: VideoTask, idempotency_key: Optional[str] = None) -> VideoTask:
         with self._connect() as connection:
@@ -45,15 +47,16 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 INSERT INTO video_tasks (
-                    task_id, root_task_id, parent_task_id, status, phase, prompt, feedback,
+                    task_id, root_task_id, parent_task_id, agent_id, status, phase, prompt, feedback,
                     idempotency_key, current_script_artifact_id, best_result_artifact_id,
                     task_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task.task_id,
                     task.root_task_id,
                     task.parent_task_id,
+                    task.agent_id,
                     task.status.value,
                     task.phase.value,
                     task.prompt,
@@ -84,13 +87,14 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 UPDATE video_tasks
-                SET root_task_id = ?, parent_task_id = ?, status = ?, phase = ?, prompt = ?, feedback = ?,
+                SET root_task_id = ?, parent_task_id = ?, agent_id = ?, status = ?, phase = ?, prompt = ?, feedback = ?,
                     current_script_artifact_id = ?, best_result_artifact_id = ?, task_json = ?, updated_at = ?
                 WHERE task_id = ?
                 """,
                 (
                     task.root_task_id,
                     task.parent_task_id,
+                    task.agent_id,
                     task.status.value,
                     task.phase.value,
                     task.prompt,
@@ -102,6 +106,102 @@ class SQLiteTaskStore:
                     task.task_id,
                 ),
             )
+
+    def upsert_agent_profile(self, profile: AgentProfile) -> None:
+        profile.updated_at = _utcnow()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_profiles (
+                    agent_id, name, status, profile_json, policy_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(agent_id) DO UPDATE SET
+                    name = excluded.name,
+                    status = excluded.status,
+                    profile_json = excluded.profile_json,
+                    policy_json = excluded.policy_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    profile.agent_id,
+                    profile.name,
+                    profile.status,
+                    json.dumps(profile.profile_json),
+                    json.dumps(profile.policy_json),
+                    profile.created_at.isoformat(),
+                    profile.updated_at.isoformat(),
+                ),
+            )
+
+    def get_agent_profile(self, agent_id: str) -> Optional[AgentProfile]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT agent_id, name, status, profile_json, policy_json, created_at, updated_at
+                FROM agent_profiles
+                WHERE agent_id = ?
+                """,
+                (agent_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return AgentProfile(
+            agent_id=row["agent_id"],
+            name=row["name"],
+            status=row["status"],
+            profile_json=json.loads(row["profile_json"]),
+            policy_json=json.loads(row["policy_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
+
+    def issue_agent_token(self, token: AgentToken) -> None:
+        token.updated_at = _utcnow()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_tokens (
+                    token_hash, agent_id, status, scopes_json, override_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(token_hash) DO UPDATE SET
+                    agent_id = excluded.agent_id,
+                    status = excluded.status,
+                    scopes_json = excluded.scopes_json,
+                    override_json = excluded.override_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    token.token_hash,
+                    token.agent_id,
+                    token.status,
+                    json.dumps(token.scopes_json),
+                    json.dumps(token.override_json),
+                    token.created_at.isoformat(),
+                    token.updated_at.isoformat(),
+                ),
+            )
+
+    def get_agent_token(self, token_hash: str) -> Optional[AgentToken]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT token_hash, agent_id, status, scopes_json, override_json, created_at, updated_at
+                FROM agent_tokens
+                WHERE token_hash = ?
+                """,
+                (token_hash,),
+            ).fetchone()
+        if row is None:
+            return None
+        return AgentToken(
+            token_hash=row["token_hash"],
+            agent_id=row["agent_id"],
+            status=row["status"],
+            scopes_json=json.loads(row["scopes_json"]),
+            override_json=json.loads(row["override_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
 
     def append_event(self, task_id: str, event_type: str, payload: dict[str, Any]) -> None:
         with self._connect() as connection:
@@ -358,3 +458,9 @@ class SQLiteTaskStore:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
         return connection
+
+    def _ensure_column(self, connection: sqlite3.Connection, table_name: str, column_name: str, definition: str) -> None:
+        rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+        if any(row["name"] == column_name for row in rows):
+            return
+        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
