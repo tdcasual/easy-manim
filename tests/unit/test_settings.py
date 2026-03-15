@@ -1,4 +1,8 @@
+from pathlib import Path
+
+from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 from video_agent.config import Settings
+from video_agent.server.main import build_settings
 
 
 def test_settings_exposes_database_and_artifact_dirs() -> None:
@@ -21,4 +25,12 @@ def test_settings_exposes_llm_and_worker_runtime_fields() -> None:
     assert settings.worker_stale_after_seconds == 30
     assert settings.max_queued_tasks == 20
     assert settings.max_attempts_per_root_task == 5
-    assert "unsafe_transformmatchingtex_slice" in settings.auto_repair_retryable_issue_codes
+    assert settings.auto_repair_retryable_issue_codes == DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
+
+
+def test_build_settings_keeps_formula_auto_repair_defaults(monkeypatch) -> None:
+    monkeypatch.delenv("EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES", raising=False)
+
+    settings = build_settings(Path("data"))
+
+    assert settings.auto_repair_retryable_issue_codes == DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES

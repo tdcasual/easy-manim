@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from video_agent.adapters.storage.artifact_store import ArtifactStore
+from video_agent.application.failure_contract import build_failure_contract
 from video_agent.domain.models import VideoTask
 from video_agent.domain.validation_models import ValidationReport
 from video_agent.validation.script_diagnostics import collect_script_diagnostics
@@ -13,6 +14,7 @@ def build_failure_context(
     report: ValidationReport,
     artifact_store: ArtifactStore,
     events: list[dict[str, Any]],
+    retryable_issue_codes: list[str],
 ) -> dict[str, Any]:
     top_issue = report.issues[0] if report.issues else None
     current_script_path = artifact_store.script_path(task.task_id)
@@ -22,6 +24,13 @@ def build_failure_context(
         semantic_diagnostics = [
             item.model_dump(mode="json") for item in collect_script_diagnostics(current_script_path.read_text())
         ]
+    preview_issue_codes = _preview_issue_codes(report)
+    failure_contract = build_failure_contract(
+        issue_code=top_issue.code if top_issue else None,
+        summary=report.summary,
+        preview_issue_codes=preview_issue_codes,
+        retryable_issue_codes=retryable_issue_codes,
+    )
 
     failure_context = {
         "task_id": task.task_id,
@@ -40,8 +49,9 @@ def build_failure_context(
             artifact_store.resource_uri(task.task_id, current_script_path) if current_script_exists else None
         ),
         "semantic_diagnostics": semantic_diagnostics,
-        "preview_issue_codes": _preview_issue_codes(report),
+        "preview_issue_codes": preview_issue_codes,
         "sandbox_policy": report.details.get("sandbox_policy") if report.details else None,
+        "failure_contract": failure_contract.model_dump(mode="json"),
     }
     return failure_context
 

@@ -34,6 +34,7 @@ class VideoTaskSnapshot(BaseModel):
     artifact_summary: dict[str, Any] = Field(default_factory=dict)
     repair_state: dict[str, Any] = Field(default_factory=dict)
     auto_repair_summary: dict[str, Any] = Field(default_factory=dict)
+    failure_contract: dict[str, Any] | None = None
 
 
 class VideoResult(BaseModel):
@@ -94,6 +95,7 @@ class TaskService:
         root_task_id = task.root_task_id or task.task_id
         root_task = self._require_task(root_task_id)
         repair_children = max(0, self.store.count_lineage_tasks(root_task_id) - 1)
+        failure_contract = self.get_failure_contract(task_id) if task.status is TaskStatus.FAILED else None
         artifact_summary = {
             "script_count": len(self.store.list_artifacts(task_id, "current_script")),
             "video_count": len(self.store.list_artifacts(task_id, "final_video")),
@@ -114,6 +116,7 @@ class TaskService:
             artifact_summary=artifact_summary,
             repair_state=repair_state.model_dump(mode="json"),
             auto_repair_summary=self._build_auto_repair_summary(root_task_id, repair_children),
+            failure_contract=failure_contract,
         )
 
     def get_video_result(self, task_id: str) -> VideoResult:
@@ -214,6 +217,10 @@ class TaskService:
     def get_task_events(self, task_id: str, limit: int = 200) -> list[dict[str, Any]]:
         self._require_task(task_id)
         return self.store.list_events(task_id, limit=limit)
+
+    def get_failure_contract(self, task_id: str) -> dict[str, Any] | None:
+        self._require_task(task_id)
+        return self.artifact_store.read_failure_contract(task_id)
 
     def _enforce_queue_capacity(self) -> None:
         active_count = self.store.count_tasks([TaskStatus.QUEUED.value, TaskStatus.RUNNING.value, TaskStatus.REVISING.value])

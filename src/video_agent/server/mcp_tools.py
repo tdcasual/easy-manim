@@ -28,6 +28,13 @@ def get_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict[st
     return result.model_dump(mode="json")
 
 
+def get_failure_contract_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "task_id": payload["task_id"],
+        "failure_contract": context.task_service.get_failure_contract(payload["task_id"]),
+    }
+
+
 
 def list_video_tasks_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
     items = context.task_service.list_video_tasks(

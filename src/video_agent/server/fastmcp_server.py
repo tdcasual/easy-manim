@@ -13,6 +13,7 @@ from video_agent.server.mcp_resources import read_resource
 from video_agent.server.mcp_tools import (
     cancel_video_task_tool,
     create_video_task_tool,
+    get_failure_contract_tool,
     get_metrics_snapshot_tool,
     get_runtime_status_tool,
     get_task_events_tool,
@@ -70,6 +71,10 @@ def create_mcp_server(
     def get_video_task(task_id: str) -> dict[str, Any]:
         return get_video_task_tool(context, {"task_id": task_id})
 
+    @mcp.tool(name="get_failure_contract")
+    def get_failure_contract(task_id: str) -> dict[str, Any]:
+        return get_failure_contract_tool(context, {"task_id": task_id})
+
     @mcp.tool(name="list_video_tasks")
     def list_video_tasks(limit: int = 50, status: str | None = None) -> dict[str, Any]:
         return list_video_tasks_tool(context, {"limit": limit, "status": status})
@@ -124,6 +129,10 @@ def create_mcp_server(
     @mcp.resource("video-task://{task_id}/artifacts/failure_context.json", mime_type="application/json")
     def failure_context_resource(task_id: str) -> str:
         return _read_text_resource(context, f"video-task://{task_id}/artifacts/failure_context.json")
+
+    @mcp.resource("video-task://{task_id}/artifacts/failure_contract.json", mime_type="application/json")
+    def failure_contract_resource(task_id: str) -> str:
+        return _read_text_resource(context, f"video-task://{task_id}/artifacts/failure_contract.json")
 
     @mcp.resource("video-task://{task_id}/artifacts/final_video.mp4", mime_type="video/mp4")
     def video_resource(task_id: str) -> bytes:

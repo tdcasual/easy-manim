@@ -40,6 +40,7 @@ easy-manim-worker --data-dir data
   - release metadata (`version` and `channel`)
 - Call `get_metrics_snapshot` to inspect counters and timings
 - Call `list_video_tasks` and `get_task_events` to inspect queue state and per-task history
+- For failed tasks, call `get_video_task` or `get_failure_contract` to inspect the machine-decidable `failure_contract`
 
 ## Create and inspect a task
 1. Connect an MCP client to `http://127.0.0.1:8000/mcp`
@@ -135,6 +136,14 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
 - `attempt_limit_reached`: admission control rejected a retry
 - `near_blank_preview`: preview frames start effectively blank
 - `static_previews`: preview frames show too little motion across the sampled sequence
+
+## Failure contract interpretation
+- `failure_contract.retryable=true` means an upstream agent may safely attempt another automated step without first asking a human
+- `recommended_action=auto_repair` is trustworthy for normalized render, validation, and preview failures that map to the configured retryable issue-code set
+- `recommended_action=fix_credentials` means stop autonomous retries and repair the provider configuration before running again
+- `recommended_action=retry_later` usually indicates transient provider pressure such as timeout or rate limiting
+- `human_review_required=true` means the local system does not have enough confidence for unattended retries; export the task bundle and inspect the failure context before continuing
+- inspect `data/tasks/<task_id>/artifacts/failure_contract.json` when you need the contract outside MCP
 
 ## Semantic repair inspection
 - inspect `data/tasks/<task_id>/artifacts/failure_context.json` for `semantic_diagnostics`

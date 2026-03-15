@@ -80,6 +80,9 @@ def test_failed_task_writes_failure_context_artifact(tmp_path: Path, monkeypatch
     assert payload["phase"] == "failed"
     assert payload["summary"] == "Render failed"
     assert "simulated render failure" in payload["stderr"]
+    assert payload["failure_contract"]["retryable"] is True
+    assert payload["failure_contract"]["blocking_layer"] == "render"
+    assert payload["failure_contract"]["recommended_action"] == "auto_repair"
     assert payload["current_script_resource"] == f"video-task://{created.task_id}/artifacts/current_script.py"
     assert any(
         item["code"] == "unsupported_helper_kwargs"
@@ -104,5 +107,7 @@ def test_failure_context_artifact_is_available_as_mcp_resource(tmp_path: Path) -
         payload = json.loads(resource[0].content)
         assert payload["task_id"] == created.task_id
         assert payload["failure_code"] == "render_failed"
+        assert payload["failure_contract"]["retryable"] is True
+        assert payload["failure_contract"]["blocking_layer"] == "render"
 
     asyncio.run(run())

@@ -361,6 +361,7 @@ class WorkflowEngine:
                 report=report,
                 artifact_store=self.artifact_store,
                 events=self.store.list_events(task.task_id),
+                retryable_issue_codes=self.runtime_service.settings.auto_repair_retryable_issue_codes,
             )
             semantic_diagnostics = failure_context.get("semantic_diagnostics") or []
             if semantic_diagnostics:
@@ -371,6 +372,12 @@ class WorkflowEngine:
                     count=len(semantic_diagnostics),
                     codes=[item.get("code") for item in semantic_diagnostics],
                 )
+            failure_contract = failure_context.get("failure_contract")
+            if isinstance(failure_contract, dict):
+                failure_contract_path = self.artifact_store.failure_contract_path(task.task_id)
+                if self.runtime_policy.is_allowed_write(failure_contract_path):
+                    written_failure_contract_path = self.artifact_store.write_failure_contract(task.task_id, failure_contract)
+                    self.store.register_artifact(task.task_id, "failure_contract", written_failure_contract_path)
             written_failure_context_path = self.artifact_store.write_failure_context(task.task_id, failure_context)
             self.store.register_artifact(task.task_id, "failure_context", written_failure_context_path)
         else:

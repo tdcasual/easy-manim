@@ -3,7 +3,7 @@ from pathlib import Path
 
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
-from video_agent.server.mcp_tools import create_video_task_tool, get_video_task_tool
+from video_agent.server.mcp_tools import create_video_task_tool, get_failure_contract_tool, get_video_task_tool
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -94,3 +94,28 @@ def test_get_video_task_tool_returns_auto_repair_summary(tmp_path: Path) -> None
 
     assert snapshot["artifact_summary"]["repair_children"] == 1
     assert snapshot["auto_repair_summary"]["stopped_reason"] == "budget_exhausted"
+
+
+def test_get_video_task_tool_exposes_failure_contract(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_auto_repair_settings(tmp_path))
+    created = create_video_task_tool(app_context, {"prompt": "draw a circle"})
+
+    app_context.worker.run_once()
+
+    snapshot = get_video_task_tool(app_context, {"task_id": created["task_id"]})
+
+    assert snapshot["failure_contract"]["retryable"] is True
+    assert snapshot["failure_contract"]["recommended_action"] == "auto_repair"
+
+
+def test_get_failure_contract_tool_returns_failure_contract(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_auto_repair_settings(tmp_path))
+    created = create_video_task_tool(app_context, {"prompt": "draw a circle"})
+
+    app_context.worker.run_once()
+
+    payload = get_failure_contract_tool(app_context, {"task_id": created["task_id"]})
+
+    assert payload["task_id"] == created["task_id"]
+    assert payload["failure_contract"]["retryable"] is True
+    assert payload["failure_contract"]["blocking_layer"] == "render"

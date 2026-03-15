@@ -10,9 +10,11 @@
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --include-tag quality --match-all-tags --json` once `.env.beta` and real credentials are loaded
 - Set `EASY_MANIM_AUTO_REPAIR_ENABLED=true`, then run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag repair --json`
 - Confirm the emitted run writes `summary.json`, `summary.md`, and `review_digest.md` under `data/evals/<run_id>/`
+- Confirm the emitted run also writes `run_manifest.json` under `data/evals/<run_id>/`
 - Confirm `summary.json` includes `report.repair` with repair attempt / success metrics
 - Confirm the quality-slice `summary.json` includes `report.quality` with pass rate, median quality score, and issue-code counts
 - Confirm the real-provider slice `summary.json` includes `report.live` with pass rate, formula pass rate, and risk-domain failure counts
+- If a live run was resumed, confirm `run_manifest.json` and the final `summary.json` agree on the selected case count before accepting the result
 - Confirm the real-provider quality intersection includes only prompts tagged with both `real-provider` and `quality`
 - Confirm the quality-slice `summary.md` includes a `Quality Slice` section
 - Confirm the live-run `summary.md` includes a `Live Slice` section

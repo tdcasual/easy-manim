@@ -67,6 +67,20 @@ class ArtifactStore:
         target.write_text(json.dumps(payload, indent=2))
         return target
 
+    def failure_contract_path(self, task_id: str) -> Path:
+        return self.task_dir(task_id) / "artifacts" / "failure_contract.json"
+
+    def write_failure_contract(self, task_id: str, payload: dict[str, Any]) -> Path:
+        target = self.ensure_task_dirs(task_id) / "artifacts" / "failure_contract.json"
+        target.write_text(json.dumps(payload, indent=2))
+        return target
+
+    def read_failure_contract(self, task_id: str) -> dict[str, Any] | None:
+        target = self.failure_contract_path(task_id)
+        if not target.exists():
+            return None
+        return json.loads(target.read_text())
+
     def final_video_path(self, task_id: str) -> Path:
         return self.ensure_task_dirs(task_id) / "artifacts" / "final_video.mp4"
 
@@ -96,6 +110,20 @@ class ArtifactStore:
         target = self.eval_root / run_id
         target.mkdir(parents=True, exist_ok=True)
         return target
+
+    def eval_run_manifest_path(self, run_id: str) -> Path:
+        return self.eval_root / run_id / "run_manifest.json"
+
+    def write_eval_run_manifest(self, run_id: str, payload: dict[str, Any]) -> Path:
+        target = self.eval_run_dir(run_id) / "run_manifest.json"
+        target.write_text(json.dumps(payload, indent=2))
+        return target
+
+    def read_eval_run_manifest(self, run_id: str) -> dict[str, Any] | None:
+        target = self.eval_run_manifest_path(run_id)
+        if not target.exists():
+            return None
+        return json.loads(target.read_text())
 
     def write_eval_summary(self, run_id: str, payload: dict[str, Any]) -> Path:
         target = self.eval_run_dir(run_id) / "summary.json"

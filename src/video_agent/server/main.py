@@ -4,6 +4,7 @@ import argparse
 import os
 from pathlib import Path
 
+from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 from video_agent.config import Settings
 from video_agent.server.fastmcp_server import create_mcp_server
 from video_agent.version import get_release_metadata
@@ -124,18 +125,7 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         auto_repair_max_children_per_root=_env_int("EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT", 1),
         auto_repair_retryable_issue_codes=_env_csv(
             "EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES",
-            [
-                "render_failed",
-                "generation_failed",
-                "syntax_error",
-                "missing_scene",
-                "black_frames",
-                "frozen_tail",
-                "encoding_error",
-                "min_width_not_met",
-                "min_height_not_met",
-                "min_duration_not_met",
-            ],
+            DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES,
         ),
     )
 

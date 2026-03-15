@@ -26,6 +26,9 @@ def build_targeted_repair_feedback(issue_code: str, failure_context: dict[str, A
     missing_checks = failure_context.get("missing_checks") or []
     if missing_checks:
         lines.append(f"Missing runtime checks: {', '.join(str(item) for item in missing_checks)}.")
+    preview_issue_codes = failure_context.get("preview_issue_codes") or []
+    for instruction in _preview_guidance(preview_issue_codes):
+        lines.append(instruction)
 
     for item in (failure_context.get("semantic_diagnostics") or [])[:3]:
         lines.append(_format_semantic_diagnostic(item))
@@ -83,3 +86,19 @@ def _condense(value: str, limit: int = 400) -> str:
     if len(condensed) <= limit:
         return condensed
     return condensed[: limit - 3] + "..."
+
+
+def _preview_guidance(preview_issue_codes: list[str]) -> list[str]:
+    instructions: list[str] = []
+    codes = set(preview_issue_codes)
+    if "near_blank_preview" in codes:
+        instructions.extend(
+            [
+                "Do not open on a blank or almost blank frame.",
+                "Set the light background before scene construction begins, not midway through the animation.",
+                "Make the first beat visibly populated with readable text, geometry, axes, or another clear focal object.",
+            ]
+        )
+    if "static_previews" in codes:
+        instructions.append("Add a clearly visible motion beat so the preview sequence is not effectively static.")
+    return instructions

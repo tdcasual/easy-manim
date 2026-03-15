@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
+from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 
 
 class Settings(BaseModel):
@@ -43,19 +44,7 @@ class Settings(BaseModel):
     auto_repair_enabled: bool = False
     auto_repair_max_children_per_root: int = 1
     auto_repair_retryable_issue_codes: list[str] = Field(
-        default_factory=lambda: [
-            "render_failed",
-            "generation_failed",
-            "syntax_error",
-            "missing_scene",
-            "unsafe_transformmatchingtex_slice",
-            "black_frames",
-            "frozen_tail",
-            "encoding_error",
-            "min_width_not_met",
-            "min_height_not_met",
-            "min_duration_not_met",
-        ]
+        default_factory=lambda: list(DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES)
     )
 
     @model_validator(mode="after")

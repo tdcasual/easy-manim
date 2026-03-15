@@ -46,6 +46,20 @@ source .venv/bin/activate
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --json
 ```
 
+If the run is interrupted after emitting a `run_id`, resume the same slice without duplicating already completed cases:
+
+```bash
+source .venv/bin/activate
+easy-manim-eval-run \
+  --data-dir data \
+  --suite evals/beta_prompt_suite.json \
+  --include-tag real-provider \
+  --resume-run-id <run_id> \
+  --json
+```
+
+If you intentionally want to re-run one completed case inside the same eval record, add `--rerun-case <case_id>`.
+
 To isolate only the quality-sensitive real-provider prompts, run the tag intersection slice:
 
 ```bash
@@ -58,6 +72,7 @@ After the run completes, record the emitted `run_id` and collect:
 - `data/evals/<run_id>/summary.json`
 - `data/evals/<run_id>/summary.md`
 - `data/evals/<run_id>/review_digest.md`
+- `data/evals/<run_id>/run_manifest.json`
 - a qa bundle exported with:
 
 ```bash

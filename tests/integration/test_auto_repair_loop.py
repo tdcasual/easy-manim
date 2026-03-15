@@ -25,6 +25,19 @@ class HelperKwargLLMClient:
         )
 
 
+class BareTexSelectionLLMClient:
+    def generate_script(self, prompt_text: str) -> str:
+        return (
+            "from manim import BLUE, MathTex, MovingCameraScene, SurroundingRectangle\n\n"
+            "class GeneratedScene(MovingCameraScene):\n"
+            "    def construct(self):\n"
+            "        formula = MathTex(r'd = \\\\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}')\n"
+            "        sqrt_part = formula.get_part_by_tex(r'\\\\sqrt')\n"
+            "        marker = SurroundingRectangle(sqrt_part, color=BLUE)\n"
+            "        self.add(formula, marker)\n"
+        )
+
+
 def _write_executable(path: Path, content: str) -> None:
     path.write_text(content)
     path.chmod(0o755)
@@ -156,3 +169,27 @@ def test_auto_repair_stops_after_child_budget_is_exhausted(tmp_path: Path) -> No
     app.worker.run_once()
 
     assert app.store.count_lineage_tasks(created.task_id) == 2
+
+
+def test_auto_repair_retries_bare_tex_selection_failures(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: BareTexSelectionLLMClient(), raising=False)
+    retryable_codes = Settings().auto_repair_retryable_issue_codes
+    app = create_app_context(
+        _build_failing_render_settings(
+            tmp_path,
+            auto_repair_retryable_issue_codes=retryable_codes,
+        )
+    )
+    created = app.task_service.create_video_task(prompt="show the distance formula")
+
+    app.worker.run_once()
+
+    tasks = app.store.list_tasks(limit=10)
+    child_ids = [item["task_id"] for item in tasks if item["task_id"] != created.task_id]
+    child_task = app.store.get_task(child_ids[0])
+
+    assert len(child_ids) == 1
+    assert child_task is not None
+    assert child_task.parent_task_id == created.task_id
+    assert child_task.status == "queued"
+    assert "unsafe_bare_tex_selection" in (child_task.feedback or "")

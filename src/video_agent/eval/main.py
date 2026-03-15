@@ -16,6 +16,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--suite", required=True)
     parser.add_argument("--include-tag", action="append", default=[])
     parser.add_argument("--match-all-tags", action="store_true")
+    parser.add_argument("--resume-run-id")
+    parser.add_argument("--rerun-case", action="append", default=[])
     parser.add_argument("--limit", type=int)
     parser.add_argument("--json", action="store_true")
     return parser
@@ -25,6 +27,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    if args.rerun_case and not args.resume_run_id:
+        parser.error("--rerun-case requires --resume-run-id")
     settings = build_settings(args.data_dir)
     context = create_app_context(settings)
     service = EvaluationService(context)
@@ -33,6 +37,8 @@ def main() -> None:
         include_tags=set(args.include_tag) or None,
         limit=args.limit,
         match_all_tags=args.match_all_tags,
+        resume_run_id=args.resume_run_id,
+        rerun_cases=set(args.rerun_case) or None,
     )
     payload = summary.model_dump(mode="json")
     if args.json:
