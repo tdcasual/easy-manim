@@ -10,6 +10,8 @@ class Settings(BaseModel):
     database_path: Optional[Path] = None
     artifact_root: Optional[Path] = None
     eval_root: Optional[Path] = None
+    auth_mode: str = "disabled"
+    anonymous_agent_id: str = "local-anonymous"
     manim_command: str = "manim"
     latex_command: str = "latex"
     dvisvgm_command: str = "dvisvgm"

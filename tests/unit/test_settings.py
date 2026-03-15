@@ -34,3 +34,10 @@ def test_build_settings_keeps_formula_auto_repair_defaults(monkeypatch) -> None:
     settings = build_settings(Path("data"))
 
     assert settings.auto_repair_retryable_issue_codes == DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
+
+
+def test_settings_defaults_to_auth_disabled() -> None:
+    settings = Settings()
+
+    assert settings.auth_mode == "disabled"
+    assert settings.anonymous_agent_id == "local-anonymous"
