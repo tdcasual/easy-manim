@@ -41,3 +41,13 @@ def test_settings_defaults_to_auth_disabled() -> None:
 
     assert settings.auth_mode == "disabled"
     assert settings.anonymous_agent_id == "local-anonymous"
+
+
+def test_build_settings_reads_auth_env(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_AUTH_MODE", "required")
+    monkeypatch.setenv("EASY_MANIM_ANONYMOUS_AGENT_ID", "ops-agent")
+
+    settings = build_settings(Path("data"))
+
+    assert settings.auth_mode == "required"
+    assert settings.anonymous_agent_id == "ops-agent"

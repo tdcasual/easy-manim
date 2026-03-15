@@ -27,6 +27,7 @@ class CreateVideoTaskResult(BaseModel):
 
 class VideoTaskSnapshot(BaseModel):
     task_id: str
+    agent_id: Optional[str] = None
     status: TaskStatus
     phase: TaskPhase
     attempt_count: int
@@ -153,6 +154,7 @@ class TaskService:
         repair_state = build_repair_state_snapshot(root_task, repair_children)
         return VideoTaskSnapshot(
             task_id=task.task_id,
+            agent_id=task.agent_id,
             status=task.status,
             phase=task.phase,
             attempt_count=task.attempt_count,

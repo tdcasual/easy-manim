@@ -203,6 +203,42 @@ class SQLiteTaskStore:
             updated_at=datetime.fromisoformat(row["updated_at"]),
         )
 
+    def list_agent_tokens(self, agent_id: str) -> list[AgentToken]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT token_hash, agent_id, status, scopes_json, override_json, created_at, updated_at
+                FROM agent_tokens
+                WHERE agent_id = ?
+                ORDER BY created_at ASC
+                """,
+                (agent_id,),
+            ).fetchall()
+        return [
+            AgentToken(
+                token_hash=row["token_hash"],
+                agent_id=row["agent_id"],
+                status=row["status"],
+                scopes_json=json.loads(row["scopes_json"]),
+                override_json=json.loads(row["override_json"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=datetime.fromisoformat(row["updated_at"]),
+            )
+            for row in rows
+        ]
+
+    def disable_agent_token(self, token_hash: str) -> bool:
+        with self._connect() as connection:
+            result = connection.execute(
+                """
+                UPDATE agent_tokens
+                SET status = ?, updated_at = ?
+                WHERE token_hash = ?
+                """,
+                ("disabled", _utcnow_iso(), token_hash),
+            )
+        return result.rowcount > 0
+
     def append_event(self, task_id: str, event_type: str, payload: dict[str, Any]) -> None:
         with self._connect() as connection:
             connection.execute(

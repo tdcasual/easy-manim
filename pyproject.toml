@@ -23,6 +23,7 @@ easy-manim-cleanup = "video_agent.cleanup.main:main"
 easy-manim-export-task = "video_agent.export.main:main"
 easy-manim-eval-run = "video_agent.eval.main:main"
 easy-manim-qa-bundle = "video_agent.qa_bundle.main:main"
+easy-manim-agent-admin = "video_agent.agent_admin.main:main"
 
 [build-system]
 requires = ["setuptools>=68"]

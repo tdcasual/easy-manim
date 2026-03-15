@@ -42,6 +42,39 @@ source .venv/bin/activate
 easy-manim-mcp --transport stdio
 ```
 
+### Agent Auth Modes
+- `EASY_MANIM_AUTH_MODE=disabled` keeps the local developer flow: task tools work without session authentication and tasks are attributed to `local-anonymous` by default.
+- `EASY_MANIM_AUTH_MODE=required` makes mutating task tools and task resources require an authenticated agent session.
+- `EASY_MANIM_ANONYMOUS_AGENT_ID` lets you rename the local fallback identity used only in `disabled` mode.
+
+Example:
+
+```bash
+source .venv/bin/activate
+export EASY_MANIM_AUTH_MODE=required
+easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
+## Provision named agents
+```bash
+source .venv/bin/activate
+easy-manim-agent-admin --data-dir data create-profile --agent-id agent-a --name "Agent A"
+easy-manim-agent-admin --data-dir data issue-token --agent-id agent-a
+```
+
+`issue-token` prints the plaintext token once as JSON. The database stores only `token_hash`, so a lost plaintext token cannot be recovered and must be re-issued.
+
+You can preconfigure per-agent defaults with JSON payloads:
+
+```bash
+easy-manim-agent-admin --data-dir data create-profile \
+  --agent-id agent-a \
+  --name "Agent A" \
+  --profile-json '{"style_hints":{"tone":"teaching","pace":"steady"}}'
+```
+
+After the client receives a plaintext token, it should call the MCP tool `authenticate_agent(agent_token)` once per session before creating or revising tasks in `required` mode.
+
 ## Run server and worker separately
 ```bash
 source .venv/bin/activate

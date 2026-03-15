@@ -16,6 +16,9 @@
   - `EASY_MANIM_WORKER_STALE_AFTER_SECONDS`
   - `EASY_MANIM_MAX_QUEUED_TASKS`
   - `EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK`
+- auth controls:
+  - `EASY_MANIM_AUTH_MODE` with `disabled` or `required`
+  - `EASY_MANIM_ANONYMOUS_AGENT_ID` for the fallback local identity in disabled mode
 
 ## Preflight
 ```bash
@@ -31,6 +34,31 @@ easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-emb
 easy-manim-worker --data-dir data
 ```
 
+To require named-agent authentication:
+
+```bash
+source .venv/bin/activate
+export EASY_MANIM_AUTH_MODE=required
+easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker
+easy-manim-worker --data-dir data
+```
+
+## Provision agent identities
+Create a profile and issue a token before handing access to an external agent:
+
+```bash
+source .venv/bin/activate
+easy-manim-agent-admin --data-dir data create-profile --agent-id agent-a --name "Agent A"
+easy-manim-agent-admin --data-dir data issue-token --agent-id agent-a
+```
+
+Notes:
+- `create-profile` accepts `--profile-json` for per-agent defaults such as `style_hints`, `output_profile`, or `validation_profile`
+- `issue-token` accepts `--override-json` when a specific token should override part of the profile defaults
+- the plaintext token is shown exactly once; only `token_hash` is stored, so lost plaintext tokens must be rotated, not recovered
+- use `easy-manim-agent-admin --data-dir data inspect-profile --agent-id agent-a` to list issued token hashes
+- use `easy-manim-agent-admin --data-dir data disable-token --token-hash <token_hash>` to revoke one token without deleting the profile
+
 ## Runtime inspection
 - Call MCP tool `get_runtime_status` to inspect:
   - resolved binary paths
@@ -44,10 +72,11 @@ easy-manim-worker --data-dir data
 
 ## Create and inspect a task
 1. Connect an MCP client to `http://127.0.0.1:8000/mcp`
-2. Call `create_video_task` with a prompt
-3. Poll `get_video_task` until terminal status
-4. Call `get_video_result`
-5. If needed, inspect:
+2. If `EASY_MANIM_AUTH_MODE=required`, call `authenticate_agent` with the issued plaintext token
+3. Call `create_video_task` with a prompt
+4. Poll `get_video_task` until terminal status
+5. Call `get_video_result`
+6. If needed, inspect:
    - `data/tasks/<task_id>/task.json`
    - `data/tasks/<task_id>/logs/events.jsonl`
    - `data/tasks/<task_id>/artifacts/scene_plan.json`

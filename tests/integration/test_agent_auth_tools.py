@@ -4,7 +4,7 @@ from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.app import create_app_context
-from video_agent.server.mcp_tools import authenticate_agent_tool, create_video_task_tool, revise_video_task_tool
+from video_agent.server.mcp_tools import authenticate_agent_tool, create_video_task_tool, get_video_task_tool, revise_video_task_tool
 from video_agent.server.session_auth import SessionAuthRegistry
 
 
@@ -60,10 +60,12 @@ def test_create_video_task_uses_authenticated_agent_defaults(tmp_path: Path) -> 
     )
 
     task = app.store.get_task(payload["task_id"])
+    snapshot = get_video_task_tool(app, {"task_id": payload["task_id"]}, agent_principal=principal)
 
     assert task is not None
     assert task.agent_id == "agent-a"
     assert task.style_hints["tone"] == "teaching"
+    assert snapshot["agent_id"] == "agent-a"
 
 
 def test_revise_video_task_preserves_authenticated_agent_profile(tmp_path: Path) -> None:
