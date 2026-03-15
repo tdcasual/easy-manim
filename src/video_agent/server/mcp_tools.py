@@ -25,6 +25,21 @@ def authenticate_agent_tool(
     }
 
 
+def _error_payload(code: str, message: str) -> dict[str, Any]:
+    return {"error": {"code": code, "message": message}}
+
+
+def _require_agent_principal(
+    context: AppContext,
+    agent_principal: AgentPrincipal | None,
+) -> AgentPrincipal | None:
+    if context.settings.auth_mode != "required":
+        return agent_principal
+    if agent_principal is None:
+        raise PermissionError("agent_not_authenticated")
+    return agent_principal
+
+
 def create_video_task_tool(
     context: AppContext,
     payload: dict[str, Any],
@@ -42,38 +57,99 @@ def create_video_task_tool(
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
-        return {"error": {"code": exc.code, "message": str(exc)}}
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return result.model_dump(mode="json")
 
 
-
-def get_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
-    result = context.task_service.get_video_task(payload["task_id"])
+def get_video_task_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _require_agent_principal(context, agent_principal)
+        if principal is None:
+            result = context.task_service.get_video_task(payload["task_id"])
+        else:
+            result = context.task_service.get_video_task_for_agent(payload["task_id"], principal.agent_id)
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return result.model_dump(mode="json")
 
 
-def get_failure_contract_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "task_id": payload["task_id"],
-        "failure_contract": context.task_service.get_failure_contract(payload["task_id"]),
-    }
+def get_failure_contract_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _require_agent_principal(context, agent_principal)
+        failure_contract = (
+            context.task_service.get_failure_contract(payload["task_id"])
+            if principal is None
+            else context.task_service.get_failure_contract_for_agent(payload["task_id"], principal.agent_id)
+        )
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
+    return {"task_id": payload["task_id"], "failure_contract": failure_contract}
 
 
-
-def list_video_tasks_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
-    items = context.task_service.list_video_tasks(
-        limit=payload.get("limit", 50),
-        status=payload.get("status"),
-    )
+def list_video_tasks_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _require_agent_principal(context, agent_principal)
+        items = (
+            context.task_service.list_video_tasks(
+                limit=payload.get("limit", 50),
+                status=payload.get("status"),
+            )
+            if principal is None
+            else context.task_service.list_video_tasks_for_agent(
+                principal.agent_id,
+                limit=payload.get("limit", 50),
+                status=payload.get("status"),
+            )
+        )
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return {"items": items, "next_cursor": None}
 
 
-
-def get_task_events_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
-    items = context.task_service.get_task_events(
-        payload["task_id"],
-        limit=payload.get("limit", 200),
-    )
+def get_task_events_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _require_agent_principal(context, agent_principal)
+        items = (
+            context.task_service.get_task_events(
+                payload["task_id"],
+                limit=payload.get("limit", 200),
+            )
+            if principal is None
+            else context.task_service.get_task_events_for_agent(
+                payload["task_id"],
+                principal.agent_id,
+                limit=payload.get("limit", 200),
+            )
+        )
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return {"items": items, "next_cursor": None}
 
 
@@ -100,7 +176,10 @@ def retry_video_task_tool(
     try:
         result = context.task_service.retry_video_task(payload["task_id"], agent_principal=agent_principal)
     except AdmissionControlError as exc:
-        return {"error": {"code": exc.code, "message": str(exc)}}
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return result.model_dump(mode="json")
 
 
@@ -118,17 +197,43 @@ def revise_video_task_tool(
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
-        return {"error": {"code": exc.code, "message": str(exc)}}
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return result.model_dump(mode="json")
 
 
-
-def cancel_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
-    context.task_service.cancel_video_task(payload["task_id"])
+def cancel_video_task_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        context.task_service.cancel_video_task(payload["task_id"], agent_principal=agent_principal)
+    except AdmissionControlError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return {"task_id": payload["task_id"], "status": "cancelled"}
 
 
-
-def get_video_result_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
-    result = context.task_service.get_video_result(payload["task_id"])
+def get_video_result_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _require_agent_principal(context, agent_principal)
+        result = (
+            context.task_service.get_video_result(payload["task_id"])
+            if principal is None
+            else context.task_service.get_video_result_for_agent(payload["task_id"], principal.agent_id)
+        )
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
     return result.model_dump(mode="json")

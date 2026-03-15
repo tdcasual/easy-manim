@@ -1,9 +1,16 @@
 import json
 from pathlib import Path
 
+from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
+from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.app import create_app_context
-from video_agent.server.mcp_tools import create_video_task_tool, get_failure_contract_tool, get_video_task_tool
+from video_agent.server.mcp_tools import (
+    create_video_task_tool,
+    get_failure_contract_tool,
+    get_video_task_tool,
+    list_video_tasks_tool,
+)
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -61,6 +68,16 @@ def _build_required_auth_settings(tmp_path: Path) -> Settings:
         artifact_root=data_dir / "tasks",
         run_embedded_worker=False,
         auth_mode="required",
+    )
+
+
+def _seed_required_agent(app_context, agent_id: str, secret: str) -> None:
+    app_context.store.upsert_agent_profile(AgentProfile(agent_id=agent_id, name=agent_id))
+    app_context.store.issue_agent_token(
+        AgentToken(
+            token_hash=hash_agent_token(secret),
+            agent_id=agent_id,
+        )
     )
 
 
@@ -138,3 +155,26 @@ def test_create_video_task_requires_authenticated_agent_in_required_mode(tmp_pat
     payload = create_video_task_tool(app_context, {"prompt": "draw a circle"})
 
     assert payload["error"]["code"] == "agent_not_authenticated"
+
+
+def test_list_video_tasks_only_returns_authenticated_agents_tasks(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_required_auth_settings(tmp_path))
+    _seed_required_agent(app_context, "agent-a", "agent-a-secret")
+    _seed_required_agent(app_context, "agent-b", "agent-b-secret")
+    agent_a = app_context.agent_identity_service.authenticate("agent-a-secret")
+    agent_b = app_context.agent_identity_service.authenticate("agent-b-secret")
+
+    agent_a_task = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle"},
+        agent_principal=agent_a,
+    )
+    create_video_task_tool(
+        app_context,
+        {"prompt": "draw a square"},
+        agent_principal=agent_b,
+    )
+
+    payload = list_video_tasks_tool(app_context, {"limit": 10}, agent_principal=agent_a)
+
+    assert [item["task_id"] for item in payload["items"]] == [agent_a_task["task_id"]]

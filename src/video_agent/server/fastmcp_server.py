@@ -7,9 +7,10 @@ from typing import Any, AsyncIterator
 
 from mcp.server.fastmcp import Context, FastMCP
 
+from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.config import Settings
 from video_agent.server.app import AppContext, create_app_context
-from video_agent.server.mcp_resources import read_resource
+from video_agent.server.mcp_resources import authorize_resource_access, read_resource, read_resource_for_agent
 from video_agent.server.mcp_tools import (
     authenticate_agent_tool,
     cancel_video_task_tool,
@@ -27,7 +28,6 @@ from video_agent.server.mcp_tools import (
 from video_agent.server.session_auth import session_key_for_context
 
 
-
 def create_mcp_server(
     settings: Settings,
     *,
@@ -36,6 +36,12 @@ def create_mcp_server(
     debug: bool = False,
 ) -> FastMCP:
     context = create_app_context(settings)
+
+    def current_principal(ctx: Context | None) -> AgentPrincipal | None:
+        if ctx is None:
+            return None
+        return context.session_auth.get(session_key_for_context(ctx))
+
     mcp = FastMCP(
         name="easy-manim",
         instructions=(
@@ -76,28 +82,40 @@ def create_mcp_server(
                 "validation_profile": validation_profile,
                 "feedback": feedback,
             },
-            agent_principal=(
-                context.session_auth.get(session_key_for_context(ctx))
-                if ctx is not None
-                else None
-            ),
+            agent_principal=current_principal(ctx),
         )
 
     @mcp.tool(name="get_video_task")
-    def get_video_task(task_id: str) -> dict[str, Any]:
-        return get_video_task_tool(context, {"task_id": task_id})
+    def get_video_task(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_video_task_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.tool(name="get_failure_contract")
-    def get_failure_contract(task_id: str) -> dict[str, Any]:
-        return get_failure_contract_tool(context, {"task_id": task_id})
+    def get_failure_contract(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_failure_contract_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.tool(name="list_video_tasks")
-    def list_video_tasks(limit: int = 50, status: str | None = None) -> dict[str, Any]:
-        return list_video_tasks_tool(context, {"limit": limit, "status": status})
+    def list_video_tasks(limit: int = 50, status: str | None = None, ctx: Context | None = None) -> dict[str, Any]:
+        return list_video_tasks_tool(
+            context,
+            {"limit": limit, "status": status},
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.tool(name="get_task_events")
-    def get_task_events(task_id: str, limit: int = 200) -> dict[str, Any]:
-        return get_task_events_tool(context, {"task_id": task_id, "limit": limit})
+    def get_task_events(task_id: str, limit: int = 200, ctx: Context | None = None) -> dict[str, Any]:
+        return get_task_events_tool(
+            context,
+            {"task_id": task_id, "limit": limit},
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.tool(name="get_metrics_snapshot")
     def get_metrics_snapshot() -> dict[str, Any]:
@@ -121,11 +139,7 @@ def create_mcp_server(
                 "feedback": feedback,
                 "preserve_working_parts": preserve_working_parts,
             },
-            agent_principal=(
-                context.session_auth.get(session_key_for_context(ctx))
-                if ctx is not None
-                else None
-            ),
+            agent_principal=current_principal(ctx),
         )
 
     @mcp.tool(name="retry_video_task")
@@ -133,55 +147,88 @@ def create_mcp_server(
         return retry_video_task_tool(
             context,
             {"task_id": task_id},
-            agent_principal=(
-                context.session_auth.get(session_key_for_context(ctx))
-                if ctx is not None
-                else None
-            ),
+            agent_principal=current_principal(ctx),
         )
 
     @mcp.tool(name="get_video_result")
-    def get_video_result(task_id: str) -> dict[str, Any]:
-        return get_video_result_tool(context, {"task_id": task_id})
+    def get_video_result(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_video_result_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.tool(name="cancel_video_task")
-    def cancel_video_task(task_id: str) -> dict[str, Any]:
-        return cancel_video_task_tool(context, {"task_id": task_id})
+    def cancel_video_task(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return cancel_video_task_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.resource("video-task://{task_id}/task.json", mime_type="application/json")
-    def task_resource(task_id: str) -> str:
-        return _read_text_resource(context, f"video-task://{task_id}/task.json")
+    def task_resource(task_id: str, ctx: Context | None = None) -> str:
+        return _read_text_resource(context, f"video-task://{task_id}/task.json", agent_principal=current_principal(ctx))
 
     @mcp.resource("video-task://{task_id}/artifacts/current_script.py", mime_type="text/x-python")
-    def script_resource(task_id: str) -> str:
-        return _read_text_resource(context, f"video-task://{task_id}/artifacts/current_script.py")
+    def script_resource(task_id: str, ctx: Context | None = None) -> str:
+        return _read_text_resource(
+            context,
+            f"video-task://{task_id}/artifacts/current_script.py",
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.resource("video-task://{task_id}/artifacts/failure_context.json", mime_type="application/json")
-    def failure_context_resource(task_id: str) -> str:
-        return _read_text_resource(context, f"video-task://{task_id}/artifacts/failure_context.json")
+    def failure_context_resource(task_id: str, ctx: Context | None = None) -> str:
+        return _read_text_resource(
+            context,
+            f"video-task://{task_id}/artifacts/failure_context.json",
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.resource("video-task://{task_id}/artifacts/failure_contract.json", mime_type="application/json")
-    def failure_contract_resource(task_id: str) -> str:
-        return _read_text_resource(context, f"video-task://{task_id}/artifacts/failure_contract.json")
+    def failure_contract_resource(task_id: str, ctx: Context | None = None) -> str:
+        return _read_text_resource(
+            context,
+            f"video-task://{task_id}/artifacts/failure_contract.json",
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.resource("video-task://{task_id}/artifacts/final_video.mp4", mime_type="video/mp4")
-    def video_resource(task_id: str) -> bytes:
-        return _read_binary_resource(context, task_id, Path("artifacts/final_video.mp4"))
+    def video_resource(task_id: str, ctx: Context | None = None) -> bytes:
+        return _read_binary_resource(
+            context,
+            task_id,
+            Path("artifacts/final_video.mp4"),
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.resource("video-task://{task_id}/artifacts/previews/{frame_name}", mime_type="image/png")
-    def preview_resource(task_id: str, frame_name: str) -> bytes:
-        return _read_binary_resource(context, task_id, Path("artifacts/previews") / frame_name)
+    def preview_resource(task_id: str, frame_name: str, ctx: Context | None = None) -> bytes:
+        return _read_binary_resource(
+            context,
+            task_id,
+            Path("artifacts/previews") / frame_name,
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.resource("video-task://{task_id}/validations/{report_name}", mime_type="application/json")
-    def validation_resource(task_id: str, report_name: str) -> str:
-        return _read_text_resource(context, f"video-task://{task_id}/validations/{report_name}")
+    def validation_resource(task_id: str, report_name: str, ctx: Context | None = None) -> str:
+        return _read_text_resource(
+            context,
+            f"video-task://{task_id}/validations/{report_name}",
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.resource("video-task://{task_id}/logs/events.jsonl", mime_type="application/jsonl")
-    def log_resource(task_id: str) -> str:
-        return _read_text_resource(context, f"video-task://{task_id}/logs/events.jsonl")
+    def log_resource(task_id: str, ctx: Context | None = None) -> str:
+        return _read_text_resource(
+            context,
+            f"video-task://{task_id}/logs/events.jsonl",
+            agent_principal=current_principal(ctx),
+        )
 
     return mcp
-
 
 
 def _build_lifespan(context: AppContext):
@@ -215,12 +262,26 @@ async def _run_background_worker(context: AppContext, stop_event: asyncio.Event)
             await asyncio.sleep(0)
 
 
+def _read_text_resource(
+    context: AppContext,
+    uri: str,
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> str:
+    if context.settings.auth_mode != "required":
+        return read_resource(context, uri)
+    if agent_principal is None:
+        raise PermissionError("agent_not_authenticated")
+    return read_resource_for_agent(context, uri, agent_principal.agent_id)
 
-def _read_text_resource(context: AppContext, uri: str) -> str:
-    return read_resource(context, uri)
 
-
-
-def _read_binary_resource(context: AppContext, task_id: str, relative_path: Path) -> bytes:
+def _read_binary_resource(
+    context: AppContext,
+    task_id: str,
+    relative_path: Path,
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> bytes:
+    authorize_resource_access(context, task_id, agent_principal=agent_principal)
     target = context.artifact_store.task_dir(task_id) / relative_path
     return target.read_bytes()

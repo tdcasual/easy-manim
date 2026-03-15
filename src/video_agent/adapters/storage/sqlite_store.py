@@ -246,12 +246,23 @@ class SQLiteTaskStore:
             for row in rows
         ]
 
-    def list_tasks(self, limit: int = 50, status: Optional[str] = None) -> list[dict[str, Any]]:
+    def list_tasks(
+        self,
+        limit: int = 50,
+        status: Optional[str] = None,
+        agent_id: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
         query = "SELECT task_id, status, phase, prompt, created_at, updated_at FROM video_tasks"
         params: list[Any] = []
+        clauses: list[str] = []
         if status is not None:
-            query += " WHERE status = ?"
+            clauses.append("status = ?")
             params.append(status)
+        if agent_id is not None:
+            clauses.append("agent_id = ?")
+            params.append(agent_id)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
         query += " ORDER BY created_at DESC LIMIT ?"
         params.append(limit)
         with self._connect() as connection:

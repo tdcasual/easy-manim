@@ -109,6 +109,35 @@ class TaskService:
 
     def get_video_task(self, task_id: str) -> VideoTaskSnapshot:
         task = self._require_task(task_id)
+        return self._build_video_task_snapshot(task)
+
+    def get_video_task_for_agent(self, task_id: str, agent_id: str) -> VideoTaskSnapshot:
+        task = self.require_task_access(task_id, agent_id)
+        return self._build_video_task_snapshot(task)
+
+    def get_video_result_for_agent(self, task_id: str, agent_id: str) -> VideoResult:
+        self.require_task_access(task_id, agent_id)
+        return self.get_video_result(task_id)
+
+    def list_video_tasks_for_agent(self, agent_id: str, limit: int = 50, status: Optional[str] = None) -> list[dict[str, Any]]:
+        return self.store.list_tasks(limit=limit, status=status, agent_id=agent_id)
+
+    def get_task_events_for_agent(self, task_id: str, agent_id: str, limit: int = 200) -> list[dict[str, Any]]:
+        self.require_task_access(task_id, agent_id)
+        return self.store.list_events(task_id, limit=limit)
+
+    def get_failure_contract_for_agent(self, task_id: str, agent_id: str) -> dict[str, Any] | None:
+        self.require_task_access(task_id, agent_id)
+        return self.artifact_store.read_failure_contract(task_id)
+
+    def require_task_access(self, task_id: str, agent_id: str) -> VideoTask:
+        task = self._require_task(task_id)
+        if task.agent_id != agent_id:
+            raise PermissionError(f"Task {task_id} is not owned by agent {agent_id}")
+        return task
+
+    def _build_video_task_snapshot(self, task: VideoTask) -> VideoTaskSnapshot:
+        task_id = task.task_id
         latest_validation = self.store.get_latest_validation(task_id)
         root_task_id = task.root_task_id or task.task_id
         root_task = self._require_task(root_task_id)
@@ -166,8 +195,8 @@ class TaskService:
         preserve_working_parts: bool = True,
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
-        self._resolve_agent_principal(agent_principal)
-        base_task = self._require_task(base_task_id)
+        principal = self._resolve_agent_principal(agent_principal)
+        base_task = self._require_authorized_task(base_task_id, principal)
         metadata = self.revision_service.build_metadata(
             base_task,
             revision_mode="preserve_context_revision" if preserve_working_parts else "full_regeneration",
@@ -186,8 +215,8 @@ class TaskService:
         )
 
     def retry_video_task(self, task_id: str, agent_principal: AgentPrincipal | None = None) -> CreateVideoTaskResult:
-        self._resolve_agent_principal(agent_principal)
-        base_task = self._require_task(task_id)
+        principal = self._resolve_agent_principal(agent_principal)
+        base_task = self._require_authorized_task(task_id, principal)
         if base_task.status is not TaskStatus.FAILED:
             raise ValueError("retry_video_task requires a failed parent task")
         self._enforce_attempt_limit(base_task.root_task_id)
@@ -224,8 +253,9 @@ class TaskService:
             event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
 
-    def cancel_video_task(self, task_id: str) -> None:
-        task = self._require_task(task_id)
+    def cancel_video_task(self, task_id: str, agent_principal: AgentPrincipal | None = None) -> None:
+        principal = self._resolve_agent_principal(agent_principal)
+        task = self._require_authorized_task(task_id, principal)
         task.status = TaskStatus.CANCELLED
         task.phase = TaskPhase.CANCELLED
         self.store.update_task(task)
@@ -258,6 +288,11 @@ class TaskService:
             profile=AgentProfile(agent_id=anonymous_agent_id, name="Local Anonymous"),
             token=AgentToken(token_hash="anonymous", agent_id=anonymous_agent_id),
         )
+
+    def _require_authorized_task(self, task_id: str, principal: AgentPrincipal) -> VideoTask:
+        if self.settings.auth_mode != "required":
+            return self._require_task(task_id)
+        return self.require_task_access(task_id, principal.agent_id)
 
     @staticmethod
     def _build_request_overrides(
