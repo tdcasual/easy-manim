@@ -9,12 +9,14 @@ from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.agent_identity_service import AgentIdentityService
 from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.task_service import TaskService
 from video_agent.application.workflow_engine import WorkflowEngine
 from video_agent.config import Settings
 from video_agent.observability.metrics import MetricsCollector
 from video_agent.safety.runtime_policy import RuntimePolicy
+from video_agent.server.session_auth import SessionAuthRegistry
 from video_agent.validation.hard_validation import HardValidator
 from video_agent.validation.rule_validation import RuleValidator
 from video_agent.validation.static_check import StaticCheckValidator
@@ -26,6 +28,8 @@ class AppContext:
     settings: Settings
     store: SQLiteTaskStore
     artifact_store: ArtifactStore
+    agent_identity_service: AgentIdentityService
+    session_auth: SessionAuthRegistry
     task_service: TaskService
     workflow_engine: WorkflowEngine
     worker: WorkerLoop
@@ -58,6 +62,11 @@ def create_app_context(settings: Settings) -> AppContext:
     store = SQLiteTaskStore(settings.database_path)
     store.initialize()
     artifact_store = ArtifactStore(settings.artifact_root, eval_root=settings.eval_root)
+    agent_identity_service = AgentIdentityService(
+        profile_lookup=store.get_agent_profile,
+        token_lookup=store.get_agent_token,
+    )
+    session_auth = SessionAuthRegistry()
     task_service = TaskService(store=store, artifact_store=artifact_store, settings=settings)
     runtime_policy = RuntimePolicy(
         work_root=settings.artifact_root,
@@ -94,6 +103,8 @@ def create_app_context(settings: Settings) -> AppContext:
         settings=settings,
         store=store,
         artifact_store=artifact_store,
+        agent_identity_service=agent_identity_service,
+        session_auth=session_auth,
         task_service=task_service,
         workflow_engine=workflow_engine,
         worker=worker,

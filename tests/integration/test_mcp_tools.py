@@ -53,6 +53,17 @@ def _build_auto_repair_settings(tmp_path: Path) -> Settings:
     )
 
 
+def _build_required_auth_settings(tmp_path: Path) -> Settings:
+    data_dir = tmp_path / "data"
+    return Settings(
+        data_dir=data_dir,
+        database_path=data_dir / "video_agent.db",
+        artifact_root=data_dir / "tasks",
+        run_embedded_worker=False,
+        auth_mode="required",
+    )
+
+
 def test_create_video_task_tool_returns_task_id(temp_settings) -> None:
     app_context = create_app_context(temp_settings)
     payload = create_video_task_tool(app_context, {"prompt": "draw a circle"})
@@ -119,3 +130,11 @@ def test_get_failure_contract_tool_returns_failure_contract(tmp_path: Path) -> N
     assert payload["task_id"] == created["task_id"]
     assert payload["failure_contract"]["retryable"] is True
     assert payload["failure_contract"]["blocking_layer"] == "render"
+
+
+def test_create_video_task_requires_authenticated_agent_in_required_mode(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_required_auth_settings(tmp_path))
+
+    payload = create_video_task_tool(app_context, {"prompt": "draw a circle"})
+
+    assert payload["error"]["code"] == "agent_not_authenticated"

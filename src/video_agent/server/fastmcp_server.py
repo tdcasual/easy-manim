@@ -5,12 +5,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 from video_agent.config import Settings
 from video_agent.server.app import AppContext, create_app_context
 from video_agent.server.mcp_resources import read_resource
 from video_agent.server.mcp_tools import (
+    authenticate_agent_tool,
     cancel_video_task_tool,
     create_video_task_tool,
     get_failure_contract_tool,
@@ -23,6 +24,7 @@ from video_agent.server.mcp_tools import (
     retry_video_task_tool,
     revise_video_task_tool,
 )
+from video_agent.server.session_auth import session_key_for_context
 
 
 
@@ -46,6 +48,14 @@ def create_mcp_server(
         lifespan=_build_lifespan(context),
     )
 
+    @mcp.tool(name="authenticate_agent")
+    def authenticate_agent(agent_token: str, ctx: Context) -> dict[str, Any]:
+        return authenticate_agent_tool(
+            context,
+            {"agent_token": agent_token},
+            session_key=session_key_for_context(ctx),
+        )
+
     @mcp.tool(name="create_video_task")
     def create_video_task(
         prompt: str,
@@ -54,6 +64,7 @@ def create_mcp_server(
         style_hints: dict[str, Any] | None = None,
         validation_profile: dict[str, Any] | None = None,
         feedback: str | None = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         return create_video_task_tool(
             context,
@@ -65,6 +76,11 @@ def create_mcp_server(
                 "validation_profile": validation_profile,
                 "feedback": feedback,
             },
+            agent_principal=(
+                context.session_auth.get(session_key_for_context(ctx))
+                if ctx is not None
+                else None
+            ),
         )
 
     @mcp.tool(name="get_video_task")
@@ -96,6 +112,7 @@ def create_mcp_server(
         base_task_id: str,
         feedback: str,
         preserve_working_parts: bool = True,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         return revise_video_task_tool(
             context,
@@ -104,11 +121,24 @@ def create_mcp_server(
                 "feedback": feedback,
                 "preserve_working_parts": preserve_working_parts,
             },
+            agent_principal=(
+                context.session_auth.get(session_key_for_context(ctx))
+                if ctx is not None
+                else None
+            ),
         )
 
     @mcp.tool(name="retry_video_task")
-    def retry_video_task(task_id: str) -> dict[str, Any]:
-        return retry_video_task_tool(context, {"task_id": task_id})
+    def retry_video_task(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return retry_video_task_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=(
+                context.session_auth.get(session_key_for_context(ctx))
+                if ctx is not None
+                else None
+            ),
+        )
 
     @mcp.tool(name="get_video_result")
     def get_video_result(task_id: str) -> dict[str, Any]:

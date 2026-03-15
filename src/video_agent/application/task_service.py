@@ -7,10 +7,13 @@ from pydantic import BaseModel, Field
 
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.errors import AdmissionControlError
+from video_agent.application.preference_resolver import compute_profile_digest, resolve_effective_request_config
 from video_agent.application.repair_state import build_repair_state_snapshot
 from video_agent.application.revision_service import RevisionService
 from video_agent.config import Settings
+from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
 
@@ -69,14 +72,29 @@ class TaskService:
         style_hints: Optional[dict[str, Any]] = None,
         validation_profile: Optional[dict[str, Any]] = None,
         feedback: Optional[str] = None,
+        agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         self._enforce_queue_capacity()
+        principal = self._resolve_agent_principal(agent_principal)
+        effective_request_profile = resolve_effective_request_config(
+            system_defaults={},
+            profile_json=principal.profile.profile_json,
+            token_override_json=principal.token.override_json,
+            request_overrides=self._build_request_overrides(
+                output_profile=output_profile,
+                style_hints=style_hints,
+                validation_profile=validation_profile,
+            ),
+        )
         task = VideoTask(
+            agent_id=principal.agent_id,
             prompt=prompt,
             feedback=feedback,
-            output_profile=output_profile or {},
-            style_hints=style_hints or {},
-            validation_profile=validation_profile or {},
+            output_profile=effective_request_profile.get("output_profile", output_profile or {}),
+            style_hints=effective_request_profile.get("style_hints", style_hints or {}),
+            validation_profile=effective_request_profile.get("validation_profile", validation_profile or {}),
+            effective_request_profile=effective_request_profile,
+            effective_profile_digest=compute_profile_digest(effective_request_profile),
         )
         persisted = self.store.create_task(task, idempotency_key=idempotency_key)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
@@ -146,7 +164,9 @@ class TaskService:
         base_task_id: str,
         feedback: str,
         preserve_working_parts: bool = True,
+        agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
+        self._resolve_agent_principal(agent_principal)
         base_task = self._require_task(base_task_id)
         metadata = self.revision_service.build_metadata(
             base_task,
@@ -165,7 +185,8 @@ class TaskService:
             event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
 
-    def retry_video_task(self, task_id: str) -> CreateVideoTaskResult:
+    def retry_video_task(self, task_id: str, agent_principal: AgentPrincipal | None = None) -> CreateVideoTaskResult:
+        self._resolve_agent_principal(agent_principal)
         base_task = self._require_task(task_id)
         if base_task.status is not TaskStatus.FAILED:
             raise ValueError("retry_video_task requires a failed parent task")
@@ -221,6 +242,38 @@ class TaskService:
     def get_failure_contract(self, task_id: str) -> dict[str, Any] | None:
         self._require_task(task_id)
         return self.artifact_store.read_failure_contract(task_id)
+
+    def _resolve_agent_principal(self, agent_principal: AgentPrincipal | None) -> AgentPrincipal:
+        if agent_principal is not None:
+            return agent_principal
+        if self.settings.auth_mode == "required":
+            raise AdmissionControlError(
+                code="agent_not_authenticated",
+                message="Agent authentication is required for this operation",
+            )
+
+        anonymous_agent_id = self.settings.anonymous_agent_id
+        return AgentPrincipal(
+            agent_id=anonymous_agent_id,
+            profile=AgentProfile(agent_id=anonymous_agent_id, name="Local Anonymous"),
+            token=AgentToken(token_hash="anonymous", agent_id=anonymous_agent_id),
+        )
+
+    @staticmethod
+    def _build_request_overrides(
+        *,
+        output_profile: dict[str, Any] | None,
+        style_hints: dict[str, Any] | None,
+        validation_profile: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        overrides: dict[str, Any] = {}
+        if output_profile:
+            overrides["output_profile"] = output_profile
+        if style_hints:
+            overrides["style_hints"] = style_hints
+        if validation_profile:
+            overrides["validation_profile"] = validation_profile
+        return overrides
 
     def _enforce_queue_capacity(self) -> None:
         active_count = self.store.count_tasks([TaskStatus.QUEUED.value, TaskStatus.RUNNING.value, TaskStatus.REVISING.value])

@@ -3,7 +3,10 @@ import json
 from pathlib import Path
 
 import video_agent.server.fastmcp_server as fastmcp_server_module
+from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
+from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.server.app import create_app_context
 from video_agent.server.fastmcp_server import create_mcp_server
 
 
@@ -52,12 +55,36 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
     )
 
 
+def _seed_agent(settings: Settings) -> None:
+    app = create_app_context(settings)
+    app.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "teaching"}},
+        )
+    )
+    app.store.issue_agent_token(
+        AgentToken(
+            token_hash=hash_agent_token("agent-a-secret"),
+            agent_id="agent-a",
+        )
+    )
+
+
 
 def test_fastmcp_server_registers_expected_tools(tmp_path: Path) -> None:
     async def run() -> None:
         mcp = create_mcp_server(_build_fake_pipeline_settings(tmp_path))
         tool_names = {tool.name for tool in await mcp.list_tools()}
-        assert {"create_video_task", "get_video_task", "revise_video_task", "get_video_result", "cancel_video_task"} <= tool_names
+        assert {
+            "authenticate_agent",
+            "create_video_task",
+            "get_video_task",
+            "revise_video_task",
+            "get_video_result",
+            "cancel_video_task",
+        } <= tool_names
 
     asyncio.run(run())
 
@@ -99,5 +126,24 @@ def test_fastmcp_server_can_skip_background_worker(tmp_path: Path, monkeypatch) 
             await asyncio.sleep(0)
 
         assert called is False
+
+    asyncio.run(run())
+
+
+def test_fastmcp_authenticate_agent_enables_followup_task_creation(tmp_path: Path) -> None:
+    async def run() -> None:
+        settings = _build_fake_pipeline_settings(tmp_path)
+        settings.auth_mode = "required"
+        settings.run_embedded_worker = False
+        _seed_agent(settings)
+        mcp = create_mcp_server(settings)
+
+        _, auth_payload = await mcp.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})
+        assert auth_payload["authenticated"] is True
+        assert auth_payload["agent_id"] == "agent-a"
+
+        _, created = await mcp.call_tool("create_video_task", {"prompt": "draw a circle"})
+        assert created["task_id"]
+        assert created["status"] == "queued"
 
     asyncio.run(run())

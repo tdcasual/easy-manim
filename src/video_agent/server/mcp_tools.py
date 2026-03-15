@@ -2,12 +2,35 @@ from __future__ import annotations
 
 from typing import Any
 
+from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.errors import AdmissionControlError
 from video_agent.server.app import AppContext
 
 
 
-def create_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
+def authenticate_agent_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    session_key: str | None = None,
+) -> dict[str, Any]:
+    principal = context.agent_identity_service.authenticate(payload["agent_token"])
+    if session_key is not None:
+        context.session_auth.authenticate(session_key, principal)
+    return {
+        "authenticated": True,
+        "agent_id": principal.agent_id,
+        "name": principal.profile.name,
+        "profile": principal.profile.profile_json,
+    }
+
+
+def create_video_task_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
     try:
         result = context.task_service.create_video_task(
             prompt=payload["prompt"],
@@ -16,6 +39,7 @@ def create_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict
             style_hints=payload.get("style_hints"),
             validation_profile=payload.get("validation_profile"),
             feedback=payload.get("feedback"),
+            agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
         return {"error": {"code": exc.code, "message": str(exc)}}
@@ -67,21 +91,34 @@ def get_runtime_status_tool(context: AppContext, payload: dict[str, Any]) -> dic
 
 
 
-def retry_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
+def retry_video_task_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
     try:
-        result = context.task_service.retry_video_task(payload["task_id"])
+        result = context.task_service.retry_video_task(payload["task_id"], agent_principal=agent_principal)
     except AdmissionControlError as exc:
         return {"error": {"code": exc.code, "message": str(exc)}}
     return result.model_dump(mode="json")
 
 
-
-def revise_video_task_tool(context: AppContext, payload: dict[str, Any]) -> dict[str, Any]:
-    result = context.task_service.revise_video_task(
-        base_task_id=payload["base_task_id"],
-        feedback=payload["feedback"],
-        preserve_working_parts=payload.get("preserve_working_parts", True),
-    )
+def revise_video_task_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        result = context.task_service.revise_video_task(
+            base_task_id=payload["base_task_id"],
+            feedback=payload["feedback"],
+            preserve_working_parts=payload.get("preserve_working_parts", True),
+            agent_principal=agent_principal,
+        )
+    except AdmissionControlError as exc:
+        return {"error": {"code": exc.code, "message": str(exc)}}
     return result.model_dump(mode="json")
 
 
