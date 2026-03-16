@@ -3,10 +3,13 @@ CREATE TABLE IF NOT EXISTS video_tasks (
     root_task_id TEXT NOT NULL,
     parent_task_id TEXT,
     agent_id TEXT,
+    session_id TEXT,
     status TEXT NOT NULL,
     phase TEXT NOT NULL,
     prompt TEXT NOT NULL,
     feedback TEXT,
+    memory_context_summary TEXT,
+    memory_context_digest TEXT,
     idempotency_key TEXT UNIQUE,
     current_script_artifact_id TEXT,
     best_result_artifact_id TEXT,
@@ -33,6 +36,20 @@ CREATE TABLE IF NOT EXISTS agent_tokens (
     override_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_memories (
+    memory_id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    source_session_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    summary_text TEXT NOT NULL,
+    summary_digest TEXT NOT NULL,
+    lineage_refs_json TEXT NOT NULL,
+    snapshot_json TEXT NOT NULL,
+    enhancement_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    disabled_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS task_events (

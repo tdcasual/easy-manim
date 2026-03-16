@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
@@ -33,6 +34,9 @@ class SQLiteTaskStore:
             schema_path = Path(__file__).with_name("schema.sql")
             connection.executescript(schema_path.read_text())
             self._ensure_column(connection, "video_tasks", "agent_id", "TEXT")
+            self._ensure_column(connection, "video_tasks", "session_id", "TEXT")
+            self._ensure_column(connection, "video_tasks", "memory_context_summary", "TEXT")
+            self._ensure_column(connection, "video_tasks", "memory_context_digest", "TEXT")
 
     def create_task(self, task: VideoTask, idempotency_key: Optional[str] = None) -> VideoTask:
         with self._connect() as connection:
@@ -47,20 +51,23 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 INSERT INTO video_tasks (
-                    task_id, root_task_id, parent_task_id, agent_id, status, phase, prompt, feedback,
-                    idempotency_key, current_script_artifact_id, best_result_artifact_id,
-                    task_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    task_id, root_task_id, parent_task_id, agent_id, session_id, status, phase, prompt, feedback,
+                    memory_context_summary, memory_context_digest, idempotency_key,
+                    current_script_artifact_id, best_result_artifact_id, task_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task.task_id,
                     task.root_task_id,
                     task.parent_task_id,
                     task.agent_id,
+                    task.session_id,
                     task.status.value,
                     task.phase.value,
                     task.prompt,
                     task.feedback,
+                    task.memory_context_summary,
+                    task.memory_context_digest,
                     idempotency_key,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
@@ -87,18 +94,22 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 UPDATE video_tasks
-                SET root_task_id = ?, parent_task_id = ?, agent_id = ?, status = ?, phase = ?, prompt = ?, feedback = ?,
-                    current_script_artifact_id = ?, best_result_artifact_id = ?, task_json = ?, updated_at = ?
+                SET root_task_id = ?, parent_task_id = ?, agent_id = ?, session_id = ?, status = ?, phase = ?, prompt = ?,
+                    feedback = ?, memory_context_summary = ?, memory_context_digest = ?, current_script_artifact_id = ?,
+                    best_result_artifact_id = ?, task_json = ?, updated_at = ?
                 WHERE task_id = ?
                 """,
                 (
                     task.root_task_id,
                     task.parent_task_id,
                     task.agent_id,
+                    task.session_id,
                     task.status.value,
                     task.phase.value,
                     task.prompt,
                     task.feedback,
+                    task.memory_context_summary,
+                    task.memory_context_digest,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
                     task.model_dump_json(),
@@ -236,6 +247,104 @@ class SQLiteTaskStore:
                 WHERE token_hash = ?
                 """,
                 ("disabled", _utcnow_iso(), token_hash),
+            )
+        return result.rowcount > 0
+
+    def create_agent_memory(self, record: AgentMemoryRecord) -> AgentMemoryRecord:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_memories (
+                    memory_id, agent_id, source_session_id, status, summary_text, summary_digest,
+                    lineage_refs_json, snapshot_json, enhancement_json, created_at, disabled_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.memory_id,
+                    record.agent_id,
+                    record.source_session_id,
+                    record.status,
+                    record.summary_text,
+                    record.summary_digest,
+                    json.dumps(record.lineage_refs),
+                    json.dumps(record.snapshot),
+                    json.dumps(record.enhancement),
+                    record.created_at.isoformat(),
+                    None if record.disabled_at is None else record.disabled_at.isoformat(),
+                ),
+            )
+        return record
+
+    def get_agent_memory(self, memory_id: str) -> Optional[AgentMemoryRecord]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    memory_id, agent_id, source_session_id, status, summary_text, summary_digest,
+                    lineage_refs_json, snapshot_json, enhancement_json, created_at, disabled_at
+                FROM agent_memories
+                WHERE memory_id = ?
+                """,
+                (memory_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return AgentMemoryRecord(
+            memory_id=row["memory_id"],
+            agent_id=row["agent_id"],
+            source_session_id=row["source_session_id"],
+            status=row["status"],
+            summary_text=row["summary_text"],
+            summary_digest=row["summary_digest"],
+            lineage_refs=json.loads(row["lineage_refs_json"]),
+            snapshot=json.loads(row["snapshot_json"]),
+            enhancement=json.loads(row["enhancement_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            disabled_at=None if row["disabled_at"] is None else datetime.fromisoformat(row["disabled_at"]),
+        )
+
+    def list_agent_memories(self, agent_id: str, include_disabled: bool = False) -> list[AgentMemoryRecord]:
+        query = """
+            SELECT
+                memory_id, agent_id, source_session_id, status, summary_text, summary_digest,
+                lineage_refs_json, snapshot_json, enhancement_json, created_at, disabled_at
+            FROM agent_memories
+            WHERE agent_id = ?
+        """
+        params: list[Any] = [agent_id]
+        if not include_disabled:
+            query += " AND status = ?"
+            params.append("active")
+        query += " ORDER BY created_at ASC"
+        with self._connect() as connection:
+            rows = connection.execute(query, tuple(params)).fetchall()
+        return [
+            AgentMemoryRecord(
+                memory_id=row["memory_id"],
+                agent_id=row["agent_id"],
+                source_session_id=row["source_session_id"],
+                status=row["status"],
+                summary_text=row["summary_text"],
+                summary_digest=row["summary_digest"],
+                lineage_refs=json.loads(row["lineage_refs_json"]),
+                snapshot=json.loads(row["snapshot_json"]),
+                enhancement=json.loads(row["enhancement_json"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+                disabled_at=None if row["disabled_at"] is None else datetime.fromisoformat(row["disabled_at"]),
+            )
+            for row in rows
+        ]
+
+    def disable_agent_memory(self, memory_id: str) -> bool:
+        disabled_at = _utcnow_iso()
+        with self._connect() as connection:
+            result = connection.execute(
+                """
+                UPDATE agent_memories
+                SET status = ?, disabled_at = ?
+                WHERE memory_id = ?
+                """,
+                ("disabled", disabled_at, memory_id),
             )
         return result.rowcount > 0
 

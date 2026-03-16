@@ -3,6 +3,7 @@ import sqlite3
 from pathlib import Path
 
 from video_agent.adapters.llm.client import StubLLMClient
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.config import Settings
 from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.server.app import create_app_context
@@ -80,6 +81,40 @@ def _load_event_payloads(database_path: Path, task_id: str, event_type: str) -> 
     return [json.loads(row[0]) for row in rows]
 
 
+class CapturingLLMClient:
+    def __init__(self) -> None:
+        self.last_prompt: str | None = None
+
+    def generate_script(self, prompt_text: str) -> str:
+        self.last_prompt = prompt_text
+        return (
+            "from manim import Scene\n\n"
+            "class GeneratedScene(Scene):\n"
+            "    def construct(self):\n"
+            "        pass\n"
+        )
+
+
+def _seed_agent_memory(
+    app_context,
+    *,
+    memory_id: str,
+    agent_id: str,
+    summary_text: str,
+    status: str = "active",
+) -> None:
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id=memory_id,
+            agent_id=agent_id,
+            source_session_id=f"session-{agent_id}",
+            status=status,
+            summary_text=summary_text,
+            summary_digest=f"digest-{memory_id}",
+        )
+    )
+
+
 
 def test_task_becomes_completed_only_after_validation_passes(tmp_path: Path) -> None:
     app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
@@ -95,6 +130,60 @@ def test_task_becomes_completed_only_after_validation_passes(tmp_path: Path) -> 
     assert snapshot.repair_state["child_count"] == 0
     assert snapshot.repair_state["last_issue_code"] is None
     assert snapshot.repair_state["stop_reason"] is None
+
+
+def test_completed_task_updates_session_memory_outcome(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="complete-session-memory",
+        session_id="session-1",
+    )
+
+    app_context.worker.run_once()
+    summary = app_context.session_memory_service.get_session_memory("session-1")
+
+    entry = summary.entries[0]
+    assert entry.latest_status == "completed"
+    assert entry.latest_result_summary == "Validation passed"
+    assert f"video-task://{created.task_id}/artifacts/final_video.mp4" in entry.artifact_refs
+
+
+def test_create_task_uses_selected_persistent_memory_context(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    app_context.workflow_engine.llm_client = CapturingLLMClient()
+    _seed_agent_memory(
+        app_context,
+        memory_id="mem-a",
+        agent_id="local-anonymous",
+        summary_text="Always prefer a warm light background and explicit labels.",
+    )
+
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+        memory_ids=["mem-a"],
+    )
+    task = app_context.store.get_task(created.task_id)
+    app_context.worker.run_once()
+
+    assert task is not None
+    assert task.persistent_memory_context_summary is not None
+    assert "Persistent memory context:" in app_context.workflow_engine.llm_client.last_prompt
+    assert "warm light background" in app_context.workflow_engine.llm_client.last_prompt
+
+
+def test_create_without_memory_ids_has_no_persistent_memory_context(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    app_context.workflow_engine.llm_client = CapturingLLMClient()
+
+    created = app_context.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+    task = app_context.store.get_task(created.task_id)
+    app_context.worker.run_once()
+
+    assert task is not None
+    assert task.persistent_memory_context_summary is None
+    assert "Persistent memory context:" not in app_context.workflow_engine.llm_client.last_prompt
 
 
 

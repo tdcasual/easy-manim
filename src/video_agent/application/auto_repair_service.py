@@ -54,7 +54,7 @@ class AutoRepairService:
         if not self._within_budget(task.root_task_id):
             return AutoRepairDecision(created=False, reason="budget_exhausted", issue_code=issue_code)
 
-        feedback = self._build_feedback(task.task_id, issue_code)
+        feedback = self._build_feedback(task, issue_code)
         try:
             child = self.task_service.create_auto_repair_task(task.task_id, feedback=feedback)
         except AdmissionControlError as exc:
@@ -82,9 +82,18 @@ class AutoRepairService:
             return False
         return True
 
-    def _build_feedback(self, task_id: str, issue_code: str) -> str:
-        failure_context = self._load_failure_context(task_id)
-        return build_targeted_repair_feedback(issue_code=issue_code, failure_context=failure_context)
+    def _build_feedback(self, task: VideoTask, issue_code: str) -> str:
+        failure_context = self._load_failure_context(task.task_id)
+        memory_context_summary = None
+        if self.task_service.session_memory_service is not None and task.session_id is not None:
+            summary = self.task_service.session_memory_service.summarize_session_memory(task.session_id)
+            memory_context_summary = summary.summary_text or None
+
+        return build_targeted_repair_feedback(
+            issue_code=issue_code,
+            failure_context=failure_context,
+            memory_context_summary=memory_context_summary,
+        )
 
     def _load_failure_context(self, task_id: str) -> dict[str, Any]:
         path = self.artifact_store.failure_context_path(task_id)

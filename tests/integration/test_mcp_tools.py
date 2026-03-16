@@ -3,6 +3,7 @@ from pathlib import Path
 
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.app import create_app_context
 from video_agent.server.mcp_tools import (
@@ -81,11 +82,51 @@ def _seed_required_agent(app_context, agent_id: str, secret: str) -> None:
     )
 
 
+def _seed_agent_memory(app_context, *, memory_id: str, agent_id: str, status: str = "active") -> None:
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id=memory_id,
+            agent_id=agent_id,
+            source_session_id=f"session-{agent_id}",
+            status=status,
+            summary_text=f"Remember {agent_id}",
+            summary_digest=f"digest-{memory_id}",
+        )
+    )
+
+
 def test_create_video_task_tool_returns_task_id(temp_settings) -> None:
     app_context = create_app_context(temp_settings)
     payload = create_video_task_tool(app_context, {"prompt": "draw a circle"})
     assert payload["task_id"]
     assert payload["status"] == "queued"
+
+
+def test_create_video_task_tool_persists_session_id(temp_settings) -> None:
+    app_context = create_app_context(temp_settings)
+
+    payload = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle", "session_id": "session-1"},
+    )
+    task = app_context.store.get_task(payload["task_id"])
+
+    assert task is not None
+    assert task.session_id == "session-1"
+
+
+def test_create_video_task_persists_selected_memory_ids(temp_settings) -> None:
+    app_context = create_app_context(temp_settings)
+    _seed_agent_memory(app_context, memory_id="mem-a", agent_id="local-anonymous")
+
+    payload = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle", "session_id": "session-1", "memory_ids": ["mem-a"]},
+    )
+    task = app_context.store.get_task(payload["task_id"])
+
+    assert task is not None
+    assert task.selected_memory_ids == ["mem-a"]
 
 
 def test_get_video_task_tool_returns_snapshot(temp_settings) -> None:

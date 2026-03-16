@@ -20,6 +20,7 @@ from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.failure_context import build_failure_context
 from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.scene_plan import build_scene_plan
+from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.workflow_phases import (
     combined_validation_report,
     latex_dependency_report,
@@ -52,6 +53,7 @@ class WorkflowEngine:
         hard_validator: HardValidator,
         rule_validator: RuleValidator,
         runtime_service: RuntimeService,
+        session_memory_service: SessionMemoryService | None = None,
         runtime_policy: RuntimePolicy | None = None,
         metrics: MetricsCollector | None = None,
     ) -> None:
@@ -66,6 +68,7 @@ class WorkflowEngine:
         self.rule_validator = rule_validator
         self.preview_quality_validator = PreviewQualityValidator()
         self.runtime_service = runtime_service
+        self.session_memory_service = session_memory_service
         self.runtime_policy = runtime_policy or RuntimePolicy(work_root=artifact_store.root)
         self.metrics = metrics or MetricsCollector()
         self.auto_repair_service = AutoRepairService(
@@ -112,6 +115,8 @@ class WorkflowEngine:
                 output_profile=render_profile,
                 feedback=task.feedback,
                 style_hints=task.style_hints,
+                memory_context_summary=task.memory_context_summary,
+                persistent_memory_context=task.persistent_memory_context_summary,
                 scene_plan=scene_plan,
             )
 
@@ -288,6 +293,11 @@ class WorkflowEngine:
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
             self.store.append_event(task.task_id, "task_finished", {"status": task.status.value})
+            self._record_session_memory_outcome(
+                task,
+                result_summary=combined_report.summary,
+                extra_artifact_refs=[self.artifact_store.resource_uri(task.task_id, report_path)],
+            )
             self._log(task, task.phase, "Task finished", status=task.status.value, passed=combined_report.passed)
         except Exception as exc:
             self.metrics.increment("infra_failures")
@@ -387,6 +397,19 @@ class WorkflowEngine:
                 "Skipped failure context artifact due to runtime policy",
                 blocked_path=str(failure_context_path),
             )
+        failure_artifact_refs: list[str] = []
+        validation_report_path = self.artifact_store.validation_report_path(task.task_id)
+        if persist_report_artifact and validation_report_path.exists():
+            failure_artifact_refs.append(self.artifact_store.resource_uri(task.task_id, validation_report_path))
+        if self.artifact_store.failure_contract_path(task.task_id).exists():
+            failure_artifact_refs.append(
+                self.artifact_store.resource_uri(task.task_id, self.artifact_store.failure_contract_path(task.task_id))
+            )
+        if self.artifact_store.failure_context_path(task.task_id).exists():
+            failure_artifact_refs.append(
+                self.artifact_store.resource_uri(task.task_id, self.artifact_store.failure_context_path(task.task_id))
+            )
+        self._record_session_memory_outcome(task, result_summary=report.summary, extra_artifact_refs=failure_artifact_refs)
         auto_repair_decision = self.auto_repair_service.maybe_schedule_repair(task)
         self._record_repair_state(task, report, auto_repair_decision)
         self.store.append_event(
@@ -427,6 +450,21 @@ class WorkflowEngine:
             summary=report.summary,
         )
         self.metrics.increment("tasks_failed")
+
+    def _record_session_memory_outcome(
+        self,
+        task,
+        *,
+        result_summary: str | None,
+        extra_artifact_refs: list[str] | None = None,
+    ) -> None:
+        if self.session_memory_service is None:
+            return
+        self.session_memory_service.record_task_outcome(
+            task,
+            result_summary=result_summary,
+            extra_artifact_refs=extra_artifact_refs,
+        )
 
     def _record_repair_state(self, task, report: ValidationReport, auto_repair_decision) -> None:
         root_task_id = task.root_task_id or task.task_id
