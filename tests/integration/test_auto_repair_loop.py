@@ -193,3 +193,18 @@ def test_auto_repair_retries_bare_tex_selection_failures(tmp_path: Path, monkeyp
     assert child_task.parent_task_id == created.task_id
     assert child_task.status == "queued"
     assert "unsafe_bare_tex_selection" in (child_task.feedback or "")
+
+
+def test_auto_repair_child_keeps_parent_session_scope(tmp_path: Path) -> None:
+    app = create_app_context(_build_failing_render_settings(tmp_path))
+    created = app.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+
+    app.worker.run_once()
+
+    tasks = app.store.list_tasks(limit=10)
+    child_ids = [item["task_id"] for item in tasks if item["task_id"] != created.task_id]
+    child_task = app.store.get_task(child_ids[0])
+
+    assert child_task is not None
+    assert child_task.session_id == "session-1"
+    assert child_task.memory_context_summary is not None

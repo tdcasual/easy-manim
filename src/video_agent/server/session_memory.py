@@ -40,6 +40,11 @@ class SessionMemoryRegistry:
             return SessionMemorySnapshot(session_id=session_id)
         return snapshot.model_copy(deep=True)
 
+    def store_snapshot(self, snapshot: SessionMemorySnapshot) -> SessionMemorySnapshot:
+        stored = snapshot.model_copy(deep=True)
+        self._snapshots_by_session_id[stored.session_id] = stored
+        return stored.model_copy(deep=True)
+
     def clear_session(self, session_id: str) -> SessionMemorySnapshot:
         snapshot = self.get_snapshot(session_id)
         cleared = snapshot.model_copy(update={"entries": []}, deep=True)

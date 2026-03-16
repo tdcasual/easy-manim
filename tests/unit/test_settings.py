@@ -51,3 +51,10 @@ def test_build_settings_reads_auth_env(monkeypatch) -> None:
 
     assert settings.auth_mode == "required"
     assert settings.anonymous_agent_id == "ops-agent"
+
+
+def test_settings_define_session_memory_limits() -> None:
+    settings = Settings()
+
+    assert settings.session_memory_max_entries == 5
+    assert settings.session_memory_max_attempts_per_entry == 3

@@ -10,13 +10,16 @@ from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_identity_service import AgentIdentityService
+from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.runtime_service import RuntimeService
+from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
 from video_agent.application.workflow_engine import WorkflowEngine
 from video_agent.config import Settings
 from video_agent.observability.metrics import MetricsCollector
 from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.server.session_auth import SessionAuthRegistry
+from video_agent.server.session_memory import SessionMemoryRegistry
 from video_agent.validation.hard_validation import HardValidator
 from video_agent.validation.rule_validation import RuleValidator
 from video_agent.validation.static_check import StaticCheckValidator
@@ -30,6 +33,8 @@ class AppContext:
     artifact_store: ArtifactStore
     agent_identity_service: AgentIdentityService
     session_auth: SessionAuthRegistry
+    session_memory_registry: SessionMemoryRegistry
+    session_memory_service: SessionMemoryService
     task_service: TaskService
     workflow_engine: WorkflowEngine
     worker: WorkerLoop
@@ -67,7 +72,19 @@ def create_app_context(settings: Settings) -> AppContext:
         token_lookup=store.get_agent_token,
     )
     session_auth = SessionAuthRegistry()
-    task_service = TaskService(store=store, artifact_store=artifact_store, settings=settings)
+    session_memory_registry = SessionMemoryRegistry()
+    session_memory_service = SessionMemoryService(
+        registry=session_memory_registry,
+        max_entries=settings.session_memory_max_entries,
+        max_attempts_per_entry=settings.session_memory_max_attempts_per_entry,
+        summary_char_limit=settings.session_memory_summary_char_limit,
+    )
+    task_service = TaskService(
+        store=store,
+        artifact_store=artifact_store,
+        settings=settings,
+        session_memory_service=session_memory_service,
+    )
     runtime_policy = RuntimePolicy(
         work_root=settings.artifact_root,
         render_timeout_seconds=settings.render_timeout_seconds,
@@ -92,6 +109,12 @@ def create_app_context(settings: Settings) -> AppContext:
         runtime_policy=runtime_policy,
         metrics=metrics,
     )
+    workflow_engine.auto_repair_service = AutoRepairService(
+        store=store,
+        artifact_store=artifact_store,
+        settings=settings,
+        task_service=task_service,
+    )
     worker = WorkerLoop(
         store=store,
         workflow_engine=workflow_engine,
@@ -105,6 +128,8 @@ def create_app_context(settings: Settings) -> AppContext:
         artifact_store=artifact_store,
         agent_identity_service=agent_identity_service,
         session_auth=session_auth,
+        session_memory_registry=session_memory_registry,
+        session_memory_service=session_memory_service,
         task_service=task_service,
         workflow_engine=workflow_engine,
         worker=worker,

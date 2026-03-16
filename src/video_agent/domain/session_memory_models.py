@@ -29,3 +29,15 @@ class SessionMemorySnapshot(BaseModel):
     @property
     def entry_count(self) -> int:
         return len(self.entries)
+
+
+class SessionMemorySummary(BaseModel):
+    session_id: str
+    agent_id: str | None = None
+    entries: list[SessionMemoryEntry] = Field(default_factory=list)
+    summary_text: str = ""
+    summary_digest: str | None = None
+
+    @property
+    def entry_count(self) -> int:
+        return len(self.entries)

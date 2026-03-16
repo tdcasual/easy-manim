@@ -90,6 +90,21 @@ def test_revision_inherits_parent_session_id(tmp_path: Path) -> None:
     assert task.session_id == "session-1"
 
 
+def test_revision_child_receives_memory_context_summary(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+    )
+
+    child = app_context.task_service.revise_video_task(created.task_id, feedback="add title")
+    stored = app_context.store.get_task(child.task_id)
+
+    assert stored is not None
+    assert stored.memory_context_summary is not None
+    assert stored.memory_context_digest is not None
+
+
 
 def test_cancel_task_marks_queued_task_as_cancelled(tmp_path: Path) -> None:
     app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))

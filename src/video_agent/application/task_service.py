@@ -12,6 +12,7 @@ from video_agent.application.errors import AdmissionControlError
 from video_agent.application.preference_resolver import compute_profile_digest, resolve_effective_request_config
 from video_agent.application.repair_state import build_repair_state_snapshot
 from video_agent.application.revision_service import RevisionService
+from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
@@ -59,11 +60,13 @@ class TaskService:
         artifact_store: ArtifactStore,
         settings: Settings,
         revision_service: Optional[RevisionService] = None,
+        session_memory_service: SessionMemoryService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
         self.settings = settings
         self.revision_service = revision_service or RevisionService()
+        self.session_memory_service = session_memory_service
 
     def create_video_task(
         self,
@@ -73,6 +76,7 @@ class TaskService:
         style_hints: Optional[dict[str, Any]] = None,
         validation_profile: Optional[dict[str, Any]] = None,
         feedback: Optional[str] = None,
+        session_id: Optional[str] = None,
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         self._enforce_queue_capacity()
@@ -89,6 +93,7 @@ class TaskService:
         )
         task = VideoTask(
             agent_id=principal.agent_id,
+            session_id=session_id,
             prompt=prompt,
             feedback=feedback,
             output_profile=effective_request_profile.get("output_profile", output_profile or {}),
@@ -101,6 +106,8 @@ class TaskService:
         self.artifact_store.ensure_task_dirs(persisted.task_id)
         self.artifact_store.write_task_snapshot(persisted)
         self.store.append_event(persisted.task_id, "task_created", {"status": persisted.status.value})
+        if self.session_memory_service is not None:
+            self.session_memory_service.record_task_created(persisted, attempt_kind="create")
         return CreateVideoTaskResult(
             task_id=persisted.task_id,
             status=persisted.status,
@@ -212,6 +219,7 @@ class TaskService:
         return self._persist_child_task(
             base_task=base_task,
             child_task=child_task,
+            attempt_kind="revise",
             event_type="revision_created",
             event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
@@ -232,6 +240,7 @@ class TaskService:
         return self._persist_child_task(
             base_task=base_task,
             child_task=child_task,
+            attempt_kind="retry",
             event_type="retry_created",
             event_payload={"parent_task_id": base_task.task_id, **metadata},
         )
@@ -251,6 +260,7 @@ class TaskService:
         return self._persist_child_task(
             base_task=base_task,
             child_task=child_task,
+            attempt_kind="auto_repair",
             event_type="auto_repair_created",
             event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
@@ -370,16 +380,31 @@ class TaskService:
         self,
         base_task: VideoTask,
         child_task: VideoTask,
+        attempt_kind: str,
         event_type: str,
         event_payload: dict[str, Any],
     ) -> CreateVideoTaskResult:
+        self._apply_memory_context(base_task=base_task, child_task=child_task)
         persisted = self.store.create_task(child_task)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
         self.artifact_store.write_task_snapshot(persisted)
         self.store.append_event(persisted.task_id, event_type, event_payload)
+        if self.session_memory_service is not None:
+            self.session_memory_service.record_task_created(persisted, attempt_kind=attempt_kind)
         return CreateVideoTaskResult(
             task_id=persisted.task_id,
             status=persisted.status,
             poll_after_ms=self.settings.default_poll_after_ms,
             resource_refs=[self._task_resource_ref(persisted.task_id)],
         )
+
+    def _apply_memory_context(self, base_task: VideoTask, child_task: VideoTask) -> None:
+        if self.session_memory_service is None or base_task.session_id is None:
+            return
+
+        summary = self.session_memory_service.summarize_session_memory(base_task.session_id)
+        if not summary.summary_text:
+            return
+
+        child_task.memory_context_summary = summary.summary_text
+        child_task.memory_context_digest = summary.summary_digest
