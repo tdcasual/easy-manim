@@ -58,3 +58,12 @@ def test_settings_define_session_memory_limits() -> None:
 
     assert settings.session_memory_max_entries == 5
     assert settings.session_memory_max_attempts_per_entry == 3
+
+
+def test_settings_define_persistent_memory_defaults() -> None:
+    settings = Settings()
+
+    assert settings.persistent_memory_backend == "local"
+    assert settings.persistent_memory_enable_embeddings is False
+    assert settings.persistent_memory_embedding_provider is None
+    assert settings.persistent_memory_embedding_model is None
