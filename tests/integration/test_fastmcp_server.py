@@ -102,6 +102,20 @@ def test_fastmcp_registers_session_memory_tools(tmp_path: Path) -> None:
     asyncio.run(run())
 
 
+def test_fastmcp_registers_persistent_memory_tools(tmp_path: Path) -> None:
+    async def run() -> None:
+        mcp = create_mcp_server(_build_fake_pipeline_settings(tmp_path))
+        tool_names = {tool.name for tool in await mcp.list_tools()}
+        assert {
+            "promote_session_memory",
+            "list_agent_memories",
+            "get_agent_memory",
+            "disable_agent_memory",
+        } <= tool_names
+
+    asyncio.run(run())
+
+
 
 def test_fastmcp_tool_and_resource_roundtrip(tmp_path: Path) -> None:
     async def run() -> None:
