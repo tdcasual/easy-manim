@@ -33,6 +33,9 @@ class SQLiteTaskStore:
             schema_path = Path(__file__).with_name("schema.sql")
             connection.executescript(schema_path.read_text())
             self._ensure_column(connection, "video_tasks", "agent_id", "TEXT")
+            self._ensure_column(connection, "video_tasks", "session_id", "TEXT")
+            self._ensure_column(connection, "video_tasks", "memory_context_summary", "TEXT")
+            self._ensure_column(connection, "video_tasks", "memory_context_digest", "TEXT")
 
     def create_task(self, task: VideoTask, idempotency_key: Optional[str] = None) -> VideoTask:
         with self._connect() as connection:
@@ -47,20 +50,23 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 INSERT INTO video_tasks (
-                    task_id, root_task_id, parent_task_id, agent_id, status, phase, prompt, feedback,
-                    idempotency_key, current_script_artifact_id, best_result_artifact_id,
-                    task_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    task_id, root_task_id, parent_task_id, agent_id, session_id, status, phase, prompt, feedback,
+                    memory_context_summary, memory_context_digest, idempotency_key,
+                    current_script_artifact_id, best_result_artifact_id, task_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task.task_id,
                     task.root_task_id,
                     task.parent_task_id,
                     task.agent_id,
+                    task.session_id,
                     task.status.value,
                     task.phase.value,
                     task.prompt,
                     task.feedback,
+                    task.memory_context_summary,
+                    task.memory_context_digest,
                     idempotency_key,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
@@ -87,18 +93,22 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 UPDATE video_tasks
-                SET root_task_id = ?, parent_task_id = ?, agent_id = ?, status = ?, phase = ?, prompt = ?, feedback = ?,
-                    current_script_artifact_id = ?, best_result_artifact_id = ?, task_json = ?, updated_at = ?
+                SET root_task_id = ?, parent_task_id = ?, agent_id = ?, session_id = ?, status = ?, phase = ?, prompt = ?,
+                    feedback = ?, memory_context_summary = ?, memory_context_digest = ?, current_script_artifact_id = ?,
+                    best_result_artifact_id = ?, task_json = ?, updated_at = ?
                 WHERE task_id = ?
                 """,
                 (
                     task.root_task_id,
                     task.parent_task_id,
                     task.agent_id,
+                    task.session_id,
                     task.status.value,
                     task.phase.value,
                     task.prompt,
                     task.feedback,
+                    task.memory_context_summary,
+                    task.memory_context_digest,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
                     task.model_dump_json(),

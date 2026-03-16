@@ -76,6 +76,20 @@ def test_revision_inherits_parent_context(tmp_path: Path) -> None:
     assert snapshot.inherited_from_task_id == completed.task_id
 
 
+def test_revision_inherits_parent_session_id(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+    )
+
+    child = app_context.task_service.revise_video_task(created.task_id, feedback="add labels")
+    task = app_context.store.get_task(child.task_id)
+
+    assert task is not None
+    assert task.session_id == "session-1"
+
+
 
 def test_cancel_task_marks_queued_task_as_cancelled(tmp_path: Path) -> None:
     app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))

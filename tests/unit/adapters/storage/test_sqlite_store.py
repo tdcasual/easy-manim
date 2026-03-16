@@ -67,3 +67,22 @@ def test_store_persists_task_agent_id(tmp_path) -> None:
 
     assert loaded is not None
     assert loaded.agent_id == "agent-a"
+
+
+def test_store_persists_task_session_id_and_memory_context(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    task = VideoTask(
+        prompt="draw a circle",
+        session_id="session-1",
+        memory_context_summary="Recent attempts already established a light background.",
+        memory_context_digest="digest-1",
+    )
+
+    store.create_task(task, idempotency_key="mem-1")
+    loaded = store.get_task(task.task_id)
+
+    assert loaded is not None
+    assert loaded.session_id == "session-1"
+    assert loaded.memory_context_summary == "Recent attempts already established a light background."
+    assert loaded.memory_context_digest == "digest-1"

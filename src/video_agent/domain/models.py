@@ -19,10 +19,13 @@ class VideoTask(BaseModel):
     parent_task_id: Optional[str] = None
     inherited_from_task_id: Optional[str] = None
     agent_id: Optional[str] = None
+    session_id: Optional[str] = None
     status: TaskStatus = TaskStatus.QUEUED
     phase: TaskPhase = TaskPhase.QUEUED
     prompt: str
     feedback: Optional[str] = None
+    memory_context_summary: Optional[str] = None
+    memory_context_digest: Optional[str] = None
     output_profile: dict[str, Any] = Field(default_factory=dict)
     style_hints: dict[str, Any] = Field(default_factory=dict)
     validation_profile: dict[str, Any] = Field(default_factory=dict)
@@ -56,8 +59,11 @@ class VideoTask(BaseModel):
             parent_task_id=parent.task_id,
             inherited_from_task_id=parent.task_id,
             agent_id=parent.agent_id,
+            session_id=parent.session_id,
             prompt=parent.prompt,
             feedback=feedback,
+            memory_context_summary=None,
+            memory_context_digest=None,
             output_profile=parent.output_profile,
             style_hints=parent.style_hints,
             validation_profile=parent.validation_profile,
