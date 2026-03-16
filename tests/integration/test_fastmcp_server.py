@@ -89,6 +89,19 @@ def test_fastmcp_server_registers_expected_tools(tmp_path: Path) -> None:
     asyncio.run(run())
 
 
+def test_fastmcp_registers_session_memory_tools(tmp_path: Path) -> None:
+    async def run() -> None:
+        mcp = create_mcp_server(_build_fake_pipeline_settings(tmp_path))
+        tool_names = {tool.name for tool in await mcp.list_tools()}
+        assert {
+            "get_session_memory",
+            "summarize_session_memory",
+            "clear_session_memory",
+        } <= tool_names
+
+    asyncio.run(run())
+
+
 
 def test_fastmcp_tool_and_resource_roundtrip(tmp_path: Path) -> None:
     async def run() -> None:
@@ -145,5 +158,28 @@ def test_fastmcp_authenticate_agent_enables_followup_task_creation(tmp_path: Pat
         _, created = await mcp.call_tool("create_video_task", {"prompt": "draw a circle"})
         assert created["task_id"]
         assert created["status"] == "queued"
+
+    asyncio.run(run())
+
+
+def test_same_agent_sessions_do_not_share_memory(tmp_path: Path) -> None:
+    async def run() -> None:
+        settings = _build_fake_pipeline_settings(tmp_path)
+        settings.auth_mode = "required"
+        settings.run_embedded_worker = False
+        _seed_agent(settings)
+
+        mcp_a = create_mcp_server(settings)
+        mcp_b = create_mcp_server(settings)
+
+        await mcp_a.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})
+        await mcp_b.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})
+        await mcp_a.call_tool("create_video_task", {"prompt": "draw a circle"})
+
+        _, memory_a = await mcp_a.call_tool("get_session_memory", {})
+        _, memory_b = await mcp_b.call_tool("get_session_memory", {})
+
+        assert memory_a["entry_count"] == 1
+        assert memory_b["entry_count"] == 0
 
     asyncio.run(run())

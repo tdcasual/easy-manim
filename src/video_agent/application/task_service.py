@@ -202,6 +202,7 @@ class TaskService:
         base_task_id: str,
         feedback: str,
         preserve_working_parts: bool = True,
+        session_id: Optional[str] = None,
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         principal = self._resolve_agent_principal(agent_principal)
@@ -220,11 +221,17 @@ class TaskService:
             base_task=base_task,
             child_task=child_task,
             attempt_kind="revise",
+            session_id=session_id,
             event_type="revision_created",
             event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
 
-    def retry_video_task(self, task_id: str, agent_principal: AgentPrincipal | None = None) -> CreateVideoTaskResult:
+    def retry_video_task(
+        self,
+        task_id: str,
+        session_id: Optional[str] = None,
+        agent_principal: AgentPrincipal | None = None,
+    ) -> CreateVideoTaskResult:
         principal = self._resolve_agent_principal(agent_principal)
         base_task = self._require_authorized_task(task_id, principal)
         if base_task.status is not TaskStatus.FAILED:
@@ -241,11 +248,12 @@ class TaskService:
             base_task=base_task,
             child_task=child_task,
             attempt_kind="retry",
+            session_id=session_id,
             event_type="retry_created",
             event_payload={"parent_task_id": base_task.task_id, **metadata},
         )
 
-    def create_auto_repair_task(self, task_id: str, feedback: str) -> CreateVideoTaskResult:
+    def create_auto_repair_task(self, task_id: str, feedback: str, session_id: Optional[str] = None) -> CreateVideoTaskResult:
         base_task = self._require_task(task_id)
         if base_task.status is not TaskStatus.FAILED:
             raise ValueError("create_auto_repair_task requires a failed parent task")
@@ -261,6 +269,7 @@ class TaskService:
             base_task=base_task,
             child_task=child_task,
             attempt_kind="auto_repair",
+            session_id=session_id,
             event_type="auto_repair_created",
             event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
         )
@@ -381,10 +390,15 @@ class TaskService:
         base_task: VideoTask,
         child_task: VideoTask,
         attempt_kind: str,
+        session_id: Optional[str],
         event_type: str,
         event_payload: dict[str, Any],
     ) -> CreateVideoTaskResult:
-        self._apply_memory_context(base_task=base_task, child_task=child_task)
+        effective_session_id = child_task.session_id or base_task.session_id or session_id
+        if effective_session_id is not None:
+            child_task.session_id = effective_session_id
+
+        self._apply_memory_context(session_id=effective_session_id, child_task=child_task)
         persisted = self.store.create_task(child_task)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
         self.artifact_store.write_task_snapshot(persisted)
@@ -398,11 +412,11 @@ class TaskService:
             resource_refs=[self._task_resource_ref(persisted.task_id)],
         )
 
-    def _apply_memory_context(self, base_task: VideoTask, child_task: VideoTask) -> None:
-        if self.session_memory_service is None or base_task.session_id is None:
+    def _apply_memory_context(self, session_id: str | None, child_task: VideoTask) -> None:
+        if self.session_memory_service is None or session_id is None:
             return
 
-        summary = self.session_memory_service.summarize_session_memory(base_task.session_id)
+        summary = self.session_memory_service.summarize_session_memory(session_id)
         if not summary.summary_text:
             return
 

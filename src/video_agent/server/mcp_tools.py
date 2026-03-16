@@ -17,6 +17,7 @@ def authenticate_agent_tool(
     principal = context.agent_identity_service.authenticate(payload["agent_token"])
     if session_key is not None:
         context.session_auth.authenticate(session_key, principal)
+        context.session_memory_registry.ensure_session(session_key, agent_id=principal.agent_id)
     return {
         "authenticated": True,
         "agent_id": principal.agent_id,
@@ -54,6 +55,7 @@ def create_video_task_tool(
             style_hints=payload.get("style_hints"),
             validation_profile=payload.get("validation_profile"),
             feedback=payload.get("feedback"),
+            session_id=payload.get("session_id"),
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
@@ -174,7 +176,11 @@ def retry_video_task_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
-        result = context.task_service.retry_video_task(payload["task_id"], agent_principal=agent_principal)
+        result = context.task_service.retry_video_task(
+            payload["task_id"],
+            session_id=payload.get("session_id"),
+            agent_principal=agent_principal,
+        )
     except AdmissionControlError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
@@ -194,6 +200,7 @@ def revise_video_task_tool(
             base_task_id=payload["base_task_id"],
             feedback=payload["feedback"],
             preserve_working_parts=payload.get("preserve_working_parts", True),
+            session_id=payload.get("session_id"),
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
@@ -237,3 +244,69 @@ def get_video_result_tool(
         code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
         return _error_payload(code, str(exc))
     return result.model_dump(mode="json")
+
+
+def get_session_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    session_id: str | None = None,
+) -> dict[str, Any]:
+    resolved_session_id = _resolve_session_id(payload, session_id)
+    if resolved_session_id is None:
+        return _error_payload("session_id_required", "session_id is required")
+
+    snapshot = context.session_memory_service.get_session_memory(resolved_session_id)
+    return {
+        "session_id": snapshot.session_id,
+        "agent_id": snapshot.agent_id,
+        "entries": [entry.model_dump(mode="json") for entry in snapshot.entries],
+        "entry_count": snapshot.entry_count,
+    }
+
+
+def summarize_session_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    session_id: str | None = None,
+) -> dict[str, Any]:
+    resolved_session_id = _resolve_session_id(payload, session_id)
+    if resolved_session_id is None:
+        return _error_payload("session_id_required", "session_id is required")
+
+    summary = context.session_memory_service.summarize_session_memory(resolved_session_id)
+    return {
+        "session_id": summary.session_id,
+        "agent_id": summary.agent_id,
+        "entries": [entry.model_dump(mode="json") for entry in summary.entries],
+        "entry_count": summary.entry_count,
+        "summary_text": summary.summary_text,
+        "summary_digest": summary.summary_digest,
+    }
+
+
+def clear_session_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    session_id: str | None = None,
+) -> dict[str, Any]:
+    resolved_session_id = _resolve_session_id(payload, session_id)
+    if resolved_session_id is None:
+        return _error_payload("session_id_required", "session_id is required")
+
+    before = context.session_memory_service.get_session_memory(resolved_session_id)
+    snapshot = context.session_memory_service.clear_session_memory(resolved_session_id)
+    return {
+        "session_id": snapshot.session_id,
+        "agent_id": snapshot.agent_id,
+        "entries": [entry.model_dump(mode="json") for entry in snapshot.entries],
+        "entry_count": snapshot.entry_count,
+        "cleared": True,
+        "cleared_entry_count": before.entry_count,
+    }
+
+
+def _resolve_session_id(payload: dict[str, Any], session_id: str | None) -> str | None:
+    return session_id or payload.get("session_id")

@@ -88,6 +88,19 @@ def test_create_video_task_tool_returns_task_id(temp_settings) -> None:
     assert payload["status"] == "queued"
 
 
+def test_create_video_task_tool_persists_session_id(temp_settings) -> None:
+    app_context = create_app_context(temp_settings)
+
+    payload = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle", "session_id": "session-1"},
+    )
+    task = app_context.store.get_task(payload["task_id"])
+
+    assert task is not None
+    assert task.session_id == "session-1"
+
+
 def test_get_video_task_tool_returns_snapshot(temp_settings) -> None:
     app_context = create_app_context(temp_settings)
     created = create_video_task_tool(app_context, {"prompt": "draw a circle"})
