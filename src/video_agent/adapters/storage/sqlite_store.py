@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
@@ -246,6 +247,104 @@ class SQLiteTaskStore:
                 WHERE token_hash = ?
                 """,
                 ("disabled", _utcnow_iso(), token_hash),
+            )
+        return result.rowcount > 0
+
+    def create_agent_memory(self, record: AgentMemoryRecord) -> AgentMemoryRecord:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_memories (
+                    memory_id, agent_id, source_session_id, status, summary_text, summary_digest,
+                    lineage_refs_json, snapshot_json, enhancement_json, created_at, disabled_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.memory_id,
+                    record.agent_id,
+                    record.source_session_id,
+                    record.status,
+                    record.summary_text,
+                    record.summary_digest,
+                    json.dumps(record.lineage_refs),
+                    json.dumps(record.snapshot),
+                    json.dumps(record.enhancement),
+                    record.created_at.isoformat(),
+                    None if record.disabled_at is None else record.disabled_at.isoformat(),
+                ),
+            )
+        return record
+
+    def get_agent_memory(self, memory_id: str) -> Optional[AgentMemoryRecord]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    memory_id, agent_id, source_session_id, status, summary_text, summary_digest,
+                    lineage_refs_json, snapshot_json, enhancement_json, created_at, disabled_at
+                FROM agent_memories
+                WHERE memory_id = ?
+                """,
+                (memory_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return AgentMemoryRecord(
+            memory_id=row["memory_id"],
+            agent_id=row["agent_id"],
+            source_session_id=row["source_session_id"],
+            status=row["status"],
+            summary_text=row["summary_text"],
+            summary_digest=row["summary_digest"],
+            lineage_refs=json.loads(row["lineage_refs_json"]),
+            snapshot=json.loads(row["snapshot_json"]),
+            enhancement=json.loads(row["enhancement_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            disabled_at=None if row["disabled_at"] is None else datetime.fromisoformat(row["disabled_at"]),
+        )
+
+    def list_agent_memories(self, agent_id: str, include_disabled: bool = False) -> list[AgentMemoryRecord]:
+        query = """
+            SELECT
+                memory_id, agent_id, source_session_id, status, summary_text, summary_digest,
+                lineage_refs_json, snapshot_json, enhancement_json, created_at, disabled_at
+            FROM agent_memories
+            WHERE agent_id = ?
+        """
+        params: list[Any] = [agent_id]
+        if not include_disabled:
+            query += " AND status = ?"
+            params.append("active")
+        query += " ORDER BY created_at ASC"
+        with self._connect() as connection:
+            rows = connection.execute(query, tuple(params)).fetchall()
+        return [
+            AgentMemoryRecord(
+                memory_id=row["memory_id"],
+                agent_id=row["agent_id"],
+                source_session_id=row["source_session_id"],
+                status=row["status"],
+                summary_text=row["summary_text"],
+                summary_digest=row["summary_digest"],
+                lineage_refs=json.loads(row["lineage_refs_json"]),
+                snapshot=json.loads(row["snapshot_json"]),
+                enhancement=json.loads(row["enhancement_json"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+                disabled_at=None if row["disabled_at"] is None else datetime.fromisoformat(row["disabled_at"]),
+            )
+            for row in rows
+        ]
+
+    def disable_agent_memory(self, memory_id: str) -> bool:
+        disabled_at = _utcnow_iso()
+        with self._connect() as connection:
+            result = connection.execute(
+                """
+                UPDATE agent_memories
+                SET status = ?, disabled_at = ?
+                WHERE memory_id = ?
+                """,
+                ("disabled", disabled_at, memory_id),
             )
         return result.rowcount > 0
 

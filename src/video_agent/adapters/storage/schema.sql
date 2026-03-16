@@ -38,6 +38,20 @@ CREATE TABLE IF NOT EXISTS agent_tokens (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS agent_memories (
+    memory_id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    source_session_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    summary_text TEXT NOT NULL,
+    summary_digest TEXT NOT NULL,
+    lineage_refs_json TEXT NOT NULL,
+    snapshot_json TEXT NOT NULL,
+    enhancement_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    disabled_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS task_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL,
