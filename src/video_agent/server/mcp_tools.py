@@ -4,6 +4,7 @@ from typing import Any
 
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.errors import AdmissionControlError
+from video_agent.application.persistent_memory_service import PersistentMemoryError
 from video_agent.server.app import AppContext
 
 
@@ -41,6 +42,16 @@ def _require_agent_principal(
     return agent_principal
 
 
+def _resolve_memory_agent_id(
+    context: AppContext,
+    agent_principal: AgentPrincipal | None,
+) -> str:
+    principal = _require_agent_principal(context, agent_principal)
+    if principal is None:
+        return context.settings.anonymous_agent_id
+    return principal.agent_id
+
+
 def create_video_task_tool(
     context: AppContext,
     payload: dict[str, Any],
@@ -56,9 +67,12 @@ def create_video_task_tool(
             validation_profile=payload.get("validation_profile"),
             feedback=payload.get("feedback"),
             session_id=payload.get("session_id"),
+            memory_ids=payload.get("memory_ids"),
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
@@ -201,9 +215,12 @@ def revise_video_task_tool(
             feedback=payload["feedback"],
             preserve_working_parts=payload.get("preserve_working_parts", True),
             session_id=payload.get("session_id"),
+            memory_ids=payload.get("memory_ids"),
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
@@ -308,6 +325,89 @@ def clear_session_memory_tool(
         "cleared_entry_count": before.entry_count,
         "cleared_attempt_count": sum(len(entry.attempts) for entry in before.entries),
     }
+
+
+def promote_session_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+    session_id: str | None = None,
+) -> dict[str, Any]:
+    resolved_session_id = _resolve_session_id(payload, session_id)
+    if resolved_session_id is None:
+        return _error_payload("session_id_required", "session_id is required")
+
+    try:
+        record = context.persistent_memory_service.promote_session_memory(
+            resolved_session_id,
+            agent_id=_resolve_memory_agent_id(context, agent_principal),
+        )
+    except PersistentMemoryError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
+
+    return record.model_dump(mode="json")
+
+
+def list_agent_memories_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        records = context.persistent_memory_service.list_agent_memories(
+            _resolve_memory_agent_id(context, agent_principal),
+            include_disabled=payload.get("include_disabled", False),
+        )
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
+
+    return {"items": [record.model_dump(mode="json") for record in records]}
+
+
+def get_agent_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        record = context.persistent_memory_service.get_agent_memory(
+            payload["memory_id"],
+            agent_id=_resolve_memory_agent_id(context, agent_principal),
+        )
+    except PersistentMemoryError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
+
+    return record.model_dump(mode="json")
+
+
+def disable_agent_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        record = context.persistent_memory_service.disable_agent_memory(
+            payload["memory_id"],
+            agent_id=_resolve_memory_agent_id(context, agent_principal),
+        )
+    except PersistentMemoryError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
+        return _error_payload(code, str(exc))
+
+    return record.model_dump(mode="json")
 
 
 def _resolve_session_id(payload: dict[str, Any], session_id: str | None) -> str | None:

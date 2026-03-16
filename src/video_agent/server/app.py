@@ -11,6 +11,7 @@ from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_identity_service import AgentIdentityService
 from video_agent.application.auto_repair_service import AutoRepairService
+from video_agent.application.persistent_memory_service import PersistentMemoryService, build_persistent_memory_enhancer
 from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
@@ -35,6 +36,7 @@ class AppContext:
     session_auth: SessionAuthRegistry
     session_memory_registry: SessionMemoryRegistry
     session_memory_service: SessionMemoryService
+    persistent_memory_service: PersistentMemoryService
     task_service: TaskService
     workflow_engine: WorkflowEngine
     worker: WorkerLoop
@@ -79,11 +81,25 @@ def create_app_context(settings: Settings) -> AppContext:
         max_attempts_per_entry=settings.session_memory_max_attempts_per_entry,
         summary_char_limit=settings.session_memory_summary_char_limit,
     )
+    persistent_memory_service = PersistentMemoryService(
+        create_record=store.create_agent_memory,
+        get_session_summary=session_memory_service.summarize_session_memory,
+        get_record=store.get_agent_memory,
+        list_records=store.list_agent_memories,
+        disable_record=store.disable_agent_memory,
+        enhancer=build_persistent_memory_enhancer(
+            backend=settings.persistent_memory_backend,
+            enable_embeddings=settings.persistent_memory_enable_embeddings,
+            embedding_provider=settings.persistent_memory_embedding_provider,
+            embedding_model=settings.persistent_memory_embedding_model,
+        ),
+    )
     task_service = TaskService(
         store=store,
         artifact_store=artifact_store,
         settings=settings,
         session_memory_service=session_memory_service,
+        persistent_memory_service=persistent_memory_service,
     )
     runtime_policy = RuntimePolicy(
         work_root=settings.artifact_root,
@@ -131,6 +147,7 @@ def create_app_context(settings: Settings) -> AppContext:
         session_auth=session_auth,
         session_memory_registry=session_memory_registry,
         session_memory_service=session_memory_service,
+        persistent_memory_service=persistent_memory_service,
         task_service=task_service,
         workflow_engine=workflow_engine,
         worker=worker,

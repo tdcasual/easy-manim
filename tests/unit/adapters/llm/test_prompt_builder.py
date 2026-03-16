@@ -170,3 +170,15 @@ def test_prompt_builder_includes_session_memory_context_when_present() -> None:
 
     assert "Session memory context:" in prompt
     assert "failed on blank openings" in prompt
+
+
+def test_prompt_builder_includes_persistent_memory_context_when_present() -> None:
+    prompt = build_generation_prompt(
+        prompt="draw a circle",
+        output_profile={"quality_preset": "production"},
+        feedback="add labels",
+        persistent_memory_context="Always prefer a warm light background and explicit labels.",
+    )
+
+    assert "Persistent memory context:" in prompt
+    assert "warm light background" in prompt

@@ -46,6 +46,10 @@ class Settings(BaseModel):
     session_memory_max_entries: int = 5
     session_memory_max_attempts_per_entry: int = 3
     session_memory_summary_char_limit: int = 2000
+    persistent_memory_backend: str = "local"
+    persistent_memory_enable_embeddings: bool = False
+    persistent_memory_embedding_provider: str | None = None
+    persistent_memory_embedding_model: str | None = None
     auto_repair_enabled: bool = False
     auto_repair_max_children_per_root: int = 1
     auto_repair_retryable_issue_codes: list[str] = Field(

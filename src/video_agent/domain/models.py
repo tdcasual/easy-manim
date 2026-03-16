@@ -26,6 +26,9 @@ class VideoTask(BaseModel):
     feedback: Optional[str] = None
     memory_context_summary: Optional[str] = None
     memory_context_digest: Optional[str] = None
+    selected_memory_ids: list[str] = Field(default_factory=list)
+    persistent_memory_context_summary: Optional[str] = None
+    persistent_memory_context_digest: Optional[str] = None
     output_profile: dict[str, Any] = Field(default_factory=dict)
     style_hints: dict[str, Any] = Field(default_factory=dict)
     validation_profile: dict[str, Any] = Field(default_factory=dict)
@@ -64,6 +67,9 @@ class VideoTask(BaseModel):
             feedback=feedback,
             memory_context_summary=None,
             memory_context_digest=None,
+            selected_memory_ids=[],
+            persistent_memory_context_summary=None,
+            persistent_memory_context_digest=None,
             output_profile=parent.output_profile,
             style_hints=parent.style_hints,
             validation_profile=parent.validation_profile,

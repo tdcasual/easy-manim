@@ -16,12 +16,16 @@ from video_agent.server.mcp_tools import (
     cancel_video_task_tool,
     clear_session_memory_tool,
     create_video_task_tool,
+    disable_agent_memory_tool,
     get_failure_contract_tool,
+    get_agent_memory_tool,
     get_metrics_snapshot_tool,
     get_runtime_status_tool,
     get_session_memory_tool,
     get_task_events_tool,
     get_video_result_tool,
+    list_agent_memories_tool,
+    promote_session_memory_tool,
     get_video_task_tool,
     list_video_tasks_tool,
     retry_video_task_tool,
@@ -83,6 +87,7 @@ def create_mcp_server(
         style_hints: dict[str, Any] | None = None,
         validation_profile: dict[str, Any] | None = None,
         feedback: str | None = None,
+        memory_ids: list[str] | None = None,
         ctx: Context | None = None,
     ) -> dict[str, Any]:
         return create_video_task_tool(
@@ -94,6 +99,7 @@ def create_mcp_server(
                 "style_hints": style_hints,
                 "validation_profile": validation_profile,
                 "feedback": feedback,
+                "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
             },
             agent_principal=current_principal(ctx),
@@ -144,6 +150,7 @@ def create_mcp_server(
         base_task_id: str,
         feedback: str,
         preserve_working_parts: bool = True,
+        memory_ids: list[str] | None = None,
         ctx: Context | None = None,
     ) -> dict[str, Any]:
         return revise_video_task_tool(
@@ -152,6 +159,7 @@ def create_mcp_server(
                 "base_task_id": base_task_id,
                 "feedback": feedback,
                 "preserve_working_parts": preserve_working_parts,
+                "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
             },
             agent_principal=current_principal(ctx),
@@ -184,6 +192,39 @@ def create_mcp_server(
     @mcp.tool(name="clear_session_memory")
     def clear_session_memory(ctx: Context | None = None) -> dict[str, Any]:
         return clear_session_memory_tool(context, {}, session_id=current_session_id(ctx))
+
+    @mcp.tool(name="promote_session_memory")
+    def promote_session_memory(ctx: Context | None = None) -> dict[str, Any]:
+        return promote_session_memory_tool(
+            context,
+            {},
+            agent_principal=current_principal(ctx),
+            session_id=current_session_id(ctx),
+        )
+
+    @mcp.tool(name="list_agent_memories")
+    def list_agent_memories(include_disabled: bool = False, ctx: Context | None = None) -> dict[str, Any]:
+        return list_agent_memories_tool(
+            context,
+            {"include_disabled": include_disabled},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="get_agent_memory")
+    def get_agent_memory(memory_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_agent_memory_tool(
+            context,
+            {"memory_id": memory_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="disable_agent_memory")
+    def disable_agent_memory(memory_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return disable_agent_memory_tool(
+            context,
+            {"memory_id": memory_id},
+            agent_principal=current_principal(ctx),
+        )
 
     @mcp.tool(name="cancel_video_task")
     def cancel_video_task(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
