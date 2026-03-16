@@ -4,6 +4,8 @@ import hashlib
 from collections.abc import Callable
 from uuid import uuid4
 
+from pydantic import BaseModel, Field
+
 from video_agent.application.persistent_memory_enhancer import PersistentMemoryEnhancer
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.session_memory_models import SessionMemorySummary
@@ -13,6 +15,12 @@ class PersistentMemoryError(Exception):
     def __init__(self, code: str, message: str | None = None) -> None:
         super().__init__(message or code)
         self.code = code
+
+
+class PersistentMemoryContext(BaseModel):
+    memory_ids: list[str] = Field(default_factory=list)
+    summary_text: str | None = None
+    summary_digest: str | None = None
 
 
 class PersistentMemoryService:
@@ -73,6 +81,26 @@ class PersistentMemoryService:
         if not self.disable_record(memory_id):
             raise PersistentMemoryError("agent_memory_not_found")
         return self.get_agent_memory(memory_id, agent_id=agent_id)
+
+    def resolve_memory_context(self, agent_id: str, memory_ids: list[str] | None) -> PersistentMemoryContext:
+        selected_ids = list(dict.fromkeys(memory_ids or []))
+        if not selected_ids:
+            return PersistentMemoryContext()
+
+        records: list[AgentMemoryRecord] = []
+        for memory_id in selected_ids:
+            record = self.get_agent_memory(memory_id, agent_id=agent_id)
+            if record.status != "active":
+                raise PersistentMemoryError("agent_memory_disabled")
+            records.append(record)
+
+        summary_parts = [record.summary_text.strip() for record in records if record.summary_text.strip()]
+        summary_text = "\n\n".join(summary_parts) or None
+        return PersistentMemoryContext(
+            memory_ids=selected_ids,
+            summary_text=summary_text,
+            summary_digest=None if summary_text is None else self._compute_summary_digest(summary_text),
+        )
 
     def _build_enhancement(self, record: AgentMemoryRecord) -> dict[str, object]:
         if self.enhancer is None:

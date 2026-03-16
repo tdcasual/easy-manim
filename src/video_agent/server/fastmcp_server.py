@@ -87,6 +87,7 @@ def create_mcp_server(
         style_hints: dict[str, Any] | None = None,
         validation_profile: dict[str, Any] | None = None,
         feedback: str | None = None,
+        memory_ids: list[str] | None = None,
         ctx: Context | None = None,
     ) -> dict[str, Any]:
         return create_video_task_tool(
@@ -98,6 +99,7 @@ def create_mcp_server(
                 "style_hints": style_hints,
                 "validation_profile": validation_profile,
                 "feedback": feedback,
+                "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
             },
             agent_principal=current_principal(ctx),
@@ -148,6 +150,7 @@ def create_mcp_server(
         base_task_id: str,
         feedback: str,
         preserve_working_parts: bool = True,
+        memory_ids: list[str] | None = None,
         ctx: Context | None = None,
     ) -> dict[str, Any]:
         return revise_video_task_tool(
@@ -156,6 +159,7 @@ def create_mcp_server(
                 "base_task_id": base_task_id,
                 "feedback": feedback,
                 "preserve_working_parts": preserve_working_parts,
+                "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
             },
             agent_principal=current_principal(ctx),

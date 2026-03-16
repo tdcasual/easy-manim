@@ -67,9 +67,12 @@ def create_video_task_tool(
             validation_profile=payload.get("validation_profile"),
             feedback=payload.get("feedback"),
             session_id=payload.get("session_id"),
+            memory_ids=payload.get("memory_ids"),
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
@@ -212,9 +215,12 @@ def revise_video_task_tool(
             feedback=payload["feedback"],
             preserve_working_parts=payload.get("preserve_working_parts", True),
             session_id=payload.get("session_id"),
+            memory_ids=payload.get("memory_ids"),
             agent_principal=agent_principal,
         )
     except AdmissionControlError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"

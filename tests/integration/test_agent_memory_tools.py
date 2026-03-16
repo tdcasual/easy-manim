@@ -7,7 +7,13 @@ from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.app import create_app_context
-from video_agent.server.mcp_tools import disable_agent_memory_tool, get_agent_memory_tool, list_agent_memories_tool, promote_session_memory_tool
+from video_agent.server.mcp_tools import (
+    create_video_task_tool,
+    disable_agent_memory_tool,
+    get_agent_memory_tool,
+    list_agent_memories_tool,
+    promote_session_memory_tool,
+)
 
 
 def _build_agent_memory_settings(tmp_path: Path) -> Settings:
@@ -34,12 +40,13 @@ def agent_principal(agent_id: str) -> AgentPrincipal:
     )
 
 
-def seed_agent_memory(app_context, *, memory_id: str, agent_id: str) -> None:
+def seed_agent_memory(app_context, *, memory_id: str, agent_id: str, status: str = "active") -> None:
     app_context.store.create_agent_memory(
         AgentMemoryRecord(
             memory_id=memory_id,
             agent_id=agent_id,
             source_session_id=f"session-{agent_id}",
+            status=status,
             summary_text=f"Remember {agent_id}",
             summary_digest=f"digest-{memory_id}",
         )
@@ -88,3 +95,15 @@ def test_disabled_memory_cannot_be_used_after_disable(app_context) -> None:
     )
 
     assert payload["status"] == "disabled"
+
+
+def test_create_rejects_disabled_memory_id(app_context) -> None:
+    seed_agent_memory(app_context, memory_id="mem-a", agent_id="agent-a", status="disabled")
+
+    payload = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle", "session_id": "session-1", "memory_ids": ["mem-a"]},
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    assert payload["error"]["code"] == "agent_memory_disabled"

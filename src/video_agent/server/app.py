@@ -93,6 +93,7 @@ def create_app_context(settings: Settings) -> AppContext:
         artifact_store=artifact_store,
         settings=settings,
         session_memory_service=session_memory_service,
+        persistent_memory_service=persistent_memory_service,
     )
     runtime_policy = RuntimePolicy(
         work_root=settings.artifact_root,

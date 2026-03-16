@@ -9,6 +9,7 @@ from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.errors import AdmissionControlError
+from video_agent.application.persistent_memory_service import PersistentMemoryContext, PersistentMemoryService
 from video_agent.application.preference_resolver import compute_profile_digest, resolve_effective_request_config
 from video_agent.application.repair_state import build_repair_state_snapshot
 from video_agent.application.revision_service import RevisionService
@@ -61,12 +62,14 @@ class TaskService:
         settings: Settings,
         revision_service: Optional[RevisionService] = None,
         session_memory_service: SessionMemoryService | None = None,
+        persistent_memory_service: PersistentMemoryService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
         self.settings = settings
         self.revision_service = revision_service or RevisionService()
         self.session_memory_service = session_memory_service
+        self.persistent_memory_service = persistent_memory_service
 
     def create_video_task(
         self,
@@ -77,10 +80,12 @@ class TaskService:
         validation_profile: Optional[dict[str, Any]] = None,
         feedback: Optional[str] = None,
         session_id: Optional[str] = None,
+        memory_ids: list[str] | None = None,
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         self._enforce_queue_capacity()
         principal = self._resolve_agent_principal(agent_principal)
+        persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
         effective_request_profile = resolve_effective_request_config(
             system_defaults={},
             profile_json=principal.profile.profile_json,
@@ -96,6 +101,9 @@ class TaskService:
             session_id=session_id,
             prompt=prompt,
             feedback=feedback,
+            selected_memory_ids=persistent_memory.memory_ids,
+            persistent_memory_context_summary=persistent_memory.summary_text,
+            persistent_memory_context_digest=persistent_memory.summary_digest,
             output_profile=effective_request_profile.get("output_profile", output_profile or {}),
             style_hints=effective_request_profile.get("style_hints", style_hints or {}),
             validation_profile=effective_request_profile.get("validation_profile", validation_profile or {}),
@@ -203,10 +211,12 @@ class TaskService:
         feedback: str,
         preserve_working_parts: bool = True,
         session_id: Optional[str] = None,
+        memory_ids: list[str] | None = None,
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         principal = self._resolve_agent_principal(agent_principal)
         base_task = self._require_authorized_task(base_task_id, principal)
+        persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
         metadata = self.revision_service.build_metadata(
             base_task,
             revision_mode="preserve_context_revision" if preserve_working_parts else "full_regeneration",
@@ -224,6 +234,7 @@ class TaskService:
             session_id=session_id,
             event_type="revision_created",
             event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
+            persistent_memory=persistent_memory,
         )
 
     def retry_video_task(
@@ -393,12 +404,14 @@ class TaskService:
         session_id: Optional[str],
         event_type: str,
         event_payload: dict[str, Any],
+        persistent_memory: PersistentMemoryContext | None = None,
     ) -> CreateVideoTaskResult:
         effective_session_id = child_task.session_id or base_task.session_id or session_id
         if effective_session_id is not None:
             child_task.session_id = effective_session_id
 
         self._apply_memory_context(session_id=effective_session_id, child_task=child_task)
+        self._apply_persistent_memory_context(child_task=child_task, persistent_memory=persistent_memory)
         persisted = self.store.create_task(child_task)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
         self.artifact_store.write_task_snapshot(persisted)
@@ -422,3 +435,25 @@ class TaskService:
 
         child_task.memory_context_summary = summary.summary_text
         child_task.memory_context_digest = summary.summary_digest
+
+    def _apply_persistent_memory_context(
+        self,
+        *,
+        child_task: VideoTask,
+        persistent_memory: PersistentMemoryContext | None,
+    ) -> None:
+        if persistent_memory is None:
+            return
+
+        child_task.selected_memory_ids = list(persistent_memory.memory_ids)
+        child_task.persistent_memory_context_summary = persistent_memory.summary_text
+        child_task.persistent_memory_context_digest = persistent_memory.summary_digest
+
+    def _resolve_persistent_memory_context(
+        self,
+        agent_id: str,
+        memory_ids: list[str] | None,
+    ) -> PersistentMemoryContext:
+        if self.persistent_memory_service is None:
+            return PersistentMemoryContext(memory_ids=list(memory_ids or []))
+        return self.persistent_memory_service.resolve_memory_context(agent_id, memory_ids)

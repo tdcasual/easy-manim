@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from video_agent.config import Settings
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.server.app import create_app_context
 
@@ -53,6 +54,19 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
     )
 
 
+def _seed_agent_memory(app_context, *, memory_id: str, agent_id: str, status: str = "active") -> None:
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id=memory_id,
+            agent_id=agent_id,
+            source_session_id=f"session-{agent_id}",
+            status=status,
+            summary_text=f"Remember {agent_id}",
+            summary_digest=f"digest-{memory_id}",
+        )
+    )
+
+
 
 def test_revise_task_creates_child_task(tmp_path: Path) -> None:
     app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
@@ -88,6 +102,23 @@ def test_revision_inherits_parent_session_id(tmp_path: Path) -> None:
 
     assert task is not None
     assert task.session_id == "session-1"
+
+
+def test_revision_can_attach_persistent_memory_ids(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+    _seed_agent_memory(app_context, memory_id="mem-a", agent_id="local-anonymous")
+
+    child = app_context.task_service.revise_video_task(
+        created.task_id,
+        feedback="add labels",
+        session_id="session-1",
+        memory_ids=["mem-a"],
+    )
+    task = app_context.store.get_task(child.task_id)
+
+    assert task is not None
+    assert task.selected_memory_ids == ["mem-a"]
 
 
 def test_revision_child_receives_memory_context_summary(tmp_path: Path) -> None:
