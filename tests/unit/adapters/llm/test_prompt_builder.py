@@ -157,3 +157,16 @@ def test_prompt_builder_expands_geometry_api_safety_requirements() -> None:
 
     assert "Do not call diagonal corner getters such as `get_bottom_right()`" in prompt
     assert "Use `get_corner(...)` with a direction like `DR` or explicit vertices instead." in prompt
+
+
+def test_prompt_builder_includes_session_memory_context_when_present() -> None:
+    prompt = build_generation_prompt(
+        prompt="draw a circle",
+        output_profile={"quality_preset": "production"},
+        feedback="add labels",
+        style_hints={"tone": "teaching"},
+        memory_context_summary="Recent attempts succeeded with a light background and failed on blank openings.",
+    )
+
+    assert "Session memory context:" in prompt
+    assert "failed on blank openings" in prompt

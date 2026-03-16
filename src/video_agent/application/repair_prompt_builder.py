@@ -3,7 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 
-def build_targeted_repair_feedback(issue_code: str, failure_context: dict[str, Any]) -> str:
+def build_targeted_repair_feedback(
+    issue_code: str,
+    failure_context: dict[str, Any],
+    memory_context_summary: str | None = None,
+) -> str:
     lines = [
         "Previous attempt failed.",
         "Targeted repair only.",
@@ -12,6 +16,8 @@ def build_targeted_repair_feedback(issue_code: str, failure_context: dict[str, A
         "Return a full updated Python script.",
         f"Failure code: {issue_code}.",
     ]
+    if memory_context_summary:
+        lines.append(f"Session memory context: {_condense(memory_context_summary)}.")
 
     if focus_summary := _focus_summary(failure_context):
         lines.append(f"Primary repair target: {focus_summary}.")

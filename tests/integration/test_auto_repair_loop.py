@@ -208,3 +208,31 @@ def test_auto_repair_child_keeps_parent_session_scope(tmp_path: Path) -> None:
     assert child_task is not None
     assert child_task.session_id == "session-1"
     assert child_task.memory_context_summary is not None
+
+
+def test_auto_repair_feedback_carries_session_memory_summary(tmp_path: Path) -> None:
+    app = create_app_context(
+        _build_failing_render_settings(
+            tmp_path,
+            auto_repair_max_children_per_root=2,
+        )
+    )
+    created = app.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+    app.task_service.revise_video_task(created.task_id, feedback="keep the light background")
+
+    app.worker.run_once()
+
+    tasks = app.store.list_tasks(limit=10)
+    auto_repair_task = next(
+        (
+            candidate
+            for item in tasks
+            if (candidate := app.store.get_task(item["task_id"])) is not None
+            and item["task_id"] != created.task_id
+            and "Targeted repair only." in (candidate.feedback or "")
+        ),
+        None,
+    )
+
+    assert auto_repair_task is not None
+    assert "Session memory context:" in (auto_repair_task.feedback or "")
