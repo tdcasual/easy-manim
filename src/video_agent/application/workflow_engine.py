@@ -116,6 +116,7 @@ class WorkflowEngine:
                 feedback=task.feedback,
                 style_hints=task.style_hints,
                 memory_context_summary=task.memory_context_summary,
+                persistent_memory_context=task.persistent_memory_context_summary,
                 scene_plan=scene_plan,
             )
 

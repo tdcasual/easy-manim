@@ -12,6 +12,7 @@ def build_generation_prompt(
     feedback: Optional[str] = None,
     style_hints: dict[str, Any] | None = None,
     memory_context_summary: str | None = None,
+    persistent_memory_context: str | None = None,
     scene_plan: ScenePlan | None = None,
 ) -> str:
     lines = ["Generate a runnable Manim script.", f"User request: {prompt}"]
@@ -21,6 +22,8 @@ def build_generation_prompt(
         lines.append(f"Style hints: {style_hints}")
     if memory_context_summary:
         lines.append(f"Session memory context: {memory_context_summary}")
+    if persistent_memory_context:
+        lines.append(f"Persistent memory context: {persistent_memory_context}")
     if scene_plan:
         lines.append(f"Scene class: {scene_plan.scene_class}")
         lines.append(f"Camera strategy: {scene_plan.camera_strategy}")

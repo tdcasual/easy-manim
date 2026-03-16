@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.enums import TaskPhase, TaskStatus
@@ -65,6 +66,16 @@ def _seed_agent_memory(app_context, *, memory_id: str, agent_id: str, status: st
             summary_digest=f"digest-{memory_id}",
         )
     )
+
+
+class CapturingLLMClient(StubLLMClient):
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_prompt: str | None = None
+
+    def generate_script(self, prompt_text: str) -> str:
+        self.last_prompt = prompt_text
+        return super().generate_script(prompt_text)
 
 
 
@@ -134,6 +145,32 @@ def test_revision_child_receives_memory_context_summary(tmp_path: Path) -> None:
     assert stored is not None
     assert stored.memory_context_summary is not None
     assert stored.memory_context_digest is not None
+
+
+def test_revision_prompt_separates_session_and_persistent_memory_contexts(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    app_context.workflow_engine.llm_client = CapturingLLMClient()
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+    )
+    _seed_agent_memory(app_context, memory_id="mem-a", agent_id="local-anonymous")
+
+    child = app_context.task_service.revise_video_task(
+        created.task_id,
+        feedback="add title",
+        session_id="session-1",
+        memory_ids=["mem-a"],
+    )
+    app_context.worker.run_once()
+    app_context.worker.run_once()
+
+    prompt = app_context.workflow_engine.llm_client.last_prompt
+
+    assert child.task_id
+    assert prompt is not None
+    assert "Session memory context:" in prompt
+    assert "Persistent memory context:" in prompt
 
 
 
