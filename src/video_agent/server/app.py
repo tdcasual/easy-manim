@@ -11,7 +11,7 @@ from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_identity_service import AgentIdentityService
 from video_agent.application.auto_repair_service import AutoRepairService
-from video_agent.application.persistent_memory_service import PersistentMemoryService
+from video_agent.application.persistent_memory_service import PersistentMemoryService, build_persistent_memory_enhancer
 from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
@@ -87,6 +87,12 @@ def create_app_context(settings: Settings) -> AppContext:
         get_record=store.get_agent_memory,
         list_records=store.list_agent_memories,
         disable_record=store.disable_agent_memory,
+        enhancer=build_persistent_memory_enhancer(
+            backend=settings.persistent_memory_backend,
+            enable_embeddings=settings.persistent_memory_enable_embeddings,
+            embedding_provider=settings.persistent_memory_embedding_provider,
+            embedding_model=settings.persistent_memory_embedding_model,
+        ),
     )
     task_service = TaskService(
         store=store,

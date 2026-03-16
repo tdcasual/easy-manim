@@ -16,7 +16,7 @@ from video_agent.server.mcp_tools import (
 )
 
 
-def _build_agent_memory_settings(tmp_path: Path) -> Settings:
+def _build_agent_memory_settings(tmp_path: Path, *, persistent_memory_backend: str = "local") -> Settings:
     data_dir = tmp_path / "data"
     return Settings(
         data_dir=data_dir,
@@ -24,6 +24,7 @@ def _build_agent_memory_settings(tmp_path: Path) -> Settings:
         artifact_root=data_dir / "tasks",
         run_embedded_worker=False,
         auth_mode="required",
+        persistent_memory_backend=persistent_memory_backend,
     )
 
 
@@ -107,3 +108,23 @@ def test_create_rejects_disabled_memory_id(app_context) -> None:
     )
 
     assert payload["error"]["code"] == "agent_memory_disabled"
+
+
+def test_promote_returns_enhancement_warning_without_failing(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_agent_memory_settings(tmp_path, persistent_memory_backend="memo0"))
+    app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-a",
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    payload = promote_session_memory_tool(
+        app_context,
+        {},
+        agent_principal=agent_principal("agent-a"),
+        session_id="session-a",
+    )
+
+    assert payload["memory_id"]
+    assert payload["enhancement"]["code"] == "agent_memory_enhancement_unavailable"
+    assert payload["enhancement"]["backend"] == "memo0"

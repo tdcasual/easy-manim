@@ -23,6 +23,35 @@ class PersistentMemoryContext(BaseModel):
     summary_digest: str | None = None
 
 
+def build_persistent_memory_enhancer(
+    *,
+    backend: str,
+    enable_embeddings: bool,
+    embedding_provider: str | None,
+    embedding_model: str | None,
+) -> PersistentMemoryEnhancer | None:
+    if backend == "local":
+        return None
+    if backend == "memo0":
+
+        def enhancer(record: AgentMemoryRecord) -> dict[str, object]:
+            payload: dict[str, object] = {
+                "status": "unavailable",
+                "code": "agent_memory_enhancement_unavailable",
+                "backend": backend,
+            }
+            if enable_embeddings or embedding_provider or embedding_model:
+                payload["embeddings"] = {
+                    "enabled": enable_embeddings,
+                    "provider": embedding_provider,
+                    "model": embedding_model,
+                }
+            return payload
+
+        return enhancer
+    raise ValueError(f"Unsupported persistent_memory_backend: {backend}")
+
+
 class PersistentMemoryService:
     def __init__(
         self,

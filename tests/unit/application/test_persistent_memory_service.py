@@ -3,6 +3,7 @@ import pytest
 from video_agent.application.persistent_memory_service import (
     PersistentMemoryError,
     PersistentMemoryService,
+    build_persistent_memory_enhancer,
 )
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.session_memory_models import SessionMemorySummary
@@ -74,3 +75,26 @@ def test_promote_rejects_empty_session_summary() -> None:
 
     with pytest.raises(PersistentMemoryError, match="agent_memory_empty_session"):
         service.promote_session_memory("session-1", agent_id="agent-a")
+
+
+def test_build_persistent_memory_enhancer_returns_unavailable_memo0_backend() -> None:
+    enhancer = build_persistent_memory_enhancer(
+        backend="memo0",
+        enable_embeddings=True,
+        embedding_provider="mock-provider",
+        embedding_model="mock-model",
+    )
+    record = AgentMemoryRecord(
+        memory_id="mem-1",
+        agent_id="agent-a",
+        source_session_id="session-1",
+        summary_text="Use a light background.",
+        summary_digest="digest-1",
+    )
+
+    assert enhancer is not None
+    payload = enhancer(record)
+
+    assert payload["status"] == "unavailable"
+    assert payload["code"] == "agent_memory_enhancement_unavailable"
+    assert payload["backend"] == "memo0"
