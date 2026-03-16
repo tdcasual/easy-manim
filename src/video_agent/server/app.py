@@ -106,6 +106,7 @@ def create_app_context(settings: Settings) -> AppContext:
         hard_validator=HardValidator(command=settings.ffprobe_command),
         rule_validator=RuleValidator(),
         runtime_service=runtime_service,
+        session_memory_service=session_memory_service,
         runtime_policy=runtime_policy,
         metrics=metrics,
     )

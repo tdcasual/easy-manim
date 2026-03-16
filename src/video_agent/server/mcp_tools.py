@@ -281,6 +281,7 @@ def summarize_session_memory_tool(
         "agent_id": summary.agent_id,
         "entries": [entry.model_dump(mode="json") for entry in summary.entries],
         "entry_count": summary.entry_count,
+        "lineage_refs": summary.lineage_refs,
         "summary_text": summary.summary_text,
         "summary_digest": summary.summary_digest,
     }
@@ -305,6 +306,7 @@ def clear_session_memory_tool(
         "entry_count": snapshot.entry_count,
         "cleared": True,
         "cleared_entry_count": before.entry_count,
+        "cleared_attempt_count": sum(len(entry.attempts) for entry in before.entries),
     }
 
 

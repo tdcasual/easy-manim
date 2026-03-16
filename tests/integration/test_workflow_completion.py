@@ -97,6 +97,23 @@ def test_task_becomes_completed_only_after_validation_passes(tmp_path: Path) -> 
     assert snapshot.repair_state["stop_reason"] is None
 
 
+def test_completed_task_updates_session_memory_outcome(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="complete-session-memory",
+        session_id="session-1",
+    )
+
+    app_context.worker.run_once()
+    summary = app_context.session_memory_service.get_session_memory("session-1")
+
+    entry = summary.entries[0]
+    assert entry.latest_status == "completed"
+    assert entry.latest_result_summary == "Validation passed"
+    assert f"video-task://{created.task_id}/artifacts/final_video.mp4" in entry.artifact_refs
+
+
 
 def test_get_video_result_returns_artifacts_for_completed_task(tmp_path: Path) -> None:
     app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))

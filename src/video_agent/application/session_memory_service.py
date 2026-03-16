@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
+from video_agent.domain.enums import TaskStatus
 from video_agent.domain.models import VideoTask
 from video_agent.domain.session_memory_models import (
     SessionMemoryAttempt,
@@ -43,6 +44,8 @@ class SessionMemoryService:
                 root_task_id=root_task_id,
                 latest_task_id=task.task_id,
                 task_goal_summary=self._compact_text(task.prompt),
+                latest_status=self._status_value(task),
+                artifact_refs=self._artifact_refs_for_task(task),
             )
 
         attempts = [attempt.model_copy(deep=True) for attempt in base_entry.attempts]
@@ -51,6 +54,8 @@ class SessionMemoryService:
                 task_id=task.task_id,
                 attempt_kind=attempt_kind,
                 feedback_summary=self._compact_text(task.feedback),
+                status=self._status_value(task),
+                artifact_refs=self._artifact_refs_for_task(task),
             )
         )
         if len(attempts) > self.max_attempts_per_entry:
@@ -61,6 +66,8 @@ class SessionMemoryService:
                 update={
                     "latest_task_id": task.task_id,
                     "task_goal_summary": base_entry.task_goal_summary or self._compact_text(task.prompt),
+                    "latest_status": self._status_value(task),
+                    "artifact_refs": self._artifact_refs_for_task(task),
                     "attempts": attempts,
                 },
                 deep=True,
@@ -86,12 +93,63 @@ class SessionMemoryService:
             session_id=snapshot.session_id,
             agent_id=snapshot.agent_id,
             entries=snapshot.entries,
+            lineage_refs=self._lineage_refs(snapshot),
             summary_text=summary_text,
             summary_digest=self.compute_summary_digest(summary_text) if summary_text else None,
         )
 
     def clear_session_memory(self, session_id: str) -> SessionMemorySnapshot:
         return self.registry.clear_session(session_id)
+
+    def record_task_outcome(
+        self,
+        task: VideoTask,
+        *,
+        result_summary: str | None = None,
+        extra_artifact_refs: list[str] | None = None,
+    ) -> SessionMemorySnapshot | None:
+        if task.session_id is None:
+            return None
+
+        snapshot = self.registry.get_snapshot(task.session_id)
+        entries = [entry.model_copy(deep=True) for entry in snapshot.entries]
+        root_task_id = task.root_task_id or task.task_id
+        entry_index = next((index for index, entry in enumerate(entries) if entry.root_task_id == root_task_id), None)
+        if entry_index is None:
+            return None
+
+        entry = entries[entry_index]
+        attempts = [attempt.model_copy(deep=True) for attempt in entry.attempts]
+        attempt_index = next((index for index, attempt in enumerate(attempts) if attempt.task_id == task.task_id), None)
+        artifact_refs = self._artifact_refs_for_task(task, extra_artifact_refs=extra_artifact_refs)
+        compact_result = self._compact_text(result_summary)
+        if attempt_index is not None:
+            attempts[attempt_index] = attempts[attempt_index].model_copy(
+                update={
+                    "status": self._status_value(task),
+                    "result_summary": compact_result,
+                    "artifact_refs": artifact_refs,
+                },
+                deep=True,
+            )
+
+        entries[entry_index] = entry.model_copy(
+            update={
+                "latest_task_id": task.task_id,
+                "latest_status": self._status_value(task),
+                "latest_result_summary": compact_result,
+                "artifact_refs": artifact_refs,
+                "attempts": attempts,
+            },
+            deep=True,
+        )
+        return self.registry.store_snapshot(
+            SessionMemorySnapshot(
+                session_id=snapshot.session_id,
+                agent_id=task.agent_id or snapshot.agent_id,
+                entries=entries,
+            )
+        )
 
     @staticmethod
     def compute_summary_digest(summary_text: str) -> str:
@@ -105,6 +163,9 @@ class SessionMemoryService:
         for index, entry in enumerate(snapshot.entries, start=1):
             attempt_parts = [self._format_attempt(attempt) for attempt in entry.attempts]
             block_lines = [f"{index}. Goal: {entry.task_goal_summary}"]
+            latest_parts = [part for part in [entry.latest_status, entry.latest_result_summary] if part]
+            if latest_parts:
+                block_lines.append(f"Latest: {' - '.join(latest_parts)}")
             if attempt_parts:
                 block_lines.append(f"Attempts: {' | '.join(attempt_parts)}")
             blocks.append("\n".join(block_lines))
@@ -112,9 +173,15 @@ class SessionMemoryService:
         return self._truncate_summary("\n\n".join(blocks))
 
     def _format_attempt(self, attempt: SessionMemoryAttempt) -> str:
+        parts = [attempt.attempt_kind]
+        if attempt.status:
+            parts.append(attempt.status)
+        label = " ".join(parts)
         if attempt.feedback_summary:
-            return f"{attempt.attempt_kind}: {attempt.feedback_summary}"
-        return attempt.attempt_kind
+            label = f"{label}: {attempt.feedback_summary}"
+        if attempt.result_summary:
+            label = f"{label} -> {attempt.result_summary}"
+        return label
 
     def _truncate_summary(self, text: str) -> str:
         if len(text) <= self.summary_char_limit:
@@ -129,3 +196,32 @@ class SessionMemoryService:
             return None
         compact = " ".join(text.split())
         return compact or None
+
+    @staticmethod
+    def _status_value(task: VideoTask) -> str | None:
+        status = task.status
+        if isinstance(status, TaskStatus):
+            return status.value
+        return None if status is None else str(status)
+
+    @staticmethod
+    def _task_ref(task_id: str) -> str:
+        return f"video-task://{task_id}/task.json"
+
+    def _artifact_refs_for_task(
+        self,
+        task: VideoTask,
+        *,
+        extra_artifact_refs: list[str] | None = None,
+    ) -> list[str]:
+        refs = [self._task_ref(task.task_id)]
+        if task.current_script_artifact_id:
+            refs.append(f"video-task://{task.task_id}/artifacts/current_script.py")
+        if task.best_result_artifact_id:
+            refs.append(f"video-task://{task.task_id}/artifacts/final_video.mp4")
+        if extra_artifact_refs:
+            refs.extend(extra_artifact_refs)
+        return list(dict.fromkeys(refs))
+
+    def _lineage_refs(self, snapshot: SessionMemorySnapshot) -> list[str]:
+        return [self._task_ref(entry.root_task_id) for entry in snapshot.entries]
