@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS agent_tokens (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS agent_sessions (
+    session_id TEXT PRIMARY KEY,
+    session_hash TEXT NOT NULL UNIQUE,
+    agent_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    revoked_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS agent_memories (
     memory_id TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL,

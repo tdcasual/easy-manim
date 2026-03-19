@@ -10,6 +10,7 @@ from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_identity_service import AgentIdentityService
+from video_agent.application.agent_session_service import AgentSessionService
 from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.persistent_memory_service import PersistentMemoryService, build_persistent_memory_enhancer
 from video_agent.application.runtime_service import RuntimeService
@@ -33,6 +34,7 @@ class AppContext:
     store: SQLiteTaskStore
     artifact_store: ArtifactStore
     agent_identity_service: AgentIdentityService
+    agent_session_service: AgentSessionService
     session_auth: SessionAuthRegistry
     session_memory_registry: SessionMemoryRegistry
     session_memory_service: SessionMemoryService
@@ -72,6 +74,13 @@ def create_app_context(settings: Settings) -> AppContext:
     agent_identity_service = AgentIdentityService(
         profile_lookup=store.get_agent_profile,
         token_lookup=store.get_agent_token,
+    )
+    agent_session_service = AgentSessionService(
+        authenticate_agent=agent_identity_service.authenticate,
+        create_session_record=store.create_agent_session,
+        lookup_session_record=store.get_agent_session,
+        revoke_session_record=store.revoke_agent_session,
+        touch_session_record=store.touch_agent_session,
     )
     session_auth = SessionAuthRegistry()
     session_memory_registry = SessionMemoryRegistry()
@@ -144,6 +153,7 @@ def create_app_context(settings: Settings) -> AppContext:
         store=store,
         artifact_store=artifact_store,
         agent_identity_service=agent_identity_service,
+        agent_session_service=agent_session_service,
         session_auth=session_auth,
         session_memory_registry=session_memory_registry,
         session_memory_service=session_memory_service,

@@ -1,6 +1,7 @@
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.models import VideoTask
 
 
@@ -131,3 +132,42 @@ def test_store_disables_agent_memory_without_deleting_it(tmp_path) -> None:
     assert loaded is not None
     assert loaded.status == "disabled"
     assert loaded.disabled_at is not None
+
+
+def test_store_round_trips_agent_session(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    session = AgentSession(
+        session_id="sess-1",
+        session_hash="hash-1",
+        agent_id="agent-a",
+    )
+
+    store.create_agent_session(session)
+    loaded = store.get_agent_session("hash-1")
+
+    assert loaded is not None
+    assert loaded.agent_id == "agent-a"
+    assert loaded.status == "active"
+
+
+def test_store_touches_and_revokes_agent_session(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    session = AgentSession(
+        session_id="sess-1",
+        session_hash="hash-1",
+        agent_id="agent-a",
+    )
+    store.create_agent_session(session)
+
+    touched = store.touch_agent_session("hash-1")
+    assert touched is not None
+    assert touched.last_seen_at >= session.last_seen_at
+
+    assert store.revoke_agent_session("hash-1") is True
+
+    revoked = store.get_agent_session("hash-1")
+    assert revoked is not None
+    assert revoked.status == "revoked"
+    assert revoked.revoked_at is not None

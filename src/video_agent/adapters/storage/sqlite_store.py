@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
 from video_agent.domain.validation_models import ValidationReport
@@ -247,6 +248,67 @@ class SQLiteTaskStore:
                 WHERE token_hash = ?
                 """,
                 ("disabled", _utcnow_iso(), token_hash),
+            )
+        return result.rowcount > 0
+
+    def create_agent_session(self, session: AgentSession) -> AgentSession:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_sessions (
+                    session_id, session_hash, agent_id, status, created_at, expires_at, last_seen_at, revoked_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session.session_id,
+                    session.session_hash,
+                    session.agent_id,
+                    session.status,
+                    session.created_at.isoformat(),
+                    session.expires_at.isoformat(),
+                    session.last_seen_at.isoformat(),
+                    None if session.revoked_at is None else session.revoked_at.isoformat(),
+                ),
+            )
+        return session
+
+    def get_agent_session(self, session_hash: str) -> Optional[AgentSession]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    session_id, session_hash, agent_id, status, created_at, expires_at, last_seen_at, revoked_at
+                FROM agent_sessions
+                WHERE session_hash = ?
+                """,
+                (session_hash,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._row_to_agent_session(row)
+
+    def touch_agent_session(self, session_hash: str) -> Optional[AgentSession]:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE agent_sessions
+                SET last_seen_at = ?
+                WHERE session_hash = ?
+                """,
+                (_utcnow_iso(), session_hash),
+            )
+        return self.get_agent_session(session_hash)
+
+    def revoke_agent_session(self, session_hash: str) -> bool:
+        revoked_at = _utcnow_iso()
+        with self._connect() as connection:
+            result = connection.execute(
+                """
+                UPDATE agent_sessions
+                SET status = ?, revoked_at = ?
+                WHERE session_hash = ?
+                """,
+                ("revoked", revoked_at, session_hash),
             )
         return result.rowcount > 0
 
@@ -620,3 +682,16 @@ class SQLiteTaskStore:
         if any(row["name"] == column_name for row in rows):
             return
         connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
+
+    @staticmethod
+    def _row_to_agent_session(row: sqlite3.Row) -> AgentSession:
+        return AgentSession(
+            session_id=row["session_id"],
+            session_hash=row["session_hash"],
+            agent_id=row["agent_id"],
+            status=row["status"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+            expires_at=datetime.fromisoformat(row["expires_at"]),
+            last_seen_at=datetime.fromisoformat(row["last_seen_at"]),
+            revoked_at=None if row["revoked_at"] is None else datetime.fromisoformat(row["revoked_at"]),
+        )
