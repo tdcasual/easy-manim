@@ -50,6 +50,17 @@ def test_revoke_session_hashes_token_before_revoking() -> None:
     assert revoked_hashes == [service.hash_session_token("esm_sess.plain")]
 
 
+def test_resolve_session_id_returns_internal_session_id() -> None:
+    session_hash = AgentSessionService.hash_session_token("esm_sess.plain")
+    persisted = AgentSession(session_id="sess-1", session_hash=session_hash, agent_id="agent-a")
+    service = AgentSessionService(
+        lookup_session_record=lambda lookup_hash: persisted if lookup_hash == session_hash else None,
+        touch_session_record=lambda session_hash: persisted,
+    )
+
+    assert service.resolve_session_id("esm_sess.plain") == "sess-1"
+
+
 def test_resolve_session_rejects_unknown_record() -> None:
     service = AgentSessionService()
 

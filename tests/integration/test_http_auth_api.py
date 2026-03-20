@@ -48,15 +48,15 @@ def test_http_auth_login_whoami_logout_flow(tmp_path: Path) -> None:
     assert session_token.startswith("esm_sess.")
     assert login.json()["agent_id"] == "agent-a"
     assert login.json()["name"] == "Agent A"
-    assert login.json()["session_id"].startswith("sess-")
     assert login.json()["expires_at"]
+    assert "session_id" not in login.json()
 
     whoami = client.get("/api/whoami", headers={"Authorization": f"Bearer {session_token}"})
     assert whoami.status_code == 200
     assert whoami.json()["agent_id"] == "agent-a"
     assert whoami.json()["name"] == "Agent A"
     assert whoami.json()["profile"]["style_hints"]["tone"] == "patient"
-    assert whoami.json()["session_id"] == login.json()["session_id"]
+    assert "session_id" not in whoami.json()
 
     logout = client.delete("/api/sessions/current", headers={"Authorization": f"Bearer {session_token}"})
     assert logout.status_code == 200

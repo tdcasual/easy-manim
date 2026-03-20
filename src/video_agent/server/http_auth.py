@@ -34,18 +34,25 @@ def resolve_agent_session(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token") from exc
 
-    profile = context.store.get_agent_profile(session.agent_id)
-    active_tokens = [token for token in context.store.list_agent_tokens(session.agent_id) if token.status == "active"]
-    if profile is None or profile.status != "active" or not active_tokens:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token")
+    principal = context.session_auth.get(session.session_id)
+    if principal is None or principal.agent_id != session.agent_id:
+        profile = context.store.get_agent_profile(session.agent_id)
+        active_tokens = [token for token in context.store.list_agent_tokens(session.agent_id) if token.status == "active"]
+        if profile is None or profile.status != "active" or not active_tokens:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token")
+        principal = AgentPrincipal(
+            agent_id=session.agent_id,
+            profile=profile,
+            token=active_tokens[-1],
+        )
 
     context.session_memory_registry.ensure_session(session.session_id, agent_id=session.agent_id)
     return ResolvedAgentSession(
         session_token=plain_session_token,
         session_id=session.session_id,
-        agent_principal=AgentPrincipal(
-            agent_id=session.agent_id,
-            profile=profile,
-            token=active_tokens[-1],
-        ),
+        agent_principal=principal,
     )
+
+
+def current_internal_session_id(resolved: ResolvedAgentSession) -> str:
+    return resolved.session_id

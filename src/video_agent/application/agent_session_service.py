@@ -71,6 +71,9 @@ class AgentSessionService:
     def revoke_session(self, plain_session_token: str) -> bool:
         return self.revoke_session_record(self.hash_session_token(plain_session_token))
 
+    def resolve_session_id(self, plain_session_token: str) -> str:
+        return self.resolve_session(plain_session_token).session_id
+
     @staticmethod
     def hash_session_token(plain_session_token: str) -> str:
         return hashlib.sha256(plain_session_token.encode("utf-8")).hexdigest()
