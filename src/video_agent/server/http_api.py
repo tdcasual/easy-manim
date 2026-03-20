@@ -3,6 +3,8 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel
 
+from video_agent.application.persistent_memory_service import PersistentMemoryError
+from video_agent.application.agent_profile_suggestion_service import AgentProfileSuggestionService
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
@@ -52,7 +54,18 @@ class ProfileApplyRequest(BaseModel):
     patch: dict[str, Any]
 
 
+class PreferenceProposalRequest(BaseModel):
+    summary_text: str
+    session_id: str | None = None
+
+
+class PreferencePromotionRequest(BaseModel):
+    session_id: str | None = None
+    memory_id: str | None = None
+
+
 _PROFILE_PATCH_ALLOWLIST = frozenset({"style_hints", "output_profile", "validation_profile"})
+_RECENT_PROFILE_SUGGESTION_LIMIT = 5
 
 
 def _validate_profile_patch_shape(patch: dict[str, Any]) -> None:
@@ -90,8 +103,61 @@ def _strip_internal_session_fields(payload: dict[str, Any]) -> dict[str, Any]:
     return sanitized
 
 
+def _suggestion_payload(suggestion: Any) -> dict[str, Any]:
+    return {
+        "suggestion_id": suggestion.suggestion_id,
+        "agent_id": suggestion.agent_id,
+        "patch": suggestion.patch_json,
+        "rationale": suggestion.rationale_json,
+        "status": suggestion.status,
+        "created_at": suggestion.created_at.isoformat(),
+        "applied_at": None if suggestion.applied_at is None else suggestion.applied_at.isoformat(),
+    }
+
+
 def create_http_api(settings: Settings) -> FastAPI:
     context = create_app_context(settings)
+
+    def _list_recent_memories(agent_id: str) -> list[Any]:
+        return context.store.list_agent_memories(agent_id, include_disabled=False)[-_RECENT_PROFILE_SUGGESTION_LIMIT :]
+
+    def _list_recent_session_summaries(agent_id: str) -> list[dict[str, Any]]:
+        snapshots = context.session_memory_registry.list_snapshots(agent_id)
+        items: list[dict[str, Any]] = []
+        for snapshot in reversed(snapshots):
+            summary = context.session_memory_service.summarize_session_memory(snapshot.session_id)
+            if summary.summary_text:
+                items.append({"session_id": summary.session_id, "summary_text": summary.summary_text})
+            if len(items) >= _RECENT_PROFILE_SUGGESTION_LIMIT:
+                break
+        items.reverse()
+        return items
+
+    def _raise_persistent_memory_http_error(exc: PersistentMemoryError) -> None:
+        if exc.code == "agent_memory_not_found":
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.code) from exc
+        if exc.code == "agent_memory_forbidden":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=exc.code) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.code) from exc
+
+    def _require_accessible_session_summary(session_id: str, agent_id: str) -> Any:
+        snapshot = context.session_memory_registry.find_snapshot(session_id)
+        if snapshot is not None and snapshot.agent_id not in {None, agent_id}:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="agent_access_denied")
+
+        session = context.store.get_agent_session_by_id(session_id)
+        if session is None and snapshot is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session_memory_not_found")
+        if session is not None and session.agent_id != agent_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="agent_access_denied")
+        return context.session_memory_service.summarize_session_memory(session_id)
+
+    profile_suggestion_service = AgentProfileSuggestionService(
+        list_memories=_list_recent_memories,
+        list_recent_session_summaries=_list_recent_session_summaries,
+        build_scorecard=context.agent_learning_service.build_scorecard,
+        create_suggestion=context.store.create_agent_profile_suggestion,
+    )
     app = FastAPI(title="easy-manim API", version="0.1.0")
     app.state.app_context = context
 
@@ -209,6 +275,169 @@ def create_http_api(settings: Settings) -> FastAPI:
             "profile_version": updated_profile.profile_version,
             "profile": updated_profile.profile_json,
         }
+
+    @app.post("/api/profile/preferences/propose")
+    def propose_profile_preferences(
+        payload: PreferenceProposalRequest,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:write")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+        if payload.session_id is not None:
+            _require_accessible_session_summary(payload.session_id, resolved.agent_principal.agent_id)
+        suggestion = profile_suggestion_service.create_suggestion_from_summary(
+            resolved.agent_principal.agent_id,
+            summary_text=payload.summary_text,
+            session_id=payload.session_id,
+            profile_version=resolved.agent_principal.profile.profile_version,
+            source="preference_proposal",
+        )
+        if suggestion is None:
+            return {"created": False, "reason": "no_supported_preference"}
+        return {"created": True, "suggestion": _suggestion_payload(suggestion)}
+
+    @app.post("/api/profile/preferences/promote")
+    def promote_profile_preferences(
+        payload: PreferencePromotionRequest,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:write")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+        summary_text: str | None = None
+        session_id: str | None = payload.session_id
+        memory_id: str | None = payload.memory_id
+        source = "preference_promotion"
+        if memory_id is not None:
+            try:
+                record = context.persistent_memory_service.get_agent_memory(
+                    memory_id,
+                    agent_id=resolved.agent_principal.agent_id,
+                )
+            except PersistentMemoryError as exc:
+                _raise_persistent_memory_http_error(exc)
+            summary_text = record.summary_text
+            session_id = record.source_session_id
+            source = "memory_promotion"
+        elif session_id is not None:
+            summary = _require_accessible_session_summary(
+                session_id,
+                resolved.agent_principal.agent_id,
+            )
+            summary_text = summary.summary_text
+            source = "session_promotion"
+        else:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="missing_preference_source")
+
+        suggestion = profile_suggestion_service.create_suggestion_from_summary(
+            resolved.agent_principal.agent_id,
+            summary_text=summary_text or "",
+            session_id=session_id,
+            memory_id=memory_id,
+            profile_version=resolved.agent_principal.profile.profile_version,
+            source=source,
+        )
+        if suggestion is None:
+            return {"created": False, "reason": "no_supported_preference"}
+        return {"created": True, "suggestion": _suggestion_payload(suggestion)}
+
+    @app.post("/api/profile/suggestions/generate")
+    def generate_profile_suggestions(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:write")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        items = profile_suggestion_service.generate_suggestions(
+            resolved.agent_principal.agent_id,
+            profile_version=resolved.agent_principal.profile.profile_version,
+        )
+        return {"items": [_suggestion_payload(item) for item in items]}
+
+    @app.get("/api/profile/suggestions")
+    def list_profile_suggestions(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        items = context.store.list_agent_profile_suggestions(resolved.agent_principal.agent_id)
+        return {"items": [_suggestion_payload(item) for item in items]}
+
+    @app.post("/api/profile/suggestions/{suggestion_id}/apply")
+    def apply_profile_suggestion(
+        suggestion_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:write")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+        suggestion = context.store.get_agent_profile_suggestion(suggestion_id)
+        if suggestion is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="profile_suggestion_not_found")
+        if suggestion.agent_id != resolved.agent_principal.agent_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="agent_access_denied")
+        if suggestion.status != "pending":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="profile_suggestion_state_conflict")
+
+        unsupported_keys = sorted(set(suggestion.patch_json) - _PROFILE_PATCH_ALLOWLIST)
+        if unsupported_keys:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="unsupported_profile_patch_keys")
+        _validate_profile_patch_shape(suggestion.patch_json)
+
+        try:
+            updated_profile, revision, updated_suggestion = context.store.apply_agent_profile_suggestion(
+                resolved.agent_principal.agent_id,
+                suggestion_id=suggestion.suggestion_id,
+                source=f"profile_suggestion:{suggestion.suggestion_id}",
+            )
+        except RuntimeError as exc:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="profile_suggestion_state_conflict")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        except ValueError as exc:
+            if str(exc) == "profile suggestion not found":
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="profile_suggestion_not_found") from exc
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token") from exc
+        return {
+            "applied": True,
+            "revision_id": revision.revision_id,
+            "profile_version": updated_profile.profile_version,
+            "profile": updated_profile.profile_json,
+            "suggestion": None if updated_suggestion is None else _suggestion_payload(updated_suggestion),
+        }
+
+    @app.post("/api/profile/suggestions/{suggestion_id}/dismiss")
+    def dismiss_profile_suggestion(
+        suggestion_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:write")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+        suggestion = context.store.get_agent_profile_suggestion(suggestion_id)
+        if suggestion is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="profile_suggestion_not_found")
+        if suggestion.agent_id != resolved.agent_principal.agent_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="agent_access_denied")
+        if suggestion.status != "pending":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="profile_suggestion_state_conflict")
+
+        updated_suggestion = context.store.update_agent_profile_suggestion_status(
+            suggestion.suggestion_id,
+            status="dismissed",
+            expected_status="pending",
+        )
+        if updated_suggestion is None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="profile_suggestion_state_conflict")
+        return _suggestion_payload(updated_suggestion)
 
     @app.get("/api/memory/session")
     def get_session_memory(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, object]:

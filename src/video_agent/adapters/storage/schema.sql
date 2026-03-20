@@ -50,6 +50,16 @@ CREATE TABLE IF NOT EXISTS agent_learning_events (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS agent_profile_suggestions (
+    suggestion_id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    patch_json TEXT NOT NULL,
+    rationale_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    applied_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS agent_tokens (
     token_hash TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL,

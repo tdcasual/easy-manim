@@ -5,6 +5,7 @@ from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.agent_profile_revision_models import AgentProfileRevision
+from video_agent.domain.agent_profile_suggestion_models import AgentProfileSuggestion
 from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.models import VideoTask
 
@@ -277,6 +278,120 @@ def test_store_rejects_profile_patch_for_inactive_profile(tmp_path) -> None:
         assert str(exc) == "inactive agent profile"
     else:
         raise AssertionError("Expected apply_agent_profile_patch() to reject inactive profiles")
+
+
+def test_store_dedupes_pending_profile_suggestions(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    first = AgentProfileSuggestion(
+        suggestion_id="sugg-1",
+        agent_id="agent-a",
+        patch_json={"style_hints": {"tone": "teaching"}},
+        rationale_json={"profile_version": 3, "sources": [{"source": "memory", "memory_id": "mem-1"}]},
+    )
+    second = AgentProfileSuggestion(
+        suggestion_id="sugg-2",
+        agent_id="agent-a",
+        patch_json={"style_hints": {"tone": "teaching"}},
+        rationale_json={"profile_version": 3, "sources": [{"memory_id": "mem-1", "source": "memory"}]},
+    )
+
+    created = store.create_agent_profile_suggestion(first)
+    duplicate = store.create_agent_profile_suggestion(second)
+
+    assert duplicate.suggestion_id == created.suggestion_id
+    assert len(store.list_agent_profile_suggestions("agent-a")) == 1
+
+
+def test_store_requires_expected_status_for_profile_suggestion_transition(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    suggestion = store.create_agent_profile_suggestion(
+        AgentProfileSuggestion(
+            suggestion_id="sugg-1",
+            agent_id="agent-a",
+            patch_json={"style_hints": {"tone": "teaching"}},
+            rationale_json={"profile_version": 3},
+        )
+    )
+
+    applied = store.update_agent_profile_suggestion_status(
+        suggestion.suggestion_id,
+        status="applied",
+        applied_at=suggestion.created_at,
+        expected_status="pending",
+    )
+    rejected = store.update_agent_profile_suggestion_status(
+        suggestion.suggestion_id,
+        status="dismissed",
+        expected_status="pending",
+    )
+
+    assert applied is not None
+    assert applied.status == "applied"
+    assert applied.applied_at == suggestion.created_at
+    assert rejected is None
+    persisted = store.get_agent_profile_suggestion(suggestion.suggestion_id)
+    assert persisted is not None
+    assert persisted.status == "applied"
+    assert persisted.applied_at == suggestion.created_at
+
+
+def test_store_apply_agent_profile_suggestion_updates_profile_revision_and_status(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    suggestion = store.create_agent_profile_suggestion(
+        AgentProfileSuggestion(
+            suggestion_id="sugg-1",
+            agent_id="agent-a",
+            patch_json={"style_hints": {"tone": "teaching"}},
+            rationale_json={"profile_version": 1},
+        )
+    )
+
+    updated_profile, revision, updated_suggestion = store.apply_agent_profile_suggestion(
+        "agent-a",
+        suggestion_id=suggestion.suggestion_id,
+        source="profile_suggestion:sugg-1",
+    )
+
+    assert updated_profile.profile_json["style_hints"]["tone"] == "teaching"
+    assert revision.source == "profile_suggestion:sugg-1"
+    assert updated_suggestion.status == "applied"
+    assert updated_suggestion.applied_at is not None
+
+
+def test_store_apply_agent_profile_suggestion_rejects_non_pending_status(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    store.upsert_agent_profile(AgentProfile(agent_id="agent-a", name="Agent A"))
+    suggestion = store.create_agent_profile_suggestion(
+        AgentProfileSuggestion(
+            suggestion_id="sugg-1",
+            agent_id="agent-a",
+            patch_json={"style_hints": {"tone": "teaching"}},
+            rationale_json={"profile_version": 1},
+            status="dismissed",
+        )
+    )
+
+    try:
+        store.apply_agent_profile_suggestion(
+            "agent-a",
+            suggestion_id=suggestion.suggestion_id,
+            source="profile_suggestion:sugg-1",
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "profile_suggestion_state_conflict"
+    else:
+        raise AssertionError("Expected apply_agent_profile_suggestion() to reject non-pending status")
 
 
 def test_store_learning_event_upsert_returns_persisted_row(tmp_path) -> None:

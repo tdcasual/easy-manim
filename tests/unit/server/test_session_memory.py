@@ -1,4 +1,5 @@
 from video_agent.server.session_memory import SessionMemoryRegistry
+from video_agent.domain.session_memory_models import SessionMemorySnapshot
 
 
 def test_registry_allocates_distinct_session_ids_for_distinct_session_keys() -> None:
@@ -31,3 +32,15 @@ def test_clear_only_removes_the_target_session() -> None:
 
     assert registry.get_snapshot(session_a.session_id).entry_count == 0
     assert registry.get_snapshot(session_b.session_id).session_id == session_b.session_id
+
+
+def test_store_snapshot_moves_updated_session_to_most_recent_position() -> None:
+    registry = SessionMemoryRegistry()
+    session_a = registry.ensure_session("session-a", agent_id="agent-a")
+    session_b = registry.ensure_session("session-b", agent_id="agent-a")
+
+    registry.store_snapshot(SessionMemorySnapshot(session_id=session_a.session_id, agent_id="agent-a"))
+
+    snapshots = registry.list_snapshots("agent-a")
+
+    assert [snapshot.session_id for snapshot in snapshots] == [session_b.session_id, session_a.session_id]
