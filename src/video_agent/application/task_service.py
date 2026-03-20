@@ -7,10 +7,15 @@ from pydantic import BaseModel, Field
 
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.agent_authorization_service import AgentAuthorizationService
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.errors import AdmissionControlError
 from video_agent.application.persistent_memory_service import PersistentMemoryContext, PersistentMemoryService
-from video_agent.application.preference_resolver import compute_profile_digest, resolve_effective_request_config
+from video_agent.application.preference_resolver import (
+    build_system_default_request_config,
+    compute_profile_digest,
+    resolve_effective_request_config,
+)
 from video_agent.application.repair_state import build_repair_state_snapshot
 from video_agent.application.revision_service import RevisionService
 from video_agent.application.session_memory_service import SessionMemoryService
@@ -63,6 +68,7 @@ class TaskService:
         revision_service: Optional[RevisionService] = None,
         session_memory_service: SessionMemoryService | None = None,
         persistent_memory_service: PersistentMemoryService | None = None,
+        authorization_service: AgentAuthorizationService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
@@ -70,6 +76,7 @@ class TaskService:
         self.revision_service = revision_service or RevisionService()
         self.session_memory_service = session_memory_service
         self.persistent_memory_service = persistent_memory_service
+        self.authorization_service = authorization_service or AgentAuthorizationService()
 
     def create_video_task(
         self,
@@ -85,9 +92,16 @@ class TaskService:
     ) -> CreateVideoTaskResult:
         self._enforce_queue_capacity()
         principal = self._resolve_agent_principal(agent_principal)
+        self._authorize_action(principal, "task:create")
         persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
+        system_defaults = build_system_default_request_config(
+            default_quality_preset=self.settings.default_quality_preset,
+            default_frame_rate=self.settings.default_frame_rate,
+            default_pixel_width=self.settings.default_pixel_width,
+            default_pixel_height=self.settings.default_pixel_height,
+        )
         effective_request_profile = resolve_effective_request_config(
-            system_defaults={},
+            system_defaults=system_defaults,
             profile_json=principal.profile.profile_json,
             token_override_json=principal.token.override_json,
             request_overrides=self._build_request_overrides(
@@ -104,11 +118,13 @@ class TaskService:
             selected_memory_ids=persistent_memory.memory_ids,
             persistent_memory_context_summary=persistent_memory.summary_text,
             persistent_memory_context_digest=persistent_memory.summary_digest,
+            profile_version=principal.profile.profile_version,
             output_profile=effective_request_profile.get("output_profile", output_profile or {}),
             style_hints=effective_request_profile.get("style_hints", style_hints or {}),
             validation_profile=effective_request_profile.get("validation_profile", validation_profile or {}),
             effective_request_profile=effective_request_profile,
             effective_profile_digest=compute_profile_digest(effective_request_profile),
+            effective_policy_flags=dict(principal.profile.policy_json),
         )
         persisted = self.store.create_task(task, idempotency_key=idempotency_key)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
@@ -215,6 +231,7 @@ class TaskService:
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         principal = self._resolve_agent_principal(agent_principal)
+        self._authorize_action(principal, "task:mutate")
         base_task = self._require_authorized_task(base_task_id, principal)
         persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
         metadata = self.revision_service.build_metadata(
@@ -244,6 +261,7 @@ class TaskService:
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         principal = self._resolve_agent_principal(agent_principal)
+        self._authorize_action(principal, "task:mutate")
         base_task = self._require_authorized_task(task_id, principal)
         if base_task.status is not TaskStatus.FAILED:
             raise ValueError("retry_video_task requires a failed parent task")
@@ -287,6 +305,7 @@ class TaskService:
 
     def cancel_video_task(self, task_id: str, agent_principal: AgentPrincipal | None = None) -> None:
         principal = self._resolve_agent_principal(agent_principal)
+        self._authorize_action(principal, "task:mutate")
         task = self._require_authorized_task(task_id, principal)
         task.status = TaskStatus.CANCELLED
         task.phase = TaskPhase.CANCELLED
@@ -325,6 +344,9 @@ class TaskService:
         if self.settings.auth_mode != "required":
             return self._require_task(task_id)
         return self.require_task_access(task_id, principal.agent_id)
+
+    def _authorize_action(self, principal: AgentPrincipal, action: str) -> None:
+        self.authorization_service.require_allowed(principal.profile, principal.token, action)
 
     @staticmethod
     def _build_request_overrides(

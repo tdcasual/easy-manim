@@ -6,6 +6,23 @@ from copy import deepcopy
 from typing import Any
 
 
+def build_system_default_request_config(
+    *,
+    default_quality_preset: str,
+    default_frame_rate: int | None,
+    default_pixel_width: int | None,
+    default_pixel_height: int | None,
+) -> dict[str, Any]:
+    output_profile: dict[str, Any] = {"quality_preset": default_quality_preset}
+    if default_frame_rate is not None:
+        output_profile["frame_rate"] = default_frame_rate
+    if default_pixel_width is not None:
+        output_profile["pixel_width"] = default_pixel_width
+    if default_pixel_height is not None:
+        output_profile["pixel_height"] = default_pixel_height
+    return {"output_profile": output_profile}
+
+
 def resolve_effective_request_config(
     *,
     system_defaults: dict[str, Any] | None = None,

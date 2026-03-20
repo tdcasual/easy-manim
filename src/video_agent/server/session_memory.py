@@ -26,7 +26,9 @@ class SessionMemoryRegistry:
             self._handles_by_session_key[session_key] = handle
             snapshot = self._snapshots_by_session_id.get(handle.session_id)
             if snapshot is not None:
-                self._snapshots_by_session_id[handle.session_id] = snapshot.model_copy(update={"agent_id": agent_id})
+                self._store_snapshot(
+                    snapshot.model_copy(update={"agent_id": agent_id})
+                )
 
         return handle
 
@@ -34,19 +36,35 @@ class SessionMemoryRegistry:
         handle = self._handles_by_session_key.get(session_key)
         return None if handle is None else handle.session_id
 
-    def get_snapshot(self, session_id: str) -> SessionMemorySnapshot:
+    def find_snapshot(self, session_id: str) -> SessionMemorySnapshot | None:
         snapshot = self._snapshots_by_session_id.get(session_id)
         if snapshot is None:
-            return SessionMemorySnapshot(session_id=session_id)
+            return None
         return snapshot.model_copy(deep=True)
+
+    def get_snapshot(self, session_id: str) -> SessionMemorySnapshot:
+        snapshot = self.find_snapshot(session_id)
+        if snapshot is None:
+            return SessionMemorySnapshot(session_id=session_id)
+        return snapshot
 
     def store_snapshot(self, snapshot: SessionMemorySnapshot) -> SessionMemorySnapshot:
         stored = snapshot.model_copy(deep=True)
-        self._snapshots_by_session_id[stored.session_id] = stored
+        self._store_snapshot(stored)
         return stored.model_copy(deep=True)
 
     def clear_session(self, session_id: str) -> SessionMemorySnapshot:
         snapshot = self.get_snapshot(session_id)
         cleared = snapshot.model_copy(update={"entries": []}, deep=True)
-        self._snapshots_by_session_id[session_id] = cleared
+        self._store_snapshot(cleared)
         return cleared.model_copy(deep=True)
+
+    def list_snapshots(self, agent_id: str | None = None) -> list[SessionMemorySnapshot]:
+        snapshots = [snapshot.model_copy(deep=True) for snapshot in self._snapshots_by_session_id.values()]
+        if agent_id is None:
+            return snapshots
+        return [snapshot for snapshot in snapshots if snapshot.agent_id == agent_id]
+
+    def _store_snapshot(self, snapshot: SessionMemorySnapshot) -> None:
+        self._snapshots_by_session_id.pop(snapshot.session_id, None)
+        self._snapshots_by_session_id[snapshot.session_id] = snapshot.model_copy(deep=True)
