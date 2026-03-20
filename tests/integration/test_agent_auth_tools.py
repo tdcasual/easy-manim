@@ -98,6 +98,8 @@ def test_revise_video_task_preserves_authenticated_agent_profile(tmp_path: Path)
     assert task.agent_id == "agent-a"
     assert task.style_hints["tone"] == "teaching"
     assert task.effective_request_profile["style_hints"]["tone"] == "teaching"
+    assert task.profile_version == 1
+    assert task.effective_policy_flags == {}
 
 
 def test_create_video_task_rejects_scope_limited_token(tmp_path: Path) -> None:
@@ -131,3 +133,17 @@ def test_revise_video_task_respects_profile_policy_denials(tmp_path: Path) -> No
     )
 
     assert revised["error"]["code"] == "agent_scope_denied"
+
+
+def test_create_video_task_persists_profile_version_and_resolved_defaults(tmp_path: Path) -> None:
+    app = create_app_context(_build_agent_auth_settings(tmp_path))
+    _seed_agent_profile_and_token(app.store)
+    principal = app.agent_identity_service.authenticate("agent-a-secret")
+
+    payload = create_video_task_tool(app, {"prompt": "draw a circle"}, agent_principal=principal)
+    task = app.store.get_task(payload["task_id"])
+
+    assert task is not None
+    assert task.profile_version == 1
+    assert task.effective_request_profile
+    assert task.effective_request_profile["output_profile"]["quality_preset"] == app.settings.default_quality_preset

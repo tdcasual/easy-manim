@@ -484,7 +484,10 @@ class WorkflowEngine:
 
     def _resolve_render_profile(self, task) -> dict[str, Any]:
         settings = self.runtime_service.settings
-        profile = task.output_profile or {}
+        effective_profile = {}
+        if getattr(task, "effective_request_profile", None):
+            effective_profile = task.effective_request_profile.get("output_profile", {})
+        profile = effective_profile or task.output_profile or {}
         return {
             "quality_preset": str(profile.get("quality_preset", settings.default_quality_preset)),
             "frame_rate": self._optional_positive_int(profile.get("frame_rate", settings.default_frame_rate)),

@@ -1,4 +1,8 @@
-from video_agent.application.preference_resolver import compute_profile_digest, resolve_effective_request_config
+from video_agent.application.preference_resolver import (
+    build_system_default_request_config,
+    compute_profile_digest,
+    resolve_effective_request_config,
+)
 
 
 def test_preference_resolver_uses_expected_precedence() -> None:
@@ -17,3 +21,19 @@ def test_compute_profile_digest_is_stable_for_same_content() -> None:
     second = compute_profile_digest({"validation_profile": {"strict": True}, "style_hints": {"tone": "teaching"}})
 
     assert first == second
+
+
+def test_system_default_request_config_includes_render_defaults() -> None:
+    defaults = build_system_default_request_config(
+        default_quality_preset="production",
+        default_frame_rate=60,
+        default_pixel_width=1920,
+        default_pixel_height=1080,
+    )
+
+    assert defaults["output_profile"] == {
+        "quality_preset": "production",
+        "frame_rate": 60,
+        "pixel_width": 1920,
+        "pixel_height": 1080,
+    }

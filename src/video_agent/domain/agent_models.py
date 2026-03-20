@@ -14,6 +14,7 @@ class AgentProfile(BaseModel):
     agent_id: str
     name: str
     status: str = "active"
+    profile_version: int = 1
     profile_json: dict[str, Any] = Field(default_factory=dict)
     policy_json: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=_utcnow)

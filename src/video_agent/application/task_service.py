@@ -11,7 +11,11 @@ from video_agent.application.agent_authorization_service import AgentAuthorizati
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.errors import AdmissionControlError
 from video_agent.application.persistent_memory_service import PersistentMemoryContext, PersistentMemoryService
-from video_agent.application.preference_resolver import compute_profile_digest, resolve_effective_request_config
+from video_agent.application.preference_resolver import (
+    build_system_default_request_config,
+    compute_profile_digest,
+    resolve_effective_request_config,
+)
 from video_agent.application.repair_state import build_repair_state_snapshot
 from video_agent.application.revision_service import RevisionService
 from video_agent.application.session_memory_service import SessionMemoryService
@@ -90,8 +94,14 @@ class TaskService:
         principal = self._resolve_agent_principal(agent_principal)
         self._authorize_action(principal, "task:create")
         persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
+        system_defaults = build_system_default_request_config(
+            default_quality_preset=self.settings.default_quality_preset,
+            default_frame_rate=self.settings.default_frame_rate,
+            default_pixel_width=self.settings.default_pixel_width,
+            default_pixel_height=self.settings.default_pixel_height,
+        )
         effective_request_profile = resolve_effective_request_config(
-            system_defaults={},
+            system_defaults=system_defaults,
             profile_json=principal.profile.profile_json,
             token_override_json=principal.token.override_json,
             request_overrides=self._build_request_overrides(
@@ -108,11 +118,13 @@ class TaskService:
             selected_memory_ids=persistent_memory.memory_ids,
             persistent_memory_context_summary=persistent_memory.summary_text,
             persistent_memory_context_digest=persistent_memory.summary_digest,
+            profile_version=principal.profile.profile_version,
             output_profile=effective_request_profile.get("output_profile", output_profile or {}),
             style_hints=effective_request_profile.get("style_hints", style_hints or {}),
             validation_profile=effective_request_profile.get("validation_profile", validation_profile or {}),
             effective_request_profile=effective_request_profile,
             effective_profile_digest=compute_profile_digest(effective_request_profile),
+            effective_policy_flags=dict(principal.profile.policy_json),
         )
         persisted = self.store.create_task(task, idempotency_key=idempotency_key)
         self.artifact_store.ensure_task_dirs(persisted.task_id)

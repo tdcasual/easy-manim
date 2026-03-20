@@ -38,6 +38,7 @@ class SQLiteTaskStore:
             self._ensure_column(connection, "video_tasks", "session_id", "TEXT")
             self._ensure_column(connection, "video_tasks", "memory_context_summary", "TEXT")
             self._ensure_column(connection, "video_tasks", "memory_context_digest", "TEXT")
+            self._ensure_column(connection, "agent_profiles", "profile_version", "INTEGER NOT NULL DEFAULT 1")
 
     def create_task(self, task: VideoTask, idempotency_key: Optional[str] = None) -> VideoTask:
         with self._connect() as connection:
@@ -122,14 +123,36 @@ class SQLiteTaskStore:
     def upsert_agent_profile(self, profile: AgentProfile) -> None:
         profile.updated_at = _utcnow()
         with self._connect() as connection:
+            existing = connection.execute(
+                """
+                SELECT name, status, profile_version, profile_json, policy_json, created_at, updated_at
+                FROM agent_profiles
+                WHERE agent_id = ?
+                """,
+                (profile.agent_id,),
+            ).fetchone()
+            profile_version = profile.profile_version
+            created_at = profile.created_at
+            if existing is not None:
+                profile_changed = (
+                    existing["name"] != profile.name
+                    or existing["status"] != profile.status
+                    or json.loads(existing["profile_json"]) != profile.profile_json
+                    or json.loads(existing["policy_json"]) != profile.policy_json
+                )
+                profile_version = int(existing["profile_version"]) + 1 if profile_changed else int(existing["profile_version"])
+                created_at = datetime.fromisoformat(existing["created_at"])
+            profile.profile_version = profile_version
+            profile.created_at = created_at
             connection.execute(
                 """
                 INSERT INTO agent_profiles (
-                    agent_id, name, status, profile_json, policy_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    agent_id, name, status, profile_version, profile_json, policy_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     name = excluded.name,
                     status = excluded.status,
+                    profile_version = excluded.profile_version,
                     profile_json = excluded.profile_json,
                     policy_json = excluded.policy_json,
                     updated_at = excluded.updated_at
@@ -138,6 +161,7 @@ class SQLiteTaskStore:
                     profile.agent_id,
                     profile.name,
                     profile.status,
+                    profile.profile_version,
                     json.dumps(profile.profile_json),
                     json.dumps(profile.policy_json),
                     profile.created_at.isoformat(),
@@ -149,7 +173,7 @@ class SQLiteTaskStore:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT agent_id, name, status, profile_json, policy_json, created_at, updated_at
+                SELECT agent_id, name, status, profile_version, profile_json, policy_json, created_at, updated_at
                 FROM agent_profiles
                 WHERE agent_id = ?
                 """,
@@ -161,6 +185,7 @@ class SQLiteTaskStore:
             agent_id=row["agent_id"],
             name=row["name"],
             status=row["status"],
+            profile_version=int(row["profile_version"]),
             profile_json=json.loads(row["profile_json"]),
             policy_json=json.loads(row["policy_json"]),
             created_at=datetime.fromisoformat(row["created_at"]),

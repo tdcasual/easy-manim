@@ -42,6 +42,20 @@ def test_store_round_trips_agent_profile(tmp_path) -> None:
 
     assert loaded is not None
     assert loaded.profile_json["style_hints"]["tone"] == "teaching"
+    assert loaded.profile_version == 1
+
+
+def test_store_increments_profile_version_on_profile_update(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    profile = AgentProfile(agent_id="agent-a", name="Agent A")
+    store.upsert_agent_profile(profile)
+    store.upsert_agent_profile(profile.model_copy(update={"profile_json": {"style_hints": {"tone": "teaching"}}}))
+
+    loaded = store.get_agent_profile("agent-a")
+
+    assert loaded is not None
+    assert loaded.profile_version == 2
 
 
 def test_store_resolves_agent_token_by_hash(tmp_path) -> None:
@@ -69,6 +83,24 @@ def test_store_persists_task_agent_id(tmp_path) -> None:
 
     assert loaded is not None
     assert loaded.agent_id == "agent-a"
+
+
+def test_store_persists_task_profile_version_and_policy_flags(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    task = VideoTask(
+        prompt="draw a circle",
+        agent_id="agent-a",
+        profile_version=3,
+        effective_policy_flags={"deny_actions": ["task:mutate"]},
+    )
+
+    store.create_task(task, idempotency_key="profile-version-1")
+    loaded = store.get_task(task.task_id)
+
+    assert loaded is not None
+    assert loaded.profile_version == 3
+    assert loaded.effective_policy_flags == {"deny_actions": ["task:mutate"]}
 
 
 def test_store_persists_task_session_id_and_memory_context(tmp_path) -> None:

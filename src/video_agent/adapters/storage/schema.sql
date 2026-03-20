@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS agent_profiles (
     agent_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     status TEXT NOT NULL,
+    profile_version INTEGER NOT NULL DEFAULT 1,
     profile_json TEXT NOT NULL,
     policy_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
