@@ -56,7 +56,7 @@ def _tool_payload_or_http_error(payload: dict[str, Any]) -> dict[str, Any]:
     code = error.get("code", "bad_request")
     if code == "agent_not_authenticated":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=code)
-    if code in {"agent_access_denied", "agent_memory_forbidden"}:
+    if code in {"agent_access_denied", "agent_memory_forbidden", "agent_scope_denied"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=code)
     if code == "agent_memory_not_found":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=code)
@@ -118,6 +118,10 @@ def create_http_api(settings: Settings) -> FastAPI:
 
     @app.get("/api/whoami")
     def whoami(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, object]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
         return {
             "agent_id": resolved.agent_principal.agent_id,
             "name": resolved.agent_principal.profile.name,
@@ -135,6 +139,7 @@ def create_http_api(settings: Settings) -> FastAPI:
             get_session_memory_tool(
                 context,
                 {},
+                agent_principal=resolved.agent_principal,
                 session_id=current_internal_session_id(resolved),
             )
         )
@@ -146,6 +151,7 @@ def create_http_api(settings: Settings) -> FastAPI:
                 summarize_session_memory_tool(
                     context,
                     {},
+                    agent_principal=resolved.agent_principal,
                     session_id=current_internal_session_id(resolved),
                 )
             )
@@ -158,6 +164,7 @@ def create_http_api(settings: Settings) -> FastAPI:
                 clear_session_memory_tool(
                     context,
                     {},
+                    agent_principal=resolved.agent_principal,
                     session_id=current_internal_session_id(resolved),
                 )
             )

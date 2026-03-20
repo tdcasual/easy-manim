@@ -19,18 +19,26 @@ def _build_agent_auth_settings(tmp_path: Path) -> Settings:
     )
 
 
-def _seed_agent_profile_and_token(store) -> None:
+def _seed_agent_profile_and_token(
+    store,
+    *,
+    secret: str = "agent-a-secret",
+    scopes_json: dict | None = None,
+    policy_json: dict | None = None,
+) -> None:
     store.upsert_agent_profile(
         AgentProfile(
             agent_id="agent-a",
             name="Agent A",
             profile_json={"style_hints": {"tone": "patient", "pace": "steady"}},
+            policy_json=policy_json or {},
         )
     )
     store.issue_agent_token(
         AgentToken(
-            token_hash=hash_agent_token("agent-a-secret"),
+            token_hash=hash_agent_token(secret),
             agent_id="agent-a",
+            scopes_json=scopes_json or {},
             override_json={"style_hints": {"tone": "teaching"}},
         )
     )
@@ -90,3 +98,36 @@ def test_revise_video_task_preserves_authenticated_agent_profile(tmp_path: Path)
     assert task.agent_id == "agent-a"
     assert task.style_hints["tone"] == "teaching"
     assert task.effective_request_profile["style_hints"]["tone"] == "teaching"
+
+
+def test_create_video_task_rejects_scope_limited_token(tmp_path: Path) -> None:
+    app = create_app_context(_build_agent_auth_settings(tmp_path))
+    _seed_agent_profile_and_token(app.store, secret="agent-a-read-secret", scopes_json={"allow": ["task:read"]})
+    principal = app.agent_identity_service.authenticate("agent-a-read-secret")
+
+    payload = create_video_task_tool(
+        app,
+        {"prompt": "draw a circle"},
+        agent_principal=principal,
+    )
+
+    assert payload["error"]["code"] == "agent_scope_denied"
+
+
+def test_revise_video_task_respects_profile_policy_denials(tmp_path: Path) -> None:
+    app = create_app_context(_build_agent_auth_settings(tmp_path))
+    _seed_agent_profile_and_token(app.store, policy_json={"deny_actions": ["task:mutate"]})
+    principal = app.agent_identity_service.authenticate("agent-a-secret")
+
+    created = create_video_task_tool(
+        app,
+        {"prompt": "draw a circle"},
+        agent_principal=principal,
+    )
+    revised = revise_video_task_tool(
+        app,
+        {"base_task_id": created["task_id"], "feedback": "make it blue"},
+        agent_principal=principal,
+    )
+
+    assert revised["error"]["code"] == "agent_scope_denied"

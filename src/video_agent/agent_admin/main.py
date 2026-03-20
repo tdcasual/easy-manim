@@ -86,6 +86,7 @@ def main() -> None:
                     "agent_token": plaintext_token,
                     "token_hash": token_hash,
                     "status": token.status,
+                    "scopes_json": token.scopes_json,
                 }
             )
         )

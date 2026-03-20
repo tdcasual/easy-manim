@@ -31,6 +31,13 @@ def _error_payload(code: str, message: str) -> dict[str, Any]:
     return {"error": {"code": code, "message": message}}
 
 
+def _permission_error_code(exc: PermissionError) -> str:
+    code = str(exc)
+    if code in {"agent_not_authenticated", "agent_access_denied", "agent_scope_denied"}:
+        return code
+    return "agent_access_denied"
+
+
 def _require_agent_principal(
     context: AppContext,
     agent_principal: AgentPrincipal | None,
@@ -50,6 +57,17 @@ def _resolve_memory_agent_id(
     if principal is None:
         return context.settings.anonymous_agent_id
     return principal.agent_id
+
+
+def _authorize_agent_action(
+    context: AppContext,
+    agent_principal: AgentPrincipal | None,
+    action: str,
+) -> AgentPrincipal | None:
+    principal = _require_agent_principal(context, agent_principal)
+    if principal is not None:
+        context.agent_identity_service.require_action(principal, action)
+    return principal
 
 
 def create_video_task_tool(
@@ -75,8 +93,7 @@ def create_video_task_tool(
     except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return result.model_dump(mode="json")
 
 
@@ -87,14 +104,13 @@ def get_video_task_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
-        principal = _require_agent_principal(context, agent_principal)
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
         if principal is None:
             result = context.task_service.get_video_task(payload["task_id"])
         else:
             result = context.task_service.get_video_task_for_agent(payload["task_id"], principal.agent_id)
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return result.model_dump(mode="json")
 
 
@@ -105,15 +121,14 @@ def get_failure_contract_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
-        principal = _require_agent_principal(context, agent_principal)
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
         failure_contract = (
             context.task_service.get_failure_contract(payload["task_id"])
             if principal is None
             else context.task_service.get_failure_contract_for_agent(payload["task_id"], principal.agent_id)
         )
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return {"task_id": payload["task_id"], "failure_contract": failure_contract}
 
 
@@ -124,7 +139,7 @@ def list_video_tasks_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
-        principal = _require_agent_principal(context, agent_principal)
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
         items = (
             context.task_service.list_video_tasks(
                 limit=payload.get("limit", 50),
@@ -138,8 +153,7 @@ def list_video_tasks_tool(
             )
         )
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return {"items": items, "next_cursor": None}
 
 
@@ -150,7 +164,7 @@ def get_task_events_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
-        principal = _require_agent_principal(context, agent_principal)
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
         items = (
             context.task_service.get_task_events(
                 payload["task_id"],
@@ -164,8 +178,7 @@ def get_task_events_tool(
             )
         )
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return {"items": items, "next_cursor": None}
 
 
@@ -198,8 +211,7 @@ def retry_video_task_tool(
     except AdmissionControlError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return result.model_dump(mode="json")
 
 
@@ -223,8 +235,7 @@ def revise_video_task_tool(
     except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return result.model_dump(mode="json")
 
 
@@ -239,8 +250,7 @@ def cancel_video_task_tool(
     except AdmissionControlError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return {"task_id": payload["task_id"], "status": "cancelled"}
 
 
@@ -251,15 +261,14 @@ def get_video_result_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
-        principal = _require_agent_principal(context, agent_principal)
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
         result = (
             context.task_service.get_video_result(payload["task_id"])
             if principal is None
             else context.task_service.get_video_result_for_agent(payload["task_id"], principal.agent_id)
         )
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
     return result.model_dump(mode="json")
 
 
@@ -267,11 +276,16 @@ def get_session_memory_tool(
     context: AppContext,
     payload: dict[str, Any],
     *,
+    agent_principal: AgentPrincipal | None = None,
     session_id: str | None = None,
 ) -> dict[str, Any]:
     resolved_session_id = _resolve_session_id(payload, session_id)
     if resolved_session_id is None:
         return _error_payload("session_id_required", "session_id is required")
+    try:
+        _authorize_agent_action(context, agent_principal, "memory:read")
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
 
     snapshot = context.session_memory_service.get_session_memory(resolved_session_id)
     return {
@@ -286,11 +300,16 @@ def summarize_session_memory_tool(
     context: AppContext,
     payload: dict[str, Any],
     *,
+    agent_principal: AgentPrincipal | None = None,
     session_id: str | None = None,
 ) -> dict[str, Any]:
     resolved_session_id = _resolve_session_id(payload, session_id)
     if resolved_session_id is None:
         return _error_payload("session_id_required", "session_id is required")
+    try:
+        _authorize_agent_action(context, agent_principal, "memory:read")
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
 
     summary = context.session_memory_service.summarize_session_memory(resolved_session_id)
     return {
@@ -308,11 +327,16 @@ def clear_session_memory_tool(
     context: AppContext,
     payload: dict[str, Any],
     *,
+    agent_principal: AgentPrincipal | None = None,
     session_id: str | None = None,
 ) -> dict[str, Any]:
     resolved_session_id = _resolve_session_id(payload, session_id)
     if resolved_session_id is None:
         return _error_payload("session_id_required", "session_id is required")
+    try:
+        _authorize_agent_action(context, agent_principal, "memory:clear")
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
 
     before = context.session_memory_service.get_session_memory(resolved_session_id)
     snapshot = context.session_memory_service.clear_session_memory(resolved_session_id)
@@ -339,6 +363,7 @@ def promote_session_memory_tool(
         return _error_payload("session_id_required", "session_id is required")
 
     try:
+        _authorize_agent_action(context, agent_principal, "memory:promote")
         record = context.persistent_memory_service.promote_session_memory(
             resolved_session_id,
             agent_id=_resolve_memory_agent_id(context, agent_principal),
@@ -346,8 +371,7 @@ def promote_session_memory_tool(
     except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
 
     return record.model_dump(mode="json")
 
@@ -359,13 +383,13 @@ def list_agent_memories_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
+        _authorize_agent_action(context, agent_principal, "memory:read")
         records = context.persistent_memory_service.list_agent_memories(
             _resolve_memory_agent_id(context, agent_principal),
             include_disabled=payload.get("include_disabled", False),
         )
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
 
     return {"items": [record.model_dump(mode="json") for record in records]}
 
@@ -377,6 +401,7 @@ def get_agent_memory_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
+        _authorize_agent_action(context, agent_principal, "memory:read")
         record = context.persistent_memory_service.get_agent_memory(
             payload["memory_id"],
             agent_id=_resolve_memory_agent_id(context, agent_principal),
@@ -384,8 +409,7 @@ def get_agent_memory_tool(
     except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
 
     return record.model_dump(mode="json")
 
@@ -397,6 +421,7 @@ def disable_agent_memory_tool(
     agent_principal: AgentPrincipal | None = None,
 ) -> dict[str, Any]:
     try:
+        _authorize_agent_action(context, agent_principal, "memory:write")
         record = context.persistent_memory_service.disable_agent_memory(
             payload["memory_id"],
             agent_id=_resolve_memory_agent_id(context, agent_principal),
@@ -404,8 +429,7 @@ def disable_agent_memory_tool(
     except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
-        code = "agent_not_authenticated" if str(exc) == "agent_not_authenticated" else "agent_access_denied"
-        return _error_payload(code, str(exc))
+        return _error_payload(_permission_error_code(exc), str(exc))
 
     return record.model_dump(mode="json")
 
