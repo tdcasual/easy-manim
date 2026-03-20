@@ -16,6 +16,7 @@ from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.agent_learning_service import AgentLearningService, compute_quality_score
 from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.failure_context import build_failure_context
 from video_agent.application.runtime_service import RuntimeService
@@ -53,6 +54,7 @@ class WorkflowEngine:
         hard_validator: HardValidator,
         rule_validator: RuleValidator,
         runtime_service: RuntimeService,
+        agent_learning_service: AgentLearningService | None = None,
         session_memory_service: SessionMemoryService | None = None,
         runtime_policy: RuntimePolicy | None = None,
         metrics: MetricsCollector | None = None,
@@ -68,6 +70,7 @@ class WorkflowEngine:
         self.rule_validator = rule_validator
         self.preview_quality_validator = PreviewQualityValidator()
         self.runtime_service = runtime_service
+        self.agent_learning_service = agent_learning_service
         self.session_memory_service = session_memory_service
         self.runtime_policy = runtime_policy or RuntimePolicy(work_root=artifact_store.root)
         self.metrics = metrics or MetricsCollector()
@@ -293,6 +296,7 @@ class WorkflowEngine:
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
             self.store.append_event(task.task_id, "task_finished", {"status": task.status.value})
+            self._record_agent_learning_outcome(task, combined_report)
             self._record_session_memory_outcome(
                 task,
                 result_summary=combined_report.summary,
@@ -412,6 +416,8 @@ class WorkflowEngine:
         self._record_session_memory_outcome(task, result_summary=report.summary, extra_artifact_refs=failure_artifact_refs)
         auto_repair_decision = self.auto_repair_service.maybe_schedule_repair(task)
         self._record_repair_state(task, report, auto_repair_decision)
+        if not auto_repair_decision.created:
+            self._record_agent_learning_outcome(task, report)
         self.store.append_event(
             task.task_id,
             "auto_repair_decision",
@@ -465,6 +471,27 @@ class WorkflowEngine:
             result_summary=result_summary,
             extra_artifact_refs=extra_artifact_refs,
         )
+
+    def _record_agent_learning_outcome(self, task, report: ValidationReport) -> None:
+        if self.agent_learning_service is None or not task.agent_id:
+            return
+        issue_codes = [issue.code for issue in report.issues]
+        try:
+            self.agent_learning_service.record_task_outcome(
+                agent_id=task.agent_id,
+                task_id=task.task_id,
+                session_id=task.session_id,
+                status=task.status.value,
+                issue_codes=issue_codes,
+                quality_score=compute_quality_score(task.status.value, issue_codes),
+                profile_digest=task.effective_profile_digest,
+                memory_ids=task.selected_memory_ids,
+            )
+        except Exception as exc:
+            try:
+                self._log(task, task.phase, "Agent learning telemetry skipped", error=str(exc))
+            except Exception:
+                return
 
     def _record_repair_state(self, task, report: ValidationReport, auto_repair_decision) -> None:
         root_task_id = task.root_task_id or task.task_id

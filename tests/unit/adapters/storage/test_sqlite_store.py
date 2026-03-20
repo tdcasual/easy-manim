@@ -1,4 +1,7 @@
+import sqlite3
+
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.agent_profile_revision_models import AgentProfileRevision
@@ -274,3 +277,110 @@ def test_store_rejects_profile_patch_for_inactive_profile(tmp_path) -> None:
         assert str(exc) == "inactive agent profile"
     else:
         raise AssertionError("Expected apply_agent_profile_patch() to reject inactive profiles")
+
+
+def test_store_learning_event_upsert_returns_persisted_row(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    first = AgentLearningEvent(
+        event_id="evt-1",
+        agent_id="agent-a",
+        task_id="task-1",
+        session_id="sess-1",
+        status="completed",
+        issue_codes=[],
+        quality_score=1.0,
+        profile_digest="digest-1",
+        memory_ids=[],
+    )
+    second = AgentLearningEvent(
+        event_id="evt-2",
+        agent_id="agent-a",
+        task_id="task-1",
+        session_id="sess-1",
+        status="completed",
+        issue_codes=[],
+        quality_score=0.5,
+        profile_digest="digest-1",
+        memory_ids=[],
+    )
+
+    store.create_agent_learning_event(first)
+    persisted = store.create_agent_learning_event(second)
+
+    assert persisted.event_id == "evt-1"
+    assert persisted.quality_score == 0.5
+
+
+def test_initialize_deduplicates_legacy_learning_events_before_adding_unique_index(tmp_path) -> None:
+    database_path = tmp_path / "agent.db"
+    connection = sqlite3.connect(database_path)
+    try:
+        connection.execute(
+            """
+            CREATE TABLE agent_learning_events (
+                event_id TEXT PRIMARY KEY,
+                agent_id TEXT NOT NULL,
+                task_id TEXT NOT NULL,
+                session_id TEXT,
+                status TEXT NOT NULL,
+                issue_codes_json TEXT NOT NULL,
+                quality_score REAL NOT NULL,
+                profile_digest TEXT,
+                memory_ids_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO agent_learning_events (
+                event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                quality_score, profile_digest, memory_ids_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "evt-1",
+                "agent-a",
+                "task-1",
+                "sess-1",
+                "failed",
+                "[]",
+                0.2,
+                "digest-1",
+                "[]",
+                "2026-03-20T00:00:00+00:00",
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO agent_learning_events (
+                event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                quality_score, profile_digest, memory_ids_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "evt-2",
+                "agent-a",
+                "task-1",
+                "sess-1",
+                "completed",
+                "[]",
+                0.9,
+                "digest-1",
+                "[]",
+                "2026-03-20T00:01:00+00:00",
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    store = SQLiteTaskStore(database_path)
+    store.initialize()
+
+    events = store.list_agent_learning_events("agent-a")
+
+    assert len(events) == 1
+    assert events[0].event_id == "evt-2"
+    assert events[0].quality_score == 0.9

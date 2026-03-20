@@ -9,6 +9,7 @@ from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.agent_learning_service import AgentLearningService
 from video_agent.application.agent_identity_service import AgentIdentityService
 from video_agent.application.agent_session_service import AgentSessionService
 from video_agent.application.auto_repair_service import AutoRepairService
@@ -39,6 +40,7 @@ class AppContext:
     session_memory_registry: SessionMemoryRegistry
     session_memory_service: SessionMemoryService
     persistent_memory_service: PersistentMemoryService
+    agent_learning_service: AgentLearningService
     task_service: TaskService
     workflow_engine: WorkflowEngine
     worker: WorkerLoop
@@ -103,6 +105,10 @@ def create_app_context(settings: Settings) -> AppContext:
             embedding_model=settings.persistent_memory_embedding_model,
         ),
     )
+    agent_learning_service = AgentLearningService(
+        write_event=store.create_agent_learning_event,
+        list_events=store.list_agent_learning_events,
+    )
     task_service = TaskService(
         store=store,
         artifact_store=artifact_store,
@@ -131,6 +137,7 @@ def create_app_context(settings: Settings) -> AppContext:
         hard_validator=HardValidator(command=settings.ffprobe_command),
         rule_validator=RuleValidator(),
         runtime_service=runtime_service,
+        agent_learning_service=agent_learning_service,
         session_memory_service=session_memory_service,
         runtime_policy=runtime_policy,
         metrics=metrics,
@@ -158,6 +165,7 @@ def create_app_context(settings: Settings) -> AppContext:
         session_memory_registry=session_memory_registry,
         session_memory_service=session_memory_service,
         persistent_memory_service=persistent_memory_service,
+        agent_learning_service=agent_learning_service,
         task_service=task_service,
         workflow_engine=workflow_engine,
         worker=worker,

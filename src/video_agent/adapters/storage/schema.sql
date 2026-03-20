@@ -37,6 +37,19 @@ CREATE TABLE IF NOT EXISTS agent_profile_revisions (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS agent_learning_events (
+    event_id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    session_id TEXT,
+    status TEXT NOT NULL,
+    issue_codes_json TEXT NOT NULL,
+    quality_score REAL NOT NULL,
+    profile_digest TEXT,
+    memory_ids_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS agent_tokens (
     token_hash TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL,

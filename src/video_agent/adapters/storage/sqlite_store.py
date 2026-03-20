@@ -8,6 +8,7 @@ from typing import Any, Optional
 from uuid import uuid4
 
 from video_agent.application.preference_resolver import resolve_effective_request_config
+from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.agent_profile_revision_models import AgentProfileRevision
@@ -41,6 +42,8 @@ class SQLiteTaskStore:
             self._ensure_column(connection, "video_tasks", "memory_context_summary", "TEXT")
             self._ensure_column(connection, "video_tasks", "memory_context_digest", "TEXT")
             self._ensure_column(connection, "agent_profiles", "profile_version", "INTEGER NOT NULL DEFAULT 1")
+            self._dedupe_agent_learning_events(connection)
+            self._ensure_agent_learning_indexes(connection)
 
     def create_task(self, task: VideoTask, idempotency_key: Optional[str] = None) -> VideoTask:
         with self._connect() as connection:
@@ -276,6 +279,66 @@ class SQLiteTaskStore:
                 ),
             )
         return revision
+
+    def create_agent_learning_event(self, event: AgentLearningEvent) -> AgentLearningEvent:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_learning_events (
+                    event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                    quality_score, profile_digest, memory_ids_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(task_id) DO UPDATE SET
+                    agent_id = excluded.agent_id,
+                    session_id = excluded.session_id,
+                    status = excluded.status,
+                    issue_codes_json = excluded.issue_codes_json,
+                    quality_score = excluded.quality_score,
+                    profile_digest = excluded.profile_digest,
+                    memory_ids_json = excluded.memory_ids_json
+                """,
+                (
+                    event.event_id,
+                    event.agent_id,
+                    event.task_id,
+                    event.session_id,
+                    event.status,
+                    json.dumps(event.issue_codes),
+                    event.quality_score,
+                    event.profile_digest,
+                    json.dumps(event.memory_ids),
+                    event.created_at.isoformat(),
+                ),
+            )
+            row = connection.execute(
+                """
+                SELECT
+                    event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                    quality_score, profile_digest, memory_ids_json, created_at
+                FROM agent_learning_events
+                WHERE task_id = ?
+                """,
+                (event.task_id,),
+            ).fetchone()
+        if row is None:
+            return event
+        return self._row_to_agent_learning_event(row)
+
+    def list_agent_learning_events(self, agent_id: str, limit: int = 200) -> list[AgentLearningEvent]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                    quality_score, profile_digest, memory_ids_json, created_at
+                FROM agent_learning_events
+                WHERE agent_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (agent_id, limit),
+            ).fetchall()
+        return [self._row_to_agent_learning_event(row) for row in rows]
 
     def list_agent_profile_revisions(self, agent_id: str, limit: int = 50) -> list[AgentProfileRevision]:
         with self._connect() as connection:
@@ -816,6 +879,42 @@ class SQLiteTaskStore:
             return
         connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
 
+    def _dedupe_agent_learning_events(self, connection: sqlite3.Connection) -> None:
+        duplicate_rows = connection.execute(
+            """
+            SELECT task_id
+            FROM agent_learning_events
+            GROUP BY task_id
+            HAVING COUNT(*) > 1
+            """
+        ).fetchall()
+        for duplicate in duplicate_rows:
+            task_id = duplicate["task_id"]
+            rows = connection.execute(
+                """
+                SELECT rowid
+                FROM agent_learning_events
+                WHERE task_id = ?
+                ORDER BY created_at DESC, rowid DESC
+                """,
+                (task_id,),
+            ).fetchall()
+            if not rows:
+                continue
+            keep_rowid = rows[0]["rowid"]
+            connection.execute(
+                "DELETE FROM agent_learning_events WHERE task_id = ? AND rowid != ?",
+                (task_id, keep_rowid),
+            )
+
+    def _ensure_agent_learning_indexes(self, connection: sqlite3.Connection) -> None:
+        connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_learning_events_task_id ON agent_learning_events (task_id)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_agent_learning_events_agent_created_at ON agent_learning_events (agent_id, created_at DESC)"
+        )
+
     @staticmethod
     def _row_to_agent_profile(row: sqlite3.Row) -> AgentProfile:
         return AgentProfile(
@@ -827,6 +926,21 @@ class SQLiteTaskStore:
             policy_json=json.loads(row["policy_json"]),
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
+
+    @staticmethod
+    def _row_to_agent_learning_event(row: sqlite3.Row) -> AgentLearningEvent:
+        return AgentLearningEvent(
+            event_id=row["event_id"],
+            agent_id=row["agent_id"],
+            task_id=row["task_id"],
+            session_id=row["session_id"],
+            status=row["status"],
+            issue_codes=json.loads(row["issue_codes_json"]),
+            quality_score=float(row["quality_score"]),
+            profile_digest=row["profile_digest"],
+            memory_ids=json.loads(row["memory_ids_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
         )
 
     @staticmethod

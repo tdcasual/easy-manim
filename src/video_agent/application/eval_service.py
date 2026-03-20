@@ -7,7 +7,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 from video_agent.adapters.llm.client import StubLLMClient
-from video_agent.agent_policy import QUALITY_ISSUE_CODES
+from video_agent.application.agent_learning_service import compute_quality_score, select_quality_issue_codes
 from video_agent.evaluation.corpus import load_prompt_suite
 from video_agent.evaluation.live_reporting import build_live_report
 from video_agent.evaluation.quality_reporting import build_quality_report
@@ -150,7 +150,7 @@ class EvaluationService:
         started: float,
     ) -> EvaluationCaseResult:
         issues = [item["code"] for item in terminal_snapshot.latest_validation_summary.get("issues", [])]
-        quality_issue_codes = [code for code in issues if code in QUALITY_ISSUE_CODES]
+        quality_issue_codes = select_quality_issue_codes(issues)
         return EvaluationCaseResult(
             case_id=case.case_id,
             task_id=terminal_snapshot.task_id,
@@ -164,7 +164,7 @@ class EvaluationService:
             repair_success=bool(root_snapshot.repair_state.get("attempted")) and terminal_snapshot.status == "completed",
             repair_stop_reason=root_snapshot.repair_state.get("stop_reason"),
             quality_issue_codes=quality_issue_codes,
-            quality_score=self._quality_score(terminal_snapshot.status, quality_issue_codes),
+            quality_score=compute_quality_score(terminal_snapshot.status, issues),
             risk_domains=list(case.risk_domains),
             review_focus=list(case.review_focus),
             baseline_group=case.baseline_group,
@@ -227,15 +227,6 @@ class EvaluationService:
             yield
         finally:
             self.context.workflow_engine.llm_client = original_client
-
-    @staticmethod
-    def _quality_score(status: str, quality_issue_codes: list[str]) -> float:
-        score = 1.0
-        if status != "completed":
-            score -= 0.4
-        score -= 0.2 * len(quality_issue_codes)
-        return max(0.0, round(score, 4))
-
 
 class _SequenceLLMClient(StubLLMClient):
     def __init__(self, scripts: list[str]) -> None:

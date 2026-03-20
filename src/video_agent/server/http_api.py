@@ -166,6 +166,14 @@ def create_http_api(settings: Settings) -> FastAPI:
             "policy": profile.policy_json,
         }
 
+    @app.get("/api/profile/scorecard")
+    def profile_scorecard(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, object]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        return context.agent_learning_service.build_scorecard(resolved.agent_principal.agent_id)
+
     @app.post("/api/profile/apply")
     def apply_profile_patch(
         payload: ProfileApplyRequest,
