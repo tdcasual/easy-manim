@@ -13,12 +13,19 @@ from video_agent.server.http_auth import (
 )
 from video_agent.server.mcp_tools import (
     cancel_video_task_tool,
+    clear_session_memory_tool,
     create_video_task_tool,
+    disable_agent_memory_tool,
+    get_agent_memory_tool,
+    get_session_memory_tool,
     get_video_result_tool,
     get_video_task_tool,
+    list_agent_memories_tool,
     list_video_tasks_tool,
+    promote_session_memory_tool,
     retry_video_task_tool,
     revise_video_task_tool,
+    summarize_session_memory_tool,
 )
 
 
@@ -49,9 +56,25 @@ def _tool_payload_or_http_error(payload: dict[str, Any]) -> dict[str, Any]:
     code = error.get("code", "bad_request")
     if code == "agent_not_authenticated":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=code)
-    if code == "agent_access_denied":
+    if code in {"agent_access_denied", "agent_memory_forbidden"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=code)
+    if code == "agent_memory_not_found":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=code)
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=code)
+
+
+def _strip_internal_session_fields(payload: dict[str, Any]) -> dict[str, Any]:
+    sanitized = dict(payload)
+    sanitized.pop("session_id", None)
+    sanitized.pop("source_session_id", None)
+
+    items = sanitized.get("items")
+    if isinstance(items, list):
+        sanitized["items"] = [
+            _strip_internal_session_fields(item) if isinstance(item, dict) else item
+            for item in items
+        ]
+    return sanitized
 
 
 def create_http_api(settings: Settings) -> FastAPI:
@@ -108,11 +131,86 @@ def create_http_api(settings: Settings) -> FastAPI:
 
     @app.get("/api/memory/session")
     def get_session_memory(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, object]:
-        snapshot = context.session_memory_service.get_session_memory(current_internal_session_id(resolved))
-        payload = snapshot.model_dump(mode="json")
-        payload.pop("session_id", None)
-        payload["entry_count"] = snapshot.entry_count
-        return payload
+        return _strip_internal_session_fields(
+            get_session_memory_tool(
+                context,
+                {},
+                session_id=current_internal_session_id(resolved),
+            )
+        )
+
+    @app.get("/api/memory/session/summary")
+    def summarize_session_memory(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                summarize_session_memory_tool(
+                    context,
+                    {},
+                    session_id=current_internal_session_id(resolved),
+                )
+            )
+        )
+
+    @app.delete("/api/memory/session")
+    def clear_session_memory(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                clear_session_memory_tool(
+                    context,
+                    {},
+                    session_id=current_internal_session_id(resolved),
+                )
+            )
+        )
+
+    @app.post("/api/memories/promote")
+    def promote_session_memory(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                promote_session_memory_tool(
+                    context,
+                    {},
+                    agent_principal=resolved.agent_principal,
+                    session_id=current_internal_session_id(resolved),
+                )
+            )
+        )
+
+    @app.get("/api/memories")
+    def list_memories(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                list_agent_memories_tool(
+                    context,
+                    {},
+                    agent_principal=resolved.agent_principal,
+                )
+            )
+        )
+
+    @app.get("/api/memories/{memory_id}")
+    def get_memory(memory_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                get_agent_memory_tool(
+                    context,
+                    {"memory_id": memory_id},
+                    agent_principal=resolved.agent_principal,
+                )
+            )
+        )
+
+    @app.post("/api/memories/{memory_id}/disable")
+    def disable_memory(memory_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                disable_agent_memory_tool(
+                    context,
+                    {"memory_id": memory_id},
+                    agent_principal=resolved.agent_principal,
+                )
+            )
+        )
 
     @app.post("/api/tasks")
     def create_task(
