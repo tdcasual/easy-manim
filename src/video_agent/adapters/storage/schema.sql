@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS agent_profiles (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS agent_profile_revisions (
+    revision_id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    patch_json TEXT NOT NULL,
+    source TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS agent_tokens (
     token_hash TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL,

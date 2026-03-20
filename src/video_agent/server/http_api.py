@@ -48,6 +48,19 @@ class ReviseTaskRequest(BaseModel):
     memory_ids: list[str] | None = None
 
 
+class ProfileApplyRequest(BaseModel):
+    patch: dict[str, Any]
+
+
+_PROFILE_PATCH_ALLOWLIST = frozenset({"style_hints", "output_profile", "validation_profile"})
+
+
+def _validate_profile_patch_shape(patch: dict[str, Any]) -> None:
+    for key, value in patch.items():
+        if key in _PROFILE_PATCH_ALLOWLIST and not isinstance(value, dict):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="invalid_profile_patch_shape")
+
+
 def _tool_payload_or_http_error(payload: dict[str, Any]) -> dict[str, Any]:
     error = payload.get("error")
     if error is None:
@@ -132,6 +145,62 @@ def create_http_api(settings: Settings) -> FastAPI:
     def delete_session(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, bool]:
         context.agent_session_service.revoke_session(resolved.session_token)
         return {"revoked": True}
+
+    @app.get("/api/profile")
+    def get_profile(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, object]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+        profile = context.store.get_agent_profile(resolved.agent_principal.agent_id)
+        if profile is None or profile.status != "active":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token")
+
+        return {
+            "agent_id": profile.agent_id,
+            "name": profile.name,
+            "status": profile.status,
+            "profile_version": profile.profile_version,
+            "profile": profile.profile_json,
+            "policy": profile.policy_json,
+        }
+
+    @app.post("/api/profile/apply")
+    def apply_profile_patch(
+        payload: ProfileApplyRequest,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, object]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:write")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+        unsupported_keys = sorted(set(payload.patch) - _PROFILE_PATCH_ALLOWLIST)
+        if unsupported_keys:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="unsupported_profile_patch_keys")
+        _validate_profile_patch_shape(payload.patch)
+
+        current_profile = context.store.get_agent_profile(resolved.agent_principal.agent_id)
+        if current_profile is None or current_profile.status != "active":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token")
+
+        try:
+            updated_profile, revision = context.store.apply_agent_profile_patch(
+                current_profile.agent_id,
+                patch_json=payload.patch,
+                source="http.profile.apply",
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token") from exc
+
+        return {
+            "applied": True,
+            "revision_id": revision.revision_id,
+            "agent_id": updated_profile.agent_id,
+            "profile_version": updated_profile.profile_version,
+            "profile": updated_profile.profile_json,
+        }
 
     @app.get("/api/memory/session")
     def get_session_memory(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, object]:

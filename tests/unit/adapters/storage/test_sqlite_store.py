@@ -1,6 +1,7 @@
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_profile_revision_models import AgentProfileRevision
 from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.models import VideoTask
 
@@ -203,3 +204,73 @@ def test_store_touches_and_revokes_agent_session(tmp_path) -> None:
     assert revoked is not None
     assert revoked.status == "revoked"
     assert revoked.revoked_at is not None
+
+
+def test_store_round_trips_agent_profile_revision(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    revision = AgentProfileRevision(
+        revision_id="rev-1",
+        agent_id="agent-a",
+        patch_json={"style_hints": {"tone": "teaching"}},
+        source="http.profile.apply",
+    )
+
+    store.create_agent_profile_revision(revision)
+
+    loaded = store.list_agent_profile_revisions("agent-a")
+
+    assert len(loaded) == 1
+    assert loaded[0].revision_id == "rev-1"
+    assert loaded[0].patch_json == {"style_hints": {"tone": "teaching"}}
+    assert loaded[0].source == "http.profile.apply"
+
+
+def test_store_applies_agent_profile_patch_and_records_revision(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient", "pace": "steady"}},
+        )
+    )
+
+    updated_profile, revision = store.apply_agent_profile_patch(
+        "agent-a",
+        patch_json={"style_hints": {"tone": "teaching"}},
+        source="http.profile.apply",
+    )
+
+    assert updated_profile.profile_version == 2
+    assert updated_profile.profile_json == {"style_hints": {"tone": "teaching", "pace": "steady"}}
+    assert revision.agent_id == "agent-a"
+    assert revision.patch_json == {"style_hints": {"tone": "teaching"}}
+
+    loaded_revisions = store.list_agent_profile_revisions("agent-a")
+    assert len(loaded_revisions) == 1
+    assert loaded_revisions[0].revision_id == revision.revision_id
+
+
+def test_store_rejects_profile_patch_for_inactive_profile(tmp_path) -> None:
+    store = SQLiteTaskStore(tmp_path / "agent.db")
+    store.initialize()
+    store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            status="disabled",
+        )
+    )
+
+    try:
+        store.apply_agent_profile_patch(
+            "agent-a",
+            patch_json={"style_hints": {"tone": "teaching"}},
+            source="http.profile.apply",
+        )
+    except ValueError as exc:
+        assert str(exc) == "inactive agent profile"
+    else:
+        raise AssertionError("Expected apply_agent_profile_patch() to reject inactive profiles")

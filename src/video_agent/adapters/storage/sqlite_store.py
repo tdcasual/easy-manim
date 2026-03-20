@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
+from video_agent.application.preference_resolver import resolve_effective_request_config
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_profile_revision_models import AgentProfileRevision
 from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
@@ -181,16 +183,122 @@ class SQLiteTaskStore:
             ).fetchone()
         if row is None:
             return None
-        return AgentProfile(
-            agent_id=row["agent_id"],
-            name=row["name"],
-            status=row["status"],
-            profile_version=int(row["profile_version"]),
-            profile_json=json.loads(row["profile_json"]),
-            policy_json=json.loads(row["policy_json"]),
-            created_at=datetime.fromisoformat(row["created_at"]),
-            updated_at=datetime.fromisoformat(row["updated_at"]),
-        )
+        return self._row_to_agent_profile(row)
+
+    def apply_agent_profile_patch(
+        self,
+        agent_id: str,
+        *,
+        patch_json: dict[str, Any],
+        source: str,
+    ) -> tuple[AgentProfile, AgentProfileRevision]:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                """
+                SELECT agent_id, name, status, profile_version, profile_json, policy_json, created_at, updated_at
+                FROM agent_profiles
+                WHERE agent_id = ?
+                """,
+                (agent_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("agent profile not found")
+
+            current_profile = self._row_to_agent_profile(row)
+            if current_profile.status != "active":
+                raise ValueError("inactive agent profile")
+            updated_profile_json = resolve_effective_request_config(
+                profile_json=current_profile.profile_json,
+                request_overrides=patch_json,
+            )
+            updated_profile = current_profile.model_copy(
+                update={
+                    "profile_json": updated_profile_json,
+                    "profile_version": (
+                        current_profile.profile_version + 1
+                        if updated_profile_json != current_profile.profile_json
+                        else current_profile.profile_version
+                    ),
+                    "updated_at": _utcnow(),
+                }
+            )
+            connection.execute(
+                """
+                UPDATE agent_profiles
+                SET profile_version = ?, profile_json = ?, updated_at = ?
+                WHERE agent_id = ?
+                """,
+                (
+                    updated_profile.profile_version,
+                    json.dumps(updated_profile.profile_json),
+                    updated_profile.updated_at.isoformat(),
+                    updated_profile.agent_id,
+                ),
+            )
+
+            revision = AgentProfileRevision(
+                agent_id=agent_id,
+                patch_json=patch_json,
+                source=source,
+            )
+            connection.execute(
+                """
+                INSERT INTO agent_profile_revisions (
+                    revision_id, agent_id, patch_json, source, created_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    revision.revision_id,
+                    revision.agent_id,
+                    json.dumps(revision.patch_json),
+                    revision.source,
+                    revision.created_at.isoformat(),
+                ),
+            )
+            connection.commit()
+        return updated_profile, revision
+
+    def create_agent_profile_revision(self, revision: AgentProfileRevision) -> AgentProfileRevision:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_profile_revisions (
+                    revision_id, agent_id, patch_json, source, created_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    revision.revision_id,
+                    revision.agent_id,
+                    json.dumps(revision.patch_json),
+                    revision.source,
+                    revision.created_at.isoformat(),
+                ),
+            )
+        return revision
+
+    def list_agent_profile_revisions(self, agent_id: str, limit: int = 50) -> list[AgentProfileRevision]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT revision_id, agent_id, patch_json, source, created_at
+                FROM agent_profile_revisions
+                WHERE agent_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (agent_id, limit),
+            ).fetchall()
+        return [
+            AgentProfileRevision(
+                revision_id=row["revision_id"],
+                agent_id=row["agent_id"],
+                patch_json=json.loads(row["patch_json"]),
+                source=row["source"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+            for row in rows
+        ]
 
     def issue_agent_token(self, token: AgentToken) -> None:
         token.updated_at = _utcnow()
@@ -707,6 +815,19 @@ class SQLiteTaskStore:
         if any(row["name"] == column_name for row in rows):
             return
         connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
+
+    @staticmethod
+    def _row_to_agent_profile(row: sqlite3.Row) -> AgentProfile:
+        return AgentProfile(
+            agent_id=row["agent_id"],
+            name=row["name"],
+            status=row["status"],
+            profile_version=int(row["profile_version"]),
+            profile_json=json.loads(row["profile_json"]),
+            policy_json=json.loads(row["policy_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
 
     @staticmethod
     def _row_to_agent_session(row: sqlite3.Row) -> AgentSession:
