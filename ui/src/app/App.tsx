@@ -6,6 +6,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { TasksPage } from "./pages/TasksPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { useSession } from "../features/auth/useSession";
+import { TaskDetailPage } from "../features/tasks/TaskDetailPage";
 
 const NAV_ITEMS = [
   { to: "/tasks", label: "Tasks" },
@@ -64,6 +65,7 @@ export function App() {
             <Route element={<RequireAuth />}>
               <Route path="/" element={<TasksPage />} />
               <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
               <Route path="/memory" element={<MemoryPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/evals" element={<EvalsPage />} />
