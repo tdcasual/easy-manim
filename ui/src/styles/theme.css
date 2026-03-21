@@ -25,7 +25,8 @@
   --space-5: 28px;
   --space-6: 40px;
 
-  --container: clamp(980px, 92vw, 1120px);
+  --container: min(1120px, 92vw);
+  color-scheme: light;
 }
 
 body {
@@ -178,6 +179,166 @@ h2 {
   font-size: 12px;
 }
 
+/* Shared primitives (kept minimal; pages can still use inline styles when needed). */
+.card {
+  background: color-mix(in oklab, var(--surface), transparent 2%);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 10%);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 0%);
+  background: color-mix(in oklab, var(--surface), transparent 0%);
+  color: var(--ink);
+}
+
+.input {
+  min-height: 44px;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 108px;
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.button {
+  appearance: none;
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 0%);
+  background: color-mix(in oklab, var(--surface), transparent 0%);
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: 12px;
+  min-height: 44px;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 80ms ease;
+}
+
+.button:hover {
+  background: color-mix(in oklab, var(--accent2), transparent 84%);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.buttonPrimary {
+  border-color: color-mix(in oklab, var(--accent), transparent 65%);
+  background: color-mix(in oklab, var(--accent), transparent 86%);
+}
+
+.buttonPrimary:hover {
+  background: color-mix(in oklab, var(--accent), transparent 82%);
+}
+
+.buttonQuiet {
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.alert {
+  margin: 12px 0 0;
+  color: color-mix(in oklab, var(--accent), black 18%);
+}
+
+/* Tasks page */
+.tasksGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.taskItems {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.taskItem {
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 22%);
+  background: color-mix(in oklab, var(--surface), transparent 6%);
+  overflow: hidden;
+}
+
+.taskLink {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px;
+}
+
+.taskId {
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+
+.taskStatus {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 25%);
+  background: color-mix(in oklab, var(--accent2), transparent 86%);
+  color: color-mix(in oklab, var(--ink), transparent 18%);
+}
+
+.taskStatus_completed {
+  background: color-mix(in oklab, var(--accent2), transparent 76%);
+}
+
+.taskStatus_failed {
+  background: color-mix(in oklab, var(--accent), transparent 86%);
+}
+
 @media (max-width: 940px) {
   .layout {
     grid-template-columns: 1fr;
@@ -187,5 +348,30 @@ h2 {
     position: relative;
     top: 0;
   }
+  .sideNavInner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .navItem {
+    border: 1px solid color-mix(in oklab, var(--hairline), transparent 20%);
+    background: color-mix(in oklab, var(--surface), transparent 6%);
+    border-radius: 999px;
+  }
+  .navItem.isActive {
+    border-color: color-mix(in oklab, var(--accent), transparent 70%);
+  }
+  .tasksGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .navItem,
+  .button {
+    transition: none;
+  }
+  .button:active {
+    transform: none;
+  }
+}

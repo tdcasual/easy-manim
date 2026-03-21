@@ -7,6 +7,7 @@ import { TasksPage } from "./pages/TasksPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { useSession } from "../features/auth/useSession";
 import { TaskDetailPage } from "../features/tasks/TaskDetailPage";
+import { EvalDetailPage } from "../features/evals/EvalDetailPage";
 
 const NAV_ITEMS = [
   { to: "/tasks", label: "Tasks" },
@@ -69,6 +70,7 @@ export function App() {
               <Route path="/memory" element={<MemoryPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/evals" element={<EvalsPage />} />
+              <Route path="/evals/:runId" element={<EvalDetailPage />} />
             </Route>
           </Routes>
         </main>

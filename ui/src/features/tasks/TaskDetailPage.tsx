@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
-import { getTask, getTaskResult, TaskResult, TaskSnapshot } from "../../lib/tasksApi";
+import { cancelTask, getTask, getTaskResult, retryTask, reviseTask, TaskResult, TaskSnapshot } from "../../lib/tasksApi";
 import { useSession } from "../auth/useSession";
 
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
@@ -12,23 +12,31 @@ export function TaskDetailPage() {
   const [snapshot, setSnapshot] = useState<TaskSnapshot | null>(null);
   const [result, setResult] = useState<TaskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const [feedback, setFeedback] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionState, setActionState] = useState<"idle" | "revise" | "retry" | "cancel">("idle");
 
   useEffect(() => {
     if (!taskId) return;
+    const id = taskId;
     let cancelled = false;
     let timer: number | null = null;
+    let attempt = 0;
 
     async function loadOnce() {
       if (!sessionToken) return;
       try {
-        const s = await getTask(taskId, sessionToken);
+        const s = await getTask(id, sessionToken);
         if (cancelled) return;
         setSnapshot(s);
-        const r = await getTaskResult(taskId, sessionToken);
+        const r = await getTaskResult(id, sessionToken);
         if (cancelled) return;
         setResult(r);
         if (!TERMINAL.has(String(s.status))) {
-          timer = window.setTimeout(loadOnce, 200);
+          const delay = Math.min(250 * 2 ** attempt, 5000);
+          attempt += 1;
+          timer = window.setTimeout(loadOnce, delay);
         }
       } catch (err) {
         if (cancelled) return;
@@ -41,7 +49,52 @@ export function TaskDetailPage() {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [taskId, sessionToken]);
+  }, [taskId, sessionToken, reloadTick]);
+
+  async function onRevise() {
+    if (!taskId || !sessionToken) return;
+    const trimmed = feedback.trim();
+    if (!trimmed) return;
+    setActionState("revise");
+    setActionError(null);
+    try {
+      await reviseTask(taskId, trimmed, sessionToken);
+      setFeedback("");
+      setReloadTick((t) => t + 1);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "task_revise_failed");
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  async function onRetry() {
+    if (!taskId || !sessionToken) return;
+    setActionState("retry");
+    setActionError(null);
+    try {
+      await retryTask(taskId, sessionToken);
+      setReloadTick((t) => t + 1);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "task_retry_failed");
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  async function onCancel() {
+    if (!taskId || !sessionToken) return;
+    setActionState("cancel");
+    setActionError(null);
+    try {
+      await cancelTask(taskId, sessionToken);
+      setReloadTick((t) => t + 1);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "task_cancel_failed");
+    } finally {
+      setActionState("idle");
+    }
+  }
 
   if (!taskId) {
     return (
@@ -86,6 +139,45 @@ export function TaskDetailPage() {
         <dd style={{ margin: 0 }}>{String(snapshot.attempt_count ?? 0)}</dd>
       </dl>
 
+      <div className="card" style={{ marginTop: 18 }}>
+        <div className="cardTitle">Actions</div>
+        <div className="muted small">Revise with feedback, retry failures, or cancel in-progress work.</div>
+
+        <label className="field" style={{ marginTop: 10 }}>
+          <span className="fieldLabel">Feedback</span>
+          <textarea
+            aria-label="Feedback"
+            className="textarea"
+            rows={3}
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="e.g. make it blue, slower easing, add labels…"
+          />
+        </label>
+
+        <div className="buttonRow">
+          <button className="button buttonPrimary" type="button" onClick={onRevise} disabled={actionState !== "idle"}>
+            {actionState === "revise" ? "Revising…" : "Revise"}
+          </button>
+          {String(snapshot.status).toLowerCase() === "failed" ? (
+            <button className="button" type="button" onClick={onRetry} disabled={actionState !== "idle"}>
+              {actionState === "retry" ? "Retrying…" : "Retry"}
+            </button>
+          ) : null}
+          {!TERMINAL.has(String(snapshot.status)) ? (
+            <button className="button" type="button" onClick={onCancel} disabled={actionState !== "idle"}>
+              {actionState === "cancel" ? "Cancelling…" : "Cancel"}
+            </button>
+          ) : null}
+        </div>
+
+        {actionError ? (
+          <p role="alert" className="alert">
+            {actionError}
+          </p>
+        ) : null}
+      </div>
+
       <div style={{ marginTop: 18 }}>
         <h3 style={{ margin: "0 0 8px", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
           Result
@@ -95,9 +187,9 @@ export function TaskDetailPage() {
             <div className="muted small">Summary</div>
             <div>{String(result.summary ?? "") || <span className="muted">None</span>}</div>
             {result.video_resource ? (
-              <Link to={result.video_resource} className="muted">
+              <a href={result.video_resource} className="muted">
                 {result.video_resource.split("/").slice(-1)[0]}
-              </Link>
+              </a>
             ) : (
               <span className="muted">No video resource yet.</span>
             )}
@@ -109,4 +201,3 @@ export function TaskDetailPage() {
     </section>
   );
 }
-

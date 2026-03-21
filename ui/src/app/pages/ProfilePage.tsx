@@ -1,9 +1,5 @@
-export function ProfilePage() {
-  return (
-    <section>
-      <h2>Profile</h2>
-      <p className="muted">Read/apply profile patches, scorecards, and suggestions.</p>
-    </section>
-  );
-}
+import { ProfilePage as FeatureProfilePage } from "../../features/profile/ProfilePage";
 
+export function ProfilePage() {
+  return <FeatureProfilePage />;
+}

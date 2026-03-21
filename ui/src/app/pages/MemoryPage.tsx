@@ -1,9 +1,5 @@
-export function MemoryPage() {
-  return (
-    <section>
-      <h2>Memory</h2>
-      <p className="muted">Session and persistent memory tools live here.</p>
-    </section>
-  );
-}
+import { MemoryPage as FeatureMemoryPage } from "../../features/memory/MemoryPage";
 
+export function MemoryPage() {
+  return <FeatureMemoryPage />;
+}

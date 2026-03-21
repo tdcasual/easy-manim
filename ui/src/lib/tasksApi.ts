@@ -55,3 +55,27 @@ export async function getTask(taskId: string, token: string): Promise<TaskSnapsh
 export async function getTaskResult(taskId: string, token: string): Promise<TaskResult> {
   return requestJson<TaskResult>(`/api/tasks/${encodeURIComponent(taskId)}/result`, { method: "GET" }, token);
 }
+
+export async function reviseTask(taskId: string, feedback: string, token: string): Promise<Record<string, unknown>> {
+  return requestJson<Record<string, unknown>>(
+    `/api/tasks/${encodeURIComponent(taskId)}/revise`,
+    { method: "POST", body: JSON.stringify({ feedback }) },
+    token
+  );
+}
+
+export async function retryTask(taskId: string, token: string): Promise<Record<string, unknown>> {
+  return requestJson<Record<string, unknown>>(
+    `/api/tasks/${encodeURIComponent(taskId)}/retry`,
+    { method: "POST" },
+    token
+  );
+}
+
+export async function cancelTask(taskId: string, token: string): Promise<{ task_id: string; status: string }> {
+  return requestJson<{ task_id: string; status: string }>(
+    `/api/tasks/${encodeURIComponent(taskId)}/cancel`,
+    { method: "POST" },
+    token
+  );
+}

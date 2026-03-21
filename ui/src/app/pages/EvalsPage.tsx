@@ -1,9 +1,5 @@
-export function EvalsPage() {
-  return (
-    <section>
-      <h2>Evals</h2>
-      <p className="muted">Agent-scoped evaluation runs will appear here.</p>
-    </section>
-  );
-}
+import { EvalsPage as FeatureEvalsPage } from "../../features/evals/EvalsPage";
 
+export function EvalsPage() {
+  return <FeatureEvalsPage />;
+}
