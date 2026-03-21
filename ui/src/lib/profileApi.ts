@@ -1,3 +1,5 @@
+import { clearSessionToken } from "./session";
+
 function apiBaseUrl(): string {
   const base = (import.meta as any).env?.VITE_API_BASE_URL;
   return typeof base === "string" ? base.replace(/\/+$/, "") : "";
@@ -11,7 +13,10 @@ async function requestJson<T>(path: string, init: RequestInit, token: string): P
 
   const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers });
   const text = await response.text().catch(() => "");
-  if (!response.ok) throw new Error(`http_${response.status}:${text || response.statusText}`);
+  if (!response.ok) {
+    if (response.status === 401) clearSessionToken();
+    throw new Error(`http_${response.status}:${text || response.statusText}`);
+  }
   return (text ? JSON.parse(text) : {}) as T;
 }
 
@@ -50,4 +55,3 @@ export async function applyProfilePatch(patch: Record<string, unknown>, token: s
     token
   );
 }
-
