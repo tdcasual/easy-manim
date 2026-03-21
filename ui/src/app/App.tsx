@@ -1,9 +1,11 @@
-import { Link, NavLink, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 
 import { EvalsPage } from "./pages/EvalsPage";
 import { MemoryPage } from "./pages/MemoryPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { TasksPage } from "./pages/TasksPage";
+import { LoginPage } from "../features/auth/LoginPage";
+import { useSession } from "../features/auth/useSession";
 
 const NAV_ITEMS = [
   { to: "/tasks", label: "Tasks" },
@@ -11,6 +13,15 @@ const NAV_ITEMS = [
   { to: "/profile", label: "Profile" },
   { to: "/evals", label: "Evals" }
 ] as const;
+
+function RequireAuth() {
+  const { isAuthenticated } = useSession();
+  const location = useLocation();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  return <Outlet />;
+}
 
 export function App() {
   return (
@@ -49,15 +60,17 @@ export function App() {
 
         <main className="main" role="main">
           <Routes>
-            <Route path="/" element={<TasksPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/memory" element={<MemoryPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/evals" element={<EvalsPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route element={<RequireAuth />}>
+              <Route path="/" element={<TasksPage />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/memory" element={<MemoryPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/evals" element={<EvalsPage />} />
+            </Route>
           </Routes>
         </main>
       </div>
     </div>
   );
 }
-

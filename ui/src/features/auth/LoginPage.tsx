@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { postSession } from "../../lib/api";
 import { writeSessionToken } from "../../lib/session";
@@ -7,6 +8,7 @@ export function LoginPage() {
   const [agentToken, setAgentToken] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -16,6 +18,7 @@ export function LoginPage() {
       const created = await postSession(agentToken.trim());
       writeSessionToken(created.session_token);
       setStatus("idle");
+      navigate("/tasks", { replace: true });
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "login_failed");
@@ -72,4 +75,3 @@ export function LoginPage() {
     </div>
   );
 }
-
