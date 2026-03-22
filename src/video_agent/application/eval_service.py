@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import time
 from contextlib import contextmanager
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 from video_agent.adapters.llm.client import StubLLMClient
+from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.agent_learning_service import compute_quality_score, select_quality_issue_codes
 from video_agent.evaluation.corpus import load_prompt_suite
 from video_agent.evaluation.live_reporting import build_live_report
@@ -15,6 +17,7 @@ from video_agent.evaluation.repair_reporting import build_repair_report
 from video_agent.evaluation.run_manifest import EvalCaseState, EvalRunManifest
 from video_agent.evaluation.reviewer_digest import render_reviewer_digest
 from video_agent.evaluation.reporting import build_eval_report, render_eval_report_markdown
+from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.app import AppContext
 
 
@@ -50,6 +53,9 @@ class EvaluationCaseResult(BaseModel):
     review_focus: list[str] = Field(default_factory=list)
     baseline_group: str | None = None
     manual_review_required: bool = False
+    agent_id: str | None = None
+    profile_digest: str | None = None
+    memory_ids: list[str] = Field(default_factory=list)
 
 
 class EvaluationRunSummary(BaseModel):
@@ -73,12 +79,17 @@ class EvaluationService:
         match_all_tags: bool = False,
         resume_run_id: str | None = None,
         rerun_cases: set[str] | None = None,
+        agent_id: str | None = None,
+        memory_ids: list[str] | None = None,
+        profile_patch: dict[str, Any] | None = None,
     ) -> EvaluationRunSummary:
         suite = load_prompt_suite(suite_path, include_tags=include_tags, match_all_tags=match_all_tags)
         cases = suite.cases[:limit] if limit is not None else suite.cases
         include_tag_list = sorted(include_tags or [])
         run_id = resume_run_id or str(uuid4())
         rerun_cases = set(rerun_cases or [])
+        agent_principal = self._resolve_agent_principal(agent_id)
+        request_overrides = self._request_overrides_from_profile_patch(profile_patch)
         if rerun_cases and resume_run_id is None:
             raise ValueError("rerun_cases requires resume_run_id")
         manifest = self._load_or_create_manifest(
@@ -105,6 +116,11 @@ class EvaluationService:
                 created = self.context.task_service.create_video_task(
                     prompt=case.prompt,
                     idempotency_key=f"eval:{run_id}:{case.case_id}:attempt:{state.attempt_count}",
+                    output_profile=request_overrides.get("output_profile"),
+                    style_hints=request_overrides.get("style_hints"),
+                    validation_profile=request_overrides.get("validation_profile"),
+                    memory_ids=memory_ids,
+                    agent_principal=agent_principal,
                 )
                 root_snapshot, terminal_snapshot = self._wait_for_lineage(created.task_id)
             result = self._build_case_result(
@@ -113,6 +129,7 @@ class EvaluationService:
                 root_snapshot=root_snapshot,
                 terminal_snapshot=terminal_snapshot,
                 started=started,
+                agent_id=agent_id,
             )
             state.status = result.status
             state.root_task_id = result.root_task_id
@@ -148,9 +165,11 @@ class EvaluationService:
         root_snapshot,
         terminal_snapshot,
         started: float,
+        agent_id: str | None = None,
     ) -> EvaluationCaseResult:
         issues = [item["code"] for item in terminal_snapshot.latest_validation_summary.get("issues", [])]
         quality_issue_codes = select_quality_issue_codes(issues)
+        terminal_task = self.context.store.get_task(terminal_snapshot.task_id)
         return EvaluationCaseResult(
             case_id=case.case_id,
             task_id=terminal_snapshot.task_id,
@@ -169,6 +188,9 @@ class EvaluationService:
             review_focus=list(case.review_focus),
             baseline_group=case.baseline_group,
             manual_review_required=case.manual_review_required,
+            agent_id=agent_id,
+            profile_digest=None if terminal_task is None else terminal_task.effective_profile_digest,
+            memory_ids=[] if terminal_task is None else list(terminal_task.selected_memory_ids),
         )
 
     def _load_or_create_manifest(
@@ -227,6 +249,34 @@ class EvaluationService:
             yield
         finally:
             self.context.workflow_engine.llm_client = original_client
+
+    def _resolve_agent_principal(self, agent_id: str | None) -> AgentPrincipal | None:
+        if agent_id is None:
+            return None
+        profile = self.context.store.get_agent_profile(agent_id)
+        if profile is None:
+            raise ValueError(f"Unknown agent profile: {agent_id}")
+        return AgentPrincipal(
+            agent_id=profile.agent_id,
+            profile=profile,
+            token=AgentToken(token_hash=f"eval:{profile.agent_id}", agent_id=profile.agent_id),
+        )
+
+    @staticmethod
+    def _request_overrides_from_profile_patch(profile_patch: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+        if not profile_patch:
+            return {}
+        allowed_keys = {"style_hints", "output_profile", "validation_profile"}
+        unsupported = sorted(set(profile_patch) - allowed_keys)
+        if unsupported:
+            raise ValueError(f"unsupported profile_patch keys: {', '.join(unsupported)}")
+        return {
+            key: dict(value)
+            for key, value in profile_patch.items()
+            if key in allowed_keys and isinstance(value, dict)
+        }
+
+
 
 class _SequenceLLMClient(StubLLMClient):
     def __init__(self, scripts: list[str]) -> None:

@@ -130,6 +130,20 @@ class ArtifactStore:
         target.write_text(json.dumps(payload, indent=2))
         return target
 
+    def read_eval_summary(self, run_id: str) -> dict[str, Any] | None:
+        target = self.eval_root / run_id / "summary.json"
+        if not target.exists():
+            return None
+        return json.loads(target.read_text())
+
+    def list_eval_summaries(self) -> list[dict[str, Any]]:
+        if not self.eval_root.exists():
+            return []
+        items: list[dict[str, Any]] = []
+        for summary_path in sorted(self.eval_root.glob("*/summary.json"), reverse=True):
+            items.append(json.loads(summary_path.read_text()))
+        return items
+
     def write_eval_summary_markdown(self, run_id: str, content: str) -> Path:
         target = self.eval_run_dir(run_id) / "summary.md"
         target.write_text(content)

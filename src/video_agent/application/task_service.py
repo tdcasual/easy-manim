@@ -9,6 +9,7 @@ from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_authorization_service import AgentAuthorizationService
 from video_agent.application.agent_identity_service import AgentPrincipal
+from video_agent.application.agent_learning_service import AgentLearningService
 from video_agent.application.errors import AdmissionControlError
 from video_agent.application.persistent_memory_service import PersistentMemoryContext, PersistentMemoryService
 from video_agent.application.preference_resolver import (
@@ -66,17 +67,19 @@ class TaskService:
         artifact_store: ArtifactStore,
         settings: Settings,
         revision_service: Optional[RevisionService] = None,
+        authorization_service: AgentAuthorizationService | None = None,
+        agent_learning_service: AgentLearningService | None = None,
         session_memory_service: SessionMemoryService | None = None,
         persistent_memory_service: PersistentMemoryService | None = None,
-        authorization_service: AgentAuthorizationService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
         self.settings = settings
         self.revision_service = revision_service or RevisionService()
+        self.authorization_service = authorization_service or AgentAuthorizationService()
+        self.agent_learning_service = agent_learning_service
         self.session_memory_service = session_memory_service
         self.persistent_memory_service = persistent_memory_service
-        self.authorization_service = authorization_service or AgentAuthorizationService()
 
     def create_video_task(
         self,

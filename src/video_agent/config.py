@@ -50,6 +50,10 @@ class Settings(BaseModel):
     persistent_memory_enable_embeddings: bool = False
     persistent_memory_embedding_provider: str | None = None
     persistent_memory_embedding_model: str | None = None
+    agent_learning_auto_apply_enabled: bool = False
+    agent_learning_auto_apply_min_completed_tasks: int = 5
+    agent_learning_auto_apply_min_quality_score: float = 0.9
+    agent_learning_auto_apply_max_recent_failures: int = 0
     auto_repair_enabled: bool = False
     auto_repair_max_children_per_root: int = 1
     auto_repair_retryable_issue_codes: list[str] = Field(

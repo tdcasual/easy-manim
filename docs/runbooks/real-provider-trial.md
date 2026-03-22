@@ -67,6 +67,20 @@ source .venv/bin/activate
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --include-tag quality --match-all-tags --json
 ```
 
+If you want the trial to target a specific named agent baseline, add the agent-aware flags:
+
+```bash
+source .venv/bin/activate
+easy-manim-eval-run \
+  --data-dir data \
+  --suite evals/beta_prompt_suite.json \
+  --include-tag real-provider \
+  --agent-id agent-a \
+  --memory-id mem-1 \
+  --profile-patch-json '{"style_hints":{"tone":"teaching"}}' \
+  --json
+```
+
 ## Collect evidence
 After the run completes, record the emitted `run_id` and collect:
 - `data/evals/<run_id>/summary.json`
@@ -81,6 +95,8 @@ easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa
 ```
 
 The qa bundle should contain the run summary plus task-local artifacts under `tasks/<task_id>/` for reviewer inspection.
+
+For agent-targeted trials, also confirm `summary.json.report.agent` is present and that the active profile digest matches the intended baseline.
 
 ## Evaluate the live gate
 Run the manual live-provider gate against the quality-sensitive real-provider run:

@@ -183,15 +183,30 @@ def create_mcp_server(
 
     @mcp.tool(name="get_session_memory")
     def get_session_memory(ctx: Context | None = None) -> dict[str, Any]:
-        return get_session_memory_tool(context, {}, session_id=current_session_id(ctx))
+        return get_session_memory_tool(
+            context,
+            {},
+            agent_principal=current_principal(ctx),
+            session_id=current_session_id(ctx),
+        )
 
     @mcp.tool(name="summarize_session_memory")
     def summarize_session_memory(ctx: Context | None = None) -> dict[str, Any]:
-        return summarize_session_memory_tool(context, {}, session_id=current_session_id(ctx))
+        return summarize_session_memory_tool(
+            context,
+            {},
+            agent_principal=current_principal(ctx),
+            session_id=current_session_id(ctx),
+        )
 
     @mcp.tool(name="clear_session_memory")
     def clear_session_memory(ctx: Context | None = None) -> dict[str, Any]:
-        return clear_session_memory_tool(context, {}, session_id=current_session_id(ctx))
+        return clear_session_memory_tool(
+            context,
+            {},
+            agent_principal=current_principal(ctx),
+            session_id=current_session_id(ctx),
+        )
 
     @mcp.tool(name="promote_session_memory")
     def promote_session_memory(ctx: Context | None = None) -> dict[str, Any]:

@@ -42,6 +42,35 @@ source .venv/bin/activate
 easy-manim-mcp --transport stdio
 ```
 
+## Run the HTTP API
+```bash
+source .venv/bin/activate
+export EASY_MANIM_AUTH_MODE=required
+easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker
+easy-manim-worker --data-dir data
+```
+
+Log in once, then reuse the returned session token:
+
+```bash
+SESSION_TOKEN=$(
+  curl -s http://127.0.0.1:8001/api/sessions \
+    -H 'content-type: application/json' \
+    -d '{"agent_token":"<plaintext-agent-token>"}' | jq -r '.session_token'
+)
+
+curl -s http://127.0.0.1:8001/api/whoami \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -s http://127.0.0.1:8001/api/tasks \
+  -H 'content-type: application/json' \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" \
+  -d '{"prompt":"draw a blue circle"}'
+
+curl -s -X DELETE http://127.0.0.1:8001/api/sessions/current \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+```
+
 ### Agent Auth Modes
 - `EASY_MANIM_AUTH_MODE=disabled` keeps the local developer flow: task tools work without session authentication and tasks are attributed to `local-anonymous` by default.
 - `EASY_MANIM_AUTH_MODE=required` makes mutating task tools and task resources require an authenticated agent session.
@@ -86,10 +115,11 @@ easy-manim-worker --data-dir data
 ```bash
 source .venv/bin/activate
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json
+easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --agent-id agent-a --memory-id mem-1 --profile-patch-json '{"style_hints":{"tone":"teaching"}}' --json
 easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip
 ```
 
-Evaluation artifacts are written under `data/evals/<run_id>/` and include `summary.json`, `summary.md`, and `review_digest.md`.
+Evaluation artifacts are written under `data/evals/<run_id>/` and include `summary.json`, `summary.md`, and `review_digest.md`. Agent-targeted evals also emit `report.agent` plus an `Agent Slice` in the markdown summaries.
 
 ## Release-candidate flow
 ```bash
@@ -122,6 +152,7 @@ docker compose up --build
 - Phase 4 plan: `docs/plans/2026-03-12-phase-4-real-beta-validation-and-release-candidate-implementation-plan.md`
 - Local dev guide: `docs/runbooks/local-dev.md`
 - Beta ops guide: `docs/runbooks/beta-ops.md`
+- HTTP API deploy guide: `docs/runbooks/http-api-deploy.md`
 - Real-provider trial guide: `docs/runbooks/real-provider-trial.md`
 - Release checklist: `docs/runbooks/release-checklist.md`
 - RC decision template: `docs/templates/release-candidate-decision.md`

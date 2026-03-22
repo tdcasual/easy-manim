@@ -5,6 +5,9 @@ import sys
 from pathlib import Path
 
 from video_agent.agent_policy import QUALITY_ISSUE_CODES
+from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
+from video_agent.domain.agent_models import AgentProfile
 
 
 
@@ -392,4 +395,61 @@ def test_eval_run_cli_can_require_all_tags(tmp_path: Path) -> None:
 
     assert payload["total_cases"] == 1
     assert payload["items"][0]["case_id"] == "shared"
+    assert completed.returncode == 0
+
+
+def test_eval_run_can_target_agent_profile(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    store = SQLiteTaskStore(data_dir / "video_agent.db")
+    store.initialize()
+    store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-1",
+            agent_id="agent-a",
+            source_session_id="sess-1",
+            summary_text="Prefer clean explanatory pacing.",
+            summary_digest="digest-memory-1",
+        )
+    )
+    _, env = _build_eval_env(tmp_path)
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "video_agent.eval.main",
+            "--data-dir",
+            str(data_dir),
+            "--suite",
+            "evals/beta_prompt_suite.json",
+            "--include-tag",
+            "smoke",
+            "--agent-id",
+            "agent-a",
+            "--memory-id",
+            "mem-1",
+            "--profile-patch-json",
+            json.dumps({"style_hints": {"tone": "teaching"}}),
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+    payload = json.loads(completed.stdout)
+
+    assert payload["report"]["agent"]["agent_id"] == "agent-a"
+    assert payload["report"]["agent"]["active_profile_digest"]
+    assert payload["items"][0]["agent_id"] == "agent-a"
+    assert payload["items"][0]["memory_ids"] == ["mem-1"]
+    assert payload["items"][0]["profile_digest"] == payload["report"]["agent"]["active_profile_digest"]
     assert completed.returncode == 0

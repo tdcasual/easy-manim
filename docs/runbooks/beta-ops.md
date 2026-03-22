@@ -43,6 +43,15 @@ easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-emb
 easy-manim-worker --data-dir data
 ```
 
+To expose the plain HTTP JSON API instead of MCP:
+
+```bash
+source .venv/bin/activate
+export EASY_MANIM_AUTH_MODE=required
+easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker
+easy-manim-worker --data-dir data
+```
+
 ## Provision agent identities
 Create a profile and issue a token before handing access to an external agent:
 
@@ -58,6 +67,16 @@ Notes:
 - the plaintext token is shown exactly once; only `token_hash` is stored, so lost plaintext tokens must be rotated, not recovered
 - use `easy-manim-agent-admin --data-dir data inspect-profile --agent-id agent-a` to list issued token hashes
 - use `easy-manim-agent-admin --data-dir data disable-token --token-hash <token_hash>` to revoke one token without deleting the profile
+
+For HTTP clients, exchange the plaintext token once:
+
+```bash
+SESSION_TOKEN=$(
+  curl -s http://127.0.0.1:8001/api/sessions \
+    -H 'content-type: application/json' \
+    -d '{"agent_token":"<plaintext-agent-token>"}' | jq -r '.session_token'
+)
+```
 
 ## Runtime inspection
 - Call MCP tool `get_runtime_status` to inspect:
@@ -124,8 +143,24 @@ easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --inclu
 Artifacts are written under `data/evals/<run_id>/`:
 - `summary.json`
 - `summary.md`
+- `review_digest.md`
 
 Quality-enabled eval summaries now include `report.quality`, with pass-rate, median quality score, and aggregated quality issue counts. The CLI text output also prints `quality_pass_rate=...` for quick inspection.
+Agent-targeted evals can also include:
+
+```bash
+source .venv/bin/activate
+easy-manim-eval-run \
+  --data-dir data \
+  --suite evals/beta_prompt_suite.json \
+  --include-tag smoke \
+  --agent-id agent-a \
+  --memory-id mem-1 \
+  --profile-patch-json '{"style_hints":{"tone":"teaching"}}' \
+  --json
+```
+
+These runs emit `report.agent` in `summary.json`, plus an `Agent Slice` section in `summary.md` and `review_digest.md`.
 
 Export a reviewer bundle with:
 
