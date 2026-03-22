@@ -6,11 +6,13 @@
 - Run `python scripts/beta_smoke.py --mode ci`
 - Run `python scripts/release_candidate_gate.py --mode ci`
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json`
+- Run one agent-targeted eval: `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --agent-id agent-a --memory-id mem-1 --profile-patch-json '{"style_hints":{"tone":"teaching"}}' --json`
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag quality --json`
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --include-tag quality --match-all-tags --json` once `.env.beta` and real credentials are loaded
 - Set `EASY_MANIM_AUTO_REPAIR_ENABLED=true`, then run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag repair --json`
 - Confirm the emitted run writes `summary.json`, `summary.md`, and `review_digest.md` under `data/evals/<run_id>/`
 - Confirm the emitted run also writes `run_manifest.json` under `data/evals/<run_id>/`
+- Confirm the agent-targeted run writes `report.agent` in `summary.json`
 - Confirm `summary.json` includes `report.repair` with repair attempt / success metrics
 - Confirm the quality-slice `summary.json` includes `report.quality` with pass rate, median quality score, and issue-code counts
 - Confirm the real-provider slice `summary.json` includes `report.live` with pass rate, formula pass rate, and risk-domain failure counts
@@ -18,12 +20,16 @@
 - Confirm the real-provider quality intersection includes only prompts tagged with both `real-provider` and `quality`
 - Confirm the quality-slice `summary.md` includes a `Quality Slice` section
 - Confirm the live-run `summary.md` includes a `Live Slice` section
+- Confirm the agent-targeted `summary.md` and `review_digest.md` include an `Agent Slice` section
 - Run `easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip`
 - Start `easy-manim-mcp --transport stdio` and confirm the process stays up
 - Start `easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker` and confirm the process stays up
+- Start `easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker` and confirm the process stays up
 - Start `easy-manim-worker --data-dir data` and confirm queued tasks are drained
 - Verify `get_runtime_status`, `list_video_tasks`, `get_task_events`, and `get_metrics_snapshot` return useful data
 - Verify worker heartbeats expose the configured worker identity
+- Verify one HTTP login -> task create -> result read -> logout flow succeeds with `Authorization: Bearer <session_token>`
+- Verify `GET /api/profile/evals` only returns eval summaries for the authenticated agent
 - Verify one happy-path task reaches `completed`
 - Verify one invalid script or provider failure task reaches `failed`
 - Verify one failed task can be retried into a new child task

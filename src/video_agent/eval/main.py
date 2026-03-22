@@ -18,6 +18,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--match-all-tags", action="store_true")
     parser.add_argument("--resume-run-id")
     parser.add_argument("--rerun-case", action="append", default=[])
+    parser.add_argument("--agent-id")
+    parser.add_argument("--memory-id", action="append", default=[])
+    parser.add_argument("--profile-patch-json")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--json", action="store_true")
     return parser
@@ -32,6 +35,7 @@ def main() -> None:
     settings = build_settings(args.data_dir)
     context = create_app_context(settings)
     service = EvaluationService(context)
+    profile_patch = None if not args.profile_patch_json else json.loads(args.profile_patch_json)
     summary = service.run_suite(
         suite_path=args.suite,
         include_tags=set(args.include_tag) or None,
@@ -39,6 +43,9 @@ def main() -> None:
         match_all_tags=args.match_all_tags,
         resume_run_id=args.resume_run_id,
         rerun_cases=set(args.rerun_case) or None,
+        agent_id=args.agent_id,
+        memory_ids=list(args.memory_id) or None,
+        profile_patch=profile_patch,
     )
     payload = summary.model_dump(mode="json")
     if args.json:

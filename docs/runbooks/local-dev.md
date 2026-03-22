@@ -71,6 +71,18 @@ source .venv/bin/activate
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
+## HTTP API service
+```bash
+source .venv/bin/activate
+export EASY_MANIM_AUTH_MODE=required
+easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker
+easy-manim-worker --data-dir data
+```
+
+- use `easy-manim-agent-admin --data-dir data create-profile ...` and `issue-token ...` before external agent clients log in
+- login once through `POST /api/sessions`, then send `Authorization: Bearer <session_token>` on task, memory, profile, and eval requests
+- use `GET /api/profile/evals` and `GET /api/profile/evals/<run_id>` to inspect agent-scoped eval summaries over plain HTTP
+
 ## Run server and worker separately
 ```bash
 source .venv/bin/activate
@@ -85,6 +97,7 @@ easy-manim-worker --data-dir data
 source .venv/bin/activate
 easy-manim-cleanup --data-dir data --older-than-hours 24 --status completed --dry-run
 easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_id>.zip
+easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --agent-id agent-a --memory-id mem-1 --profile-patch-json '{"style_hints":{"tone":"teaching"}}' --json
 ```
 
 ## Local execution model

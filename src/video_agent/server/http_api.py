@@ -228,6 +228,12 @@ def create_http_api(settings: Settings) -> FastAPI:
             "name": profile.name,
             "status": profile.status,
             "profile_version": profile.profile_version,
+            # Keep the API aligned with UI typings.
+            "profile_json": profile.profile_json,
+            "policy_json": profile.policy_json,
+            "created_at": profile.created_at.isoformat(),
+            "updated_at": profile.updated_at.isoformat(),
+            # Backward-compatible aliases (older clients).
             "profile": profile.profile_json,
             "policy": profile.policy_json,
         }
@@ -356,6 +362,47 @@ def create_http_api(settings: Settings) -> FastAPI:
             resolved.agent_principal.agent_id,
             profile_version=resolved.agent_principal.profile.profile_version,
         )
+        if not items:
+            return {"items": []}
+
+        # Optional: automatically apply safe suggestions once an agent has
+        # enough successful history (guarded by settings).
+        if context.settings.agent_learning_auto_apply_enabled:
+            scorecard = context.agent_learning_service.build_scorecard(resolved.agent_principal.agent_id)
+            completed_count = int(scorecard.get("completed_count", 0) or 0)
+            failed_count = int(scorecard.get("failed_count", 0) or 0)
+            median_quality_score = float(scorecard.get("median_quality_score", 0.0) or 0.0)
+
+            eligible = (
+                completed_count >= context.settings.agent_learning_auto_apply_min_completed_tasks
+                and failed_count <= context.settings.agent_learning_auto_apply_max_recent_failures
+                and median_quality_score >= context.settings.agent_learning_auto_apply_min_quality_score
+            )
+            if eligible:
+                applied: list[Any] = []
+                for suggestion in items:
+                    unsupported_keys = sorted(set(suggestion.patch_json) - _PROFILE_PATCH_ALLOWLIST)
+                    if unsupported_keys:
+                        applied.append(suggestion)
+                        continue
+                    try:
+                        _validate_profile_patch_shape(suggestion.patch_json)
+                    except HTTPException:
+                        applied.append(suggestion)
+                        continue
+
+                    try:
+                        _, _, updated_suggestion = context.store.apply_agent_profile_suggestion(
+                            resolved.agent_principal.agent_id,
+                            suggestion_id=suggestion.suggestion_id,
+                            source=f"auto_apply:{suggestion.suggestion_id}",
+                        )
+                    except Exception:
+                        applied.append(suggestion)
+                        continue
+                    applied.append(updated_suggestion or suggestion)
+                items = applied
+
         return {"items": [_suggestion_payload(item) for item in items]}
 
     @app.get("/api/profile/suggestions")

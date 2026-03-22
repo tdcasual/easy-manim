@@ -17,13 +17,36 @@ def build_eval_report(items: list[dict[str, Any]]) -> dict[str, Any]:
         if item.get("status") != "completed"
         for code in item.get("issue_codes", [])
     )
-    return {
+    report = {
         "completed_count": completed,
         "failed_count": failed,
         "success_rate": (completed / total) if total else 0.0,
         "failure_codes": dict(failure_codes),
         "median_duration_seconds": median(durations) if durations else 0.0,
     }
+    agent_ids = {str(item.get("agent_id")) for item in items if item.get("agent_id")}
+    if len(agent_ids) == 1:
+        agent_items = [item for item in items if item.get("agent_id")]
+        quality_scores = [float(item.get("quality_score", 0.0)) for item in agent_items if item.get("quality_score") is not None]
+        issue_counter = Counter(code for item in agent_items for code in item.get("issue_codes", []))
+        active_profile_digest = next(
+            (
+                item.get("profile_digest")
+                for item in agent_items
+                if item.get("status") == "completed" and item.get("profile_digest")
+            ),
+            next((item.get("profile_digest") for item in agent_items if item.get("profile_digest")), None),
+        )
+        report["agent"] = {
+            "agent_id": next(iter(agent_ids)),
+            "pass_rate": (sum(1 for item in agent_items if item.get("status") == "completed") / len(agent_items))
+            if agent_items
+            else 0.0,
+            "median_quality_score": median(quality_scores) if quality_scores else 0.0,
+            "top_issue_codes": [code for code, _count in issue_counter.most_common(5)],
+            "active_profile_digest": active_profile_digest,
+        }
+    return report
 
 
 
@@ -84,4 +107,18 @@ def render_eval_report_markdown(summary: dict[str, Any]) -> str:
             lines.append("- Risk Domain Failures:")
             for domain, count in sorted(domain_failures.items()):
                 lines.append(f"  - `{domain}`: {count}")
+    agent_report = summary["report"].get("agent")
+    if agent_report:
+        lines.extend(
+            [
+                "",
+                "## Agent Slice",
+                f"- Agent ID: `{agent_report['agent_id']}`",
+                f"- Pass Rate: {agent_report['pass_rate']:.2%}",
+                f"- Median Quality Score: {agent_report['median_quality_score']}",
+                f"- Active Profile Digest: `{agent_report['active_profile_digest']}`",
+            ]
+        )
+        top_issue_codes = agent_report.get("top_issue_codes", [])
+        lines.append(f"- Top Issue Codes: {', '.join(top_issue_codes) if top_issue_codes else 'none'}")
     return "\n".join(lines) + "\n"
