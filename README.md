@@ -175,6 +175,8 @@ For local source builds instead of pulling GHCR images:
 docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 ```
 
+For an image-only, agent-focused deployment and usage walkthrough that does not assume a source checkout on the target host, use `docs/runbooks/agent-self-serve.md`.
+
 To issue or rotate an agent token inside the Compose stack:
 
 ```bash
@@ -187,6 +189,7 @@ docker compose run --rm api \
 - Phase 3 plan: `docs/plans/2026-03-12-phase-3-beta-trial-hardening-implementation-plan.md`
 - Phase 4 plan: `docs/plans/2026-03-12-phase-4-real-beta-validation-and-release-candidate-implementation-plan.md`
 - Local dev guide: `docs/runbooks/local-dev.md`
+- Agent self-serve guide: `docs/runbooks/agent-self-serve.md`
 - Beta ops guide: `docs/runbooks/beta-ops.md`
 - HTTP API deploy guide: `docs/runbooks/http-api-deploy.md`
 - Real-provider trial guide: `docs/runbooks/real-provider-trial.md`
