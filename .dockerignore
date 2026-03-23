@@ -3,6 +3,14 @@ __pycache__
 .pytest_cache
 .git
 .worktrees
+.DS_Store
+.env
+.env.beta
+ui/node_modules
+ui/dist
+ui/playwright-report
+ui/test-results
+src/easy_manim.egg-info
 data
 media
 *.pyc

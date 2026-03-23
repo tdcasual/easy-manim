@@ -1,7 +1,8 @@
 FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
@@ -16,17 +17,17 @@ RUN apt-get update \
 
 COPY pyproject.toml README.md /app/
 COPY src /app/src
+
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && python -m pip install manim \
+    && python -m pip install .
+
 COPY evals /app/evals
-COPY scripts /app/scripts
-COPY docs /app/docs
-COPY tests /app/tests
 COPY .env.example /app/.env.example
 COPY .env.beta.example /app/.env.beta.example
 
-RUN python -m pip install --upgrade pip \
-    && python -m pip install manim \
-    && python -m pip install -e '.[dev]'
+VOLUME ["/app/data"]
 
-EXPOSE 8000
+EXPOSE 8000 8001
 
-CMD ["easy-manim-mcp", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["easy-manim-api", "--host", "0.0.0.0", "--port", "8001", "--data-dir", "/app/data", "--no-embedded-worker"]

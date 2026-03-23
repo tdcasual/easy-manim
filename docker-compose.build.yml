@@ -1,0 +1,18 @@
+x-backend-build: &backend-build
+  context: .
+  dockerfile: Dockerfile
+
+services:
+  api:
+    build: *backend-build
+
+  worker:
+    build: *backend-build
+
+  mcp:
+    build: *backend-build
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile

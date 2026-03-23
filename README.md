@@ -143,7 +143,43 @@ easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_i
 
 ## Container workflow
 ```bash
-docker compose up --build
+cp .env.example .env
+docker login ghcr.io -u <github-user>
+docker compose pull
+docker compose up -d
+```
+
+For a real provider deployment, merge the relevant `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before starting the stack.
+
+The repository now ships two GitHub Actions-built images:
+
+- `ghcr.io/<owner>/easy-manim` for `easy-manim-api`, `easy-manim-worker`, `easy-manim-mcp`, and admin/eval CLIs
+- `ghcr.io/<owner>/easy-manim-ui` for the operator console served by Nginx
+
+The default [docker-compose.yml](/Users/lvxiaoer/Documents/codeWork/easy-manim/docker-compose.yml) is deployment-first and starts:
+
+- `api` on port `8001`
+- `worker` sharing the same `/app/data` volume
+- `ui` on port `8080`
+- optional `mcp` on port `8000` behind the `mcp` profile
+
+Enable the MCP endpoint only when needed:
+
+```bash
+docker compose --profile mcp up -d mcp
+```
+
+For local source builds instead of pulling GHCR images:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+```
+
+To issue or rotate an agent token inside the Compose stack:
+
+```bash
+docker compose run --rm api \
+  easy-manim-agent-admin --data-dir /app/data issue-token --agent-id agent-a
 ```
 
 ## Important paths

@@ -3,6 +3,36 @@
 ## Goal
 Run `easy-manim-api` as a plain HTTP JSON service for named agents that log in once, reuse an opaque session token, and access only their own tasks, memories, profile updates, and eval summaries.
 
+## Start with Docker Compose
+```bash
+cp .env.example .env
+docker login ghcr.io -u <github-user>
+docker compose pull
+docker compose up -d
+docker compose ps
+curl -fsS http://127.0.0.1:8001/healthz
+```
+
+If you are running against a real LLM provider, copy the required `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before `docker compose up -d`.
+
+This starts:
+
+- `api` at `http://127.0.0.1:8001`
+- `ui` at `http://127.0.0.1:8080`
+- `worker` on the shared `/app/data` volume
+
+Enable the optional MCP transport only when needed:
+
+```bash
+docker compose --profile mcp up -d mcp
+```
+
+For local source builds instead of pulling published GHCR images:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d
+```
+
 ## Start the service
 ```bash
 source .venv/bin/activate
@@ -12,6 +42,18 @@ easy-manim-worker --data-dir data
 ```
 
 ## Provision an agent
+Using the Compose stack:
+
+```bash
+docker compose run --rm api \
+  easy-manim-agent-admin --data-dir /app/data create-profile --agent-id agent-a --name "Agent A"
+
+docker compose run --rm api \
+  easy-manim-agent-admin --data-dir /app/data issue-token --agent-id agent-a
+```
+
+Using a local Python environment:
+
 ```bash
 source .venv/bin/activate
 easy-manim-agent-admin --data-dir data create-profile --agent-id agent-a --name "Agent A"
@@ -54,5 +96,6 @@ curl -s http://127.0.0.1:8001/api/profile/evals \
 
 ## Deployment notes
 - keep `easy-manim-worker` running whenever `easy-manim-api` starts with `--no-embedded-worker`
+- the default [docker-compose.yml](/Users/lvxiaoer/Documents/codeWork/easy-manim/docker-compose.yml) expects published GHCR images, while [docker-compose.build.yml](/Users/lvxiaoer/Documents/codeWork/easy-manim/docker-compose.build.yml) adds local source builds
 - use HTTPS and a secret-bearing reverse proxy in production-like environments
 - the HTTP API is agent-scoped: task reads, persistent memory, profile suggestions, and `/api/profile/evals` are filtered to the authenticated `agent_id`
