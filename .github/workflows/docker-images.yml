@@ -42,7 +42,7 @@ jobs:
           - name: ui
             image: ghcr.io/${{ github.repository_owner }}/easy-manim-ui
             context: ./ui
-            file: Dockerfile
+            file: ./ui/Dockerfile
 
     steps:
       - name: Checkout
