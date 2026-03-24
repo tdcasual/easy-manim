@@ -39,7 +39,7 @@ x-backend-environment: &backend-environment
   EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT: ${EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT:-1}
 
 x-backend-service: &backend-service
-  image: ${EASY_MANIM_BACKEND_IMAGE:-ghcr.io/lvxiaoer/easy-manim:latest}
+  image: ${EASY_MANIM_BACKEND_IMAGE:-ghcr.io/tdcasual/easy-manim:latest}
   environment:
     <<: *backend-environment
   init: true
@@ -80,7 +80,7 @@ services:
       - /app/data
 
   ui:
-    image: ${EASY_MANIM_UI_IMAGE:-ghcr.io/lvxiaoer/easy-manim-ui:latest}
+    image: ${EASY_MANIM_UI_IMAGE:-ghcr.io/tdcasual/easy-manim-ui:latest}
     depends_on:
       api:
         condition: service_healthy
