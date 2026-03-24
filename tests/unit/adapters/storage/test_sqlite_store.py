@@ -1,5 +1,6 @@
 import sqlite3
 
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
@@ -10,9 +11,14 @@ from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.models import VideoTask
 
 
+def _build_store(tmp_path) -> SQLiteTaskStore:
+    database_path = tmp_path / "agent.db"
+    SQLiteBootstrapper(database_path).bootstrap()
+    return SQLiteTaskStore(database_path)
+
+
 def test_store_can_insert_and_fetch_task(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     task = VideoTask(prompt="draw a circle")
     store.create_task(task, idempotency_key="abc")
 
@@ -21,9 +27,39 @@ def test_store_can_insert_and_fetch_task(tmp_path) -> None:
     assert loaded.prompt == "draw a circle"
 
 
+def test_sqlite_bootstrapper_applies_migrations_and_prepares_store(tmp_path) -> None:
+    database_path = tmp_path / "agent.db"
+    report = SQLiteBootstrapper(database_path).bootstrap()
+
+    assert report.database_path == database_path
+    assert report.applied_migration_ids
+
+    with sqlite3.connect(database_path) as connection:
+        applied = connection.execute(
+            "SELECT migration_id FROM schema_migrations ORDER BY migration_id"
+        ).fetchall()
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        }
+
+    assert [row[0] for row in applied] == report.applied_migration_ids
+    assert "video_tasks" in tables
+    assert "agent_profiles" in tables
+
+    store = SQLiteTaskStore(database_path)
+    task = VideoTask(prompt="draw a circle")
+    store.create_task(task, idempotency_key="bootstrapped")
+
+    loaded = store.get_task(task.task_id)
+    assert loaded is not None
+    assert loaded.prompt == "draw a circle"
+
+
 def test_idempotency_key_returns_existing_task(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     first = VideoTask(prompt="draw a circle")
     second = VideoTask(prompt="draw another circle")
 
@@ -33,8 +69,7 @@ def test_idempotency_key_returns_existing_task(tmp_path) -> None:
 
 
 def test_store_round_trips_agent_profile(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     profile = AgentProfile(
         agent_id="agent-a",
         name="Agent A",
@@ -51,8 +86,7 @@ def test_store_round_trips_agent_profile(tmp_path) -> None:
 
 
 def test_store_increments_profile_version_on_profile_update(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     profile = AgentProfile(agent_id="agent-a", name="Agent A")
     store.upsert_agent_profile(profile)
     store.upsert_agent_profile(profile.model_copy(update={"profile_json": {"style_hints": {"tone": "teaching"}}}))
@@ -64,8 +98,7 @@ def test_store_increments_profile_version_on_profile_update(tmp_path) -> None:
 
 
 def test_store_resolves_agent_token_by_hash(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
 
     store.issue_agent_token(
         AgentToken(token_hash="hash-1", agent_id="agent-a", scopes_json={"mode": "default"})
@@ -78,8 +111,7 @@ def test_store_resolves_agent_token_by_hash(tmp_path) -> None:
 
 
 def test_store_persists_task_agent_id(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     task = VideoTask(prompt="draw a circle", agent_id="agent-a")
 
     store.create_task(task, idempotency_key="k1")
@@ -91,8 +123,7 @@ def test_store_persists_task_agent_id(tmp_path) -> None:
 
 
 def test_store_persists_task_profile_version_and_policy_flags(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     task = VideoTask(
         prompt="draw a circle",
         agent_id="agent-a",
@@ -109,8 +140,7 @@ def test_store_persists_task_profile_version_and_policy_flags(tmp_path) -> None:
 
 
 def test_store_persists_task_session_id_and_memory_context(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     task = VideoTask(
         prompt="draw a circle",
         session_id="session-1",
@@ -128,8 +158,7 @@ def test_store_persists_task_session_id_and_memory_context(tmp_path) -> None:
 
 
 def test_store_round_trips_agent_memory_record(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     record = AgentMemoryRecord(
         memory_id="mem-1",
         agent_id="agent-a",
@@ -150,8 +179,7 @@ def test_store_round_trips_agent_memory_record(tmp_path) -> None:
 
 
 def test_store_disables_agent_memory_without_deleting_it(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     record = AgentMemoryRecord(
         memory_id="mem-1",
         agent_id="agent-a",
@@ -172,8 +200,7 @@ def test_store_disables_agent_memory_without_deleting_it(tmp_path) -> None:
 
 
 def test_store_round_trips_agent_session(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     session = AgentSession(
         session_id="sess-1",
         session_hash="hash-1",
@@ -189,8 +216,7 @@ def test_store_round_trips_agent_session(tmp_path) -> None:
 
 
 def test_store_touches_and_revokes_agent_session(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     session = AgentSession(
         session_id="sess-1",
         session_hash="hash-1",
@@ -211,8 +237,7 @@ def test_store_touches_and_revokes_agent_session(tmp_path) -> None:
 
 
 def test_store_round_trips_agent_profile_revision(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     revision = AgentProfileRevision(
         revision_id="rev-1",
         agent_id="agent-a",
@@ -231,8 +256,7 @@ def test_store_round_trips_agent_profile_revision(tmp_path) -> None:
 
 
 def test_store_applies_agent_profile_patch_and_records_revision(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     store.upsert_agent_profile(
         AgentProfile(
             agent_id="agent-a",
@@ -258,8 +282,7 @@ def test_store_applies_agent_profile_patch_and_records_revision(tmp_path) -> Non
 
 
 def test_store_rejects_profile_patch_for_inactive_profile(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     store.upsert_agent_profile(
         AgentProfile(
             agent_id="agent-a",
@@ -281,8 +304,7 @@ def test_store_rejects_profile_patch_for_inactive_profile(tmp_path) -> None:
 
 
 def test_store_dedupes_pending_profile_suggestions(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     first = AgentProfileSuggestion(
         suggestion_id="sugg-1",
         agent_id="agent-a",
@@ -304,8 +326,7 @@ def test_store_dedupes_pending_profile_suggestions(tmp_path) -> None:
 
 
 def test_store_requires_expected_status_for_profile_suggestion_transition(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     suggestion = store.create_agent_profile_suggestion(
         AgentProfileSuggestion(
             suggestion_id="sugg-1",
@@ -338,8 +359,7 @@ def test_store_requires_expected_status_for_profile_suggestion_transition(tmp_pa
 
 
 def test_store_apply_agent_profile_suggestion_updates_profile_revision_and_status(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     store.upsert_agent_profile(
         AgentProfile(
             agent_id="agent-a",
@@ -369,8 +389,7 @@ def test_store_apply_agent_profile_suggestion_updates_profile_revision_and_statu
 
 
 def test_store_apply_agent_profile_suggestion_rejects_non_pending_status(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     store.upsert_agent_profile(AgentProfile(agent_id="agent-a", name="Agent A"))
     suggestion = store.create_agent_profile_suggestion(
         AgentProfileSuggestion(
@@ -395,8 +414,7 @@ def test_store_apply_agent_profile_suggestion_rejects_non_pending_status(tmp_pat
 
 
 def test_store_learning_event_upsert_returns_persisted_row(tmp_path) -> None:
-    store = SQLiteTaskStore(tmp_path / "agent.db")
-    store.initialize()
+    store = _build_store(tmp_path)
     first = AgentLearningEvent(
         event_id="evt-1",
         agent_id="agent-a",
@@ -491,8 +509,8 @@ def test_initialize_deduplicates_legacy_learning_events_before_adding_unique_ind
     finally:
         connection.close()
 
+    SQLiteBootstrapper(database_path).bootstrap()
     store = SQLiteTaskStore(database_path)
-    store.initialize()
 
     events = store.list_agent_learning_events("agent-a")
 

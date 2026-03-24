@@ -48,8 +48,19 @@ x-backend-service: &backend-service
     - easy_manim_data:/app/data
 
 services:
+  bootstrap:
+    <<: *backend-service
+    command:
+      - easy-manim-db-bootstrap
+      - --data-dir
+      - /app/data
+    restart: "no"
+
   api:
     <<: *backend-service
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
     command:
       - easy-manim-api
       - --host
@@ -74,6 +85,9 @@ services:
 
   worker:
     <<: *backend-service
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
     command:
       - easy-manim-worker
       - --data-dir
@@ -92,6 +106,9 @@ services:
     <<: *backend-service
     profiles:
       - mcp
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
     command:
       - easy-manim-mcp
       - --transport

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import uvicorn
 
+from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
 from video_agent.server.http_api import create_http_api
 from video_agent.server.main import build_settings
 from video_agent.version import get_release_metadata
@@ -25,7 +26,10 @@ def main() -> None:
     parser = build_api_parser()
     args = parser.parse_args()
     settings = build_settings(args.data_dir, run_embedded_worker=not args.no_embedded_worker)
-    app = create_http_api(settings)
+    try:
+        app = create_http_api(settings)
+    except DatabaseBootstrapRequiredError as exc:
+        raise SystemExit(str(exc)) from exc
     uvicorn.run(app, host=args.host, port=args.port)
 
 

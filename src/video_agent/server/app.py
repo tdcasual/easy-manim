@@ -8,6 +8,7 @@ from video_agent.adapters.llm.prompt_builder import build_generation_prompt
 from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_learning_service import AgentLearningService
 from video_agent.application.agent_identity_service import AgentIdentityService
@@ -68,10 +69,14 @@ def _build_llm_client(settings: Settings) -> LLMClient:
     raise ValueError(f"Unsupported llm_provider: {settings.llm_provider}")
 
 
+def _build_store(settings: Settings) -> SQLiteTaskStore:
+    SQLiteBootstrapper(settings.database_path).require_bootstrapped(data_dir=settings.data_dir)
+    return SQLiteTaskStore(settings.database_path)
+
+
 
 def create_app_context(settings: Settings) -> AppContext:
-    store = SQLiteTaskStore(settings.database_path)
-    store.initialize()
+    store = _build_store(settings)
     artifact_store = ArtifactStore(settings.artifact_root, eval_root=settings.eval_root)
     agent_identity_service = AgentIdentityService(
         profile_lookup=store.get_agent_profile,

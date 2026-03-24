@@ -6,6 +6,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
 from video_agent.application.cleanup_service import CleanupService
 from video_agent.server.app import create_app_context
 from video_agent.server.main import build_settings
@@ -30,7 +31,10 @@ def main() -> None:
     args = parser.parse_args()
 
     settings = build_settings(args.data_dir)
-    context = create_app_context(settings)
+    try:
+        context = create_app_context(settings)
+    except DatabaseBootstrapRequiredError as exc:
+        raise SystemExit(str(exc)) from exc
     service = CleanupService(store=context.store, artifact_store=context.artifact_store)
     older_than = datetime.now(timezone.utc) - timedelta(hours=args.older_than_hours)
     statuses = args.status or ["completed", "failed", "cancelled"]

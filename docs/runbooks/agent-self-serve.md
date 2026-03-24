@@ -17,6 +17,7 @@ Important architectural constraints:
 
 - The service is designed for a single host.
 - State lives in SQLite plus a local filesystem volume under `/app/data`.
+- A one-shot `bootstrap` job must apply SQLite migrations before `api`, `worker`, or `mcp` starts.
 - Horizontal multi-writer deployment is not the current target.
 - The backend image includes Python, `manim`, `ffmpeg`, and `ffprobe`.
 - The stock backend image does not install a LaTeX toolchain, so prompts that depend on `MathTex` or `Tex` need either a custom image or a non-formula workload.
@@ -47,13 +48,31 @@ Create a deployment directory on the server, for example `/opt/easy-manim`, and 
 ### `compose.yaml`
 ```yaml
 services:
+  bootstrap:
+    image: ghcr.io/tdcasual/easy-manim:latest
+    init: true
+    restart: "no"
+    env_file:
+      - .env
+    environment: &backend-environment
+      PYTHONUNBUFFERED: "1"
+    command:
+      - easy-manim-db-bootstrap
+      - --data-dir
+      - /app/data
+    volumes:
+      - easy_manim_data:/app/data
+
   api:
     image: ghcr.io/tdcasual/easy-manim:latest
     init: true
     restart: unless-stopped
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
     env_file:
       - .env
-    environment: &backend-environment
+    environment:
       PYTHONUNBUFFERED: "1"
     command:
       - easy-manim-api
@@ -83,6 +102,9 @@ services:
     image: ghcr.io/tdcasual/easy-manim:latest
     init: true
     restart: unless-stopped
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -109,6 +131,9 @@ services:
       - mcp
     init: true
     restart: unless-stopped
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -187,6 +212,8 @@ docker compose ps
 curl -fsS http://127.0.0.1:8001/healthz
 docker compose exec api easy-manim-doctor --data-dir /app/data --json
 ```
+
+`docker compose up -d` runs the one-shot `bootstrap` service first, and `api`, `worker`, and optional `mcp` wait for it to finish successfully.
 
 Enable MCP only when you need it:
 

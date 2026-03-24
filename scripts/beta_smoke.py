@@ -13,6 +13,7 @@ from pathlib import Path
 
 from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamable_http_client
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 
 
 
@@ -132,6 +133,7 @@ def run_beta_smoke(tmp_path: Path) -> dict[str, object]:
     data_dir = tmp_path / "data"
     port = pick_free_port()
     commands = build_fake_commands(tmp_path)
+    SQLiteBootstrapper(data_dir / "video_agent.db").bootstrap()
 
     env = os.environ.copy()
     env["PATH"] = "/usr/bin:/bin"

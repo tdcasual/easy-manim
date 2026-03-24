@@ -5,11 +5,12 @@ from video_agent.config import Settings
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.server.app import create_app_context
 from video_agent.server.mcp_tools import create_video_task_tool, retry_video_task_tool
+from tests.support import bootstrapped_settings
 
 
 
 def test_create_video_task_rejects_when_queue_limit_reached(tmp_path) -> None:
-    settings = Settings(data_dir=tmp_path / "data", max_queued_tasks=1)
+    settings = bootstrapped_settings(Settings(data_dir=tmp_path / "data", max_queued_tasks=1))
     context = create_app_context(settings)
     context.task_service.create_video_task(prompt="first")
 
@@ -21,7 +22,7 @@ def test_create_video_task_rejects_when_queue_limit_reached(tmp_path) -> None:
 
 
 def test_retry_video_task_rejects_when_attempt_limit_reached(tmp_path) -> None:
-    settings = Settings(data_dir=tmp_path / "data", max_attempts_per_root_task=1)
+    settings = bootstrapped_settings(Settings(data_dir=tmp_path / "data", max_attempts_per_root_task=1))
     context = create_app_context(settings)
     created = context.task_service.create_video_task(prompt="first")
 
@@ -39,7 +40,7 @@ def test_retry_video_task_rejects_when_attempt_limit_reached(tmp_path) -> None:
 
 
 def test_create_video_task_tool_returns_normalized_error(tmp_path) -> None:
-    settings = Settings(data_dir=tmp_path / "data", max_queued_tasks=1)
+    settings = bootstrapped_settings(Settings(data_dir=tmp_path / "data", max_queued_tasks=1))
     context = create_app_context(settings)
     context.task_service.create_video_task(prompt="first")
 
@@ -50,7 +51,7 @@ def test_create_video_task_tool_returns_normalized_error(tmp_path) -> None:
 
 
 def test_retry_video_task_tool_returns_normalized_error(tmp_path) -> None:
-    settings = Settings(data_dir=tmp_path / "data", max_attempts_per_root_task=1)
+    settings = bootstrapped_settings(Settings(data_dir=tmp_path / "data", max_attempts_per_root_task=1))
     context = create_app_context(settings)
     created = context.task_service.create_video_task(prompt="first")
 

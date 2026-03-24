@@ -1,6 +1,7 @@
 # Release Checklist
 
 - Reinstall editable package after entrypoint changes with `python -m pip install -e '.[dev]'`
+- Run `easy-manim-db-bootstrap --data-dir data` before any standalone MCP/API/worker/eval/cleanup/agent-admin command below
 - Run `easy-manim-doctor --json` in the project virtualenv
 - Run `python -m pytest -q` in the project virtualenv
 - Run `python scripts/beta_smoke.py --mode ci`

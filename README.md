@@ -39,6 +39,7 @@ easy-manim-doctor --json --require-latex
 ## Run the MCP server
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport stdio
 ```
 
@@ -46,6 +47,7 @@ easy-manim-mcp --transport stdio
 ```bash
 source .venv/bin/activate
 export EASY_MANIM_AUTH_MODE=required
+easy-manim-db-bootstrap --data-dir data
 easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -81,12 +83,14 @@ Example:
 ```bash
 source .venv/bin/activate
 export EASY_MANIM_AUTH_MODE=required
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
 ## Provision named agents
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-agent-admin --data-dir data create-profile --agent-id agent-a --name "Agent A"
 easy-manim-agent-admin --data-dir data issue-token --agent-id agent-a
 ```
@@ -96,6 +100,7 @@ easy-manim-agent-admin --data-dir data issue-token --agent-id agent-a
 You can preconfigure per-agent defaults with JSON payloads:
 
 ```bash
+easy-manim-db-bootstrap --data-dir data
 easy-manim-agent-admin --data-dir data create-profile \
   --agent-id agent-a \
   --name "Agent A" \
@@ -107,6 +112,7 @@ After the client receives a plaintext token, it should call the MCP tool `authen
 ## Run server and worker separately
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -114,6 +120,7 @@ easy-manim-worker --data-dir data
 ## Run deterministic evaluations
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --agent-id agent-a --memory-id mem-1 --profile-patch-json '{"style_hints":{"tone":"teaching"}}' --json
 easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip
@@ -126,6 +133,7 @@ Evaluation artifacts are written under `data/evals/<run_id>/` and include `summa
 source .venv/bin/activate
 cp .env.beta.example .env.beta
 python scripts/release_candidate_gate.py --mode ci
+easy-manim-db-bootstrap --data-dir data
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag real-provider --json
 python scripts/live_provider_gate.py --summary data/evals/<run_id>/summary.json
 easy-manim-qa-bundle --data-dir data --run-id <run_id> --output /tmp/<run_id>-qa-bundle.zip
@@ -137,6 +145,7 @@ If the real-provider prompts may render formulas, make sure `latex` and `dvisvgm
 ## Inspect and maintain beta data
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-cleanup --data-dir data --older-than-hours 24 --status completed --dry-run
 easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_id>.zip
 ```
@@ -158,10 +167,13 @@ The repository now ships two GitHub Actions-built images:
 
 The default [docker-compose.yml](/Users/lvxiaoer/Documents/codeWork/easy-manim/docker-compose.yml) is deployment-first and starts:
 
+- `bootstrap` once to apply SQLite migrations on `/app/data/video_agent.db`
 - `api` on port `8001`
 - `worker` sharing the same `/app/data` volume
 - `ui` on port `8080`
 - optional `mcp` on port `8000` behind the `mcp` profile
+
+`api`, `worker`, and `mcp` now wait for the bootstrap job to complete successfully before they start.
 
 Enable the MCP endpoint only when needed:
 

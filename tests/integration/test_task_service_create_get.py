@@ -1,12 +1,13 @@
 from video_agent.application.task_service import TaskService
 from video_agent.adapters.storage.artifact_store import ArtifactStore
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 
 
 
 def test_create_task_returns_poll_metadata(temp_settings) -> None:
     store = SQLiteTaskStore(temp_settings.database_path)
-    store.initialize()
+    SQLiteBootstrapper(temp_settings.database_path).bootstrap()
     service = TaskService(store=store, artifact_store=ArtifactStore(temp_settings.artifact_root), settings=temp_settings)
 
     result = service.create_video_task(prompt="draw a circle", idempotency_key="k1")
@@ -18,7 +19,7 @@ def test_create_task_returns_poll_metadata(temp_settings) -> None:
 
 def test_get_task_returns_snapshot(temp_settings) -> None:
     store = SQLiteTaskStore(temp_settings.database_path)
-    store.initialize()
+    SQLiteBootstrapper(temp_settings.database_path).bootstrap()
     service = TaskService(store=store, artifact_store=ArtifactStore(temp_settings.artifact_root), settings=temp_settings)
 
     created = service.create_video_task(prompt="draw a circle", idempotency_key="k2")

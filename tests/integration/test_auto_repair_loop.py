@@ -5,6 +5,7 @@ import video_agent.server.app as app_module
 from video_agent.adapters.llm.openai_compatible_client import ProviderAuthError
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
+from tests.support import bootstrapped_settings
 
 
 class FailingLLMClient:
@@ -84,7 +85,7 @@ def _build_failing_render_settings(tmp_path: Path, **overrides) -> Settings:
         "auto_repair_retryable_issue_codes": ["render_failed"],
     }
     values.update(overrides)
-    return Settings(**values)
+    return bootstrapped_settings(Settings(**values))
 
 
 def test_failed_task_can_spawn_auto_revision_within_budget(tmp_path: Path) -> None:

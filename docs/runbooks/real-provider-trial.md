@@ -32,11 +32,14 @@ If the selected prompts may render formulas with `MathTex` / `Tex`, also ensure:
 - `dvisvgm` is available on PATH, or `EASY_MANIM_DVISVGM_COMMAND` points to it
 - any required `TEXMF*` environment variables are exported in the shell **before** launching the MCP server or worker, so the render subprocess inherits them
 
+Before any standalone `easy-manim-eval-run`, `easy-manim-agent-admin`, `easy-manim-api`, `easy-manim-mcp`, or `easy-manim-worker` command below, bootstrap the local SQLite database once with `easy-manim-db-bootstrap --data-dir data`.
+
 ## Preflight
 ```bash
 source .venv/bin/activate
 easy-manim-doctor --json --require-latex
 python scripts/release_candidate_gate.py --mode ci
+easy-manim-db-bootstrap --data-dir data
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag repair --json
 ```
 

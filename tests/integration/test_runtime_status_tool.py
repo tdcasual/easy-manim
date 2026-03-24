@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
 from video_agent.server.mcp_tools import get_runtime_status_tool
@@ -28,6 +29,7 @@ def test_runtime_status_tool_reports_binary_and_provider_state(tmp_path: Path) -
         llm_provider="stub",
         run_embedded_worker=False,
     )
+    SQLiteBootstrapper(settings.database_path).bootstrap()
     context = create_app_context(settings)
 
     payload = get_runtime_status_tool(context, {})

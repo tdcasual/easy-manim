@@ -14,17 +14,20 @@ from video_agent.server.mcp_tools import (
     list_agent_memories_tool,
     promote_session_memory_tool,
 )
+from tests.support import bootstrapped_settings
 
 
 def _build_agent_memory_settings(tmp_path: Path, *, persistent_memory_backend: str = "local") -> Settings:
     data_dir = tmp_path / "data"
-    return Settings(
-        data_dir=data_dir,
-        database_path=data_dir / "video_agent.db",
-        artifact_root=data_dir / "tasks",
-        run_embedded_worker=False,
-        auth_mode="required",
-        persistent_memory_backend=persistent_memory_backend,
+    return bootstrapped_settings(
+        Settings(
+            data_dir=data_dir,
+            database_path=data_dir / "video_agent.db",
+            artifact_root=data_dir / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+            persistent_memory_backend=persistent_memory_backend,
+        )
     )
 
 

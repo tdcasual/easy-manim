@@ -8,16 +8,19 @@ from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.app import create_app_context
 from video_agent.server.mcp_resources import read_resource_for_agent
 from video_agent.server.mcp_tools import create_video_task_tool
+from tests.support import bootstrapped_settings
 
 
 def _build_agent_auth_settings(tmp_path: Path) -> Settings:
     data_dir = tmp_path / "data"
-    return Settings(
-        data_dir=data_dir,
-        database_path=data_dir / "video_agent.db",
-        artifact_root=data_dir / "tasks",
-        run_embedded_worker=False,
-        auth_mode="required",
+    return bootstrapped_settings(
+        Settings(
+            data_dir=data_dir,
+            database_path=data_dir / "video_agent.db",
+            artifact_root=data_dir / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+        )
     )
 
 

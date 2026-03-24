@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 
 from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
+from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
 from video_agent.config import Settings
-from video_agent.server.fastmcp_server import create_mcp_server
 from video_agent.version import get_release_metadata
 
 
@@ -138,10 +138,15 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
 
 
 def main() -> None:
+    from video_agent.server.fastmcp_server import create_mcp_server
+
     parser = build_parser()
     args = parser.parse_args()
     settings = build_settings(args.data_dir, run_embedded_worker=not args.no_embedded_worker)
-    mcp = create_mcp_server(settings, host=args.host, port=args.port, debug=args.debug)
+    try:
+        mcp = create_mcp_server(settings, host=args.host, port=args.port, debug=args.debug)
+    except DatabaseBootstrapRequiredError as exc:
+        raise SystemExit(str(exc)) from exc
     mcp.run(args.transport)
 
 

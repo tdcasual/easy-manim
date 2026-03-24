@@ -10,7 +10,7 @@ This runbook covers running the human-facing operator console (`ui/`) against th
 
 ## Start The API
 
-Use whatever API launch flow you already use locally. The UI expects `/api/*` and `/healthz` to be reachable.
+Use whatever API launch flow you already use locally. On a fresh local data directory, run `easy-manim-db-bootstrap --data-dir data` before starting the API. The UI expects `/api/*` and `/healthz` to be reachable.
 
 ## Start The UI
 
@@ -29,6 +29,7 @@ Example:
 
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir ./data
 easy-manim-agent-admin --data-dir ./data issue-token --agent-id agent-a
 ```
 
@@ -43,4 +44,3 @@ npm --prefix ui run e2e
 ```
 
 The Playwright E2E tests in `ui/tests/e2e/*` mock the `/api/*` responses so they run without a backend.
-

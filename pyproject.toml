@@ -19,6 +19,7 @@ dev = [
 
 [project.scripts]
 easy-manim-mcp = "video_agent.server.main:main"
+easy-manim-db-bootstrap = "video_agent.database.main:main"
 easy-manim-worker = "video_agent.worker.main:main"
 easy-manim-doctor = "video_agent.doctor.main:main"
 easy-manim-cleanup = "video_agent.cleanup.main:main"
@@ -38,9 +39,6 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-video_agent = ["adapters/storage/schema.sql"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
 
@@ -52,7 +53,7 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
         "printf 'frame1' > \"$(dirname \"$6\")/frame_001.png\"\n",
     )
 
-    return Settings(
+    settings = Settings(
         data_dir=data_dir,
         database_path=data_dir / "video_agent.db",
         artifact_root=data_dir / "tasks",
@@ -60,6 +61,8 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
         ffmpeg_command=str(fake_ffmpeg),
         ffprobe_command=str(fake_ffprobe),
     )
+    SQLiteBootstrapper(settings.database_path).bootstrap()
+    return settings
 
 
 

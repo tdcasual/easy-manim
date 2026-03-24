@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
+from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
 from video_agent.application.eval_service import EvaluationService
 from video_agent.server.app import create_app_context
 from video_agent.server.main import build_settings
@@ -33,7 +34,10 @@ def main() -> None:
     if args.rerun_case and not args.resume_run_id:
         parser.error("--rerun-case requires --resume-run-id")
     settings = build_settings(args.data_dir)
-    context = create_app_context(settings)
+    try:
+        context = create_app_context(settings)
+    except DatabaseBootstrapRequiredError as exc:
+        raise SystemExit(str(exc)) from exc
     service = EvaluationService(context)
     profile_patch = None if not args.profile_patch_json else json.loads(args.profile_patch_json)
     summary = service.run_suite(

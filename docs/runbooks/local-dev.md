@@ -62,12 +62,14 @@ python scripts/beta_smoke.py --mode ci
 ## Run the MCP server
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport stdio
 ```
 
 ## Optional HTTP transport
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
@@ -75,6 +77,7 @@ easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000
 ```bash
 source .venv/bin/activate
 export EASY_MANIM_AUTH_MODE=required
+easy-manim-db-bootstrap --data-dir data
 easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -86,6 +89,7 @@ easy-manim-worker --data-dir data
 ## Run server and worker separately
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -95,6 +99,7 @@ easy-manim-worker --data-dir data
 ## Operator utilities
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-cleanup --data-dir data --older-than-hours 24 --status completed --dry-run
 easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_id>.zip
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --agent-id agent-a --memory-id mem-1 --profile-patch-json '{"style_hints":{"tone":"teaching"}}' --json

@@ -1,1 +1,0 @@
-recursive-include src/video_agent/adapters/storage *.sql

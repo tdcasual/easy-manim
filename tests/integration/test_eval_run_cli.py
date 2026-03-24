@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from video_agent.agent_policy import QUALITY_ISSUE_CODES
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile
@@ -82,6 +83,7 @@ def _count_task_dirs(data_dir: Path) -> int:
 
 def _build_eval_env(tmp_path: Path) -> tuple[dict[str, Path], dict[str, str]]:
     commands = _build_fake_commands(tmp_path)
+    SQLiteBootstrapper(tmp_path / "data" / "video_agent.db").bootstrap()
     env = os.environ.copy()
     existing_pythonpath = env.get("PYTHONPATH")
     src_path = str(Path(__file__).resolve().parents[2] / "src")
@@ -401,7 +403,7 @@ def test_eval_run_cli_can_require_all_tags(tmp_path: Path) -> None:
 def test_eval_run_can_target_agent_profile(tmp_path: Path) -> None:
     data_dir = tmp_path / "data"
     store = SQLiteTaskStore(data_dir / "video_agent.db")
-    store.initialize()
+    SQLiteBootstrapper(data_dir / "video_agent.db").bootstrap()
     store.upsert_agent_profile(
         AgentProfile(
             agent_id="agent-a",

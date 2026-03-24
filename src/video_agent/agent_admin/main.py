@@ -6,6 +6,7 @@ import secrets
 from pathlib import Path
 from typing import Any
 
+from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError, SQLiteBootstrapper
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.domain.agent_models import AgentProfile, AgentToken
@@ -43,7 +44,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    store = _build_store(args.data_dir)
+    try:
+        store = _build_store(args.data_dir)
+    except DatabaseBootstrapRequiredError as exc:
+        raise SystemExit(str(exc)) from exc
 
     if args.command == "create-profile":
         profile = AgentProfile(
@@ -111,9 +115,8 @@ def main() -> None:
 
 def _build_store(data_dir: Path) -> SQLiteTaskStore:
     settings = build_settings(data_dir)
-    store = SQLiteTaskStore(settings.database_path)
-    store.initialize()
-    return store
+    SQLiteBootstrapper(settings.database_path).require_bootstrapped(data_dir=settings.data_dir)
+    return SQLiteTaskStore(settings.database_path)
 
 
 def _parse_json(raw: str, *, label: str) -> dict[str, Any]:

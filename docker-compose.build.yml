@@ -3,6 +3,9 @@ x-backend-build: &backend-build
   dockerfile: Dockerfile
 
 services:
+  bootstrap:
+    build: *backend-build
+
   api:
     build: *backend-build
 

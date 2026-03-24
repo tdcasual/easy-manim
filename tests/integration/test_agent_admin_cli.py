@@ -4,12 +4,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 
 
 def test_agent_admin_cli_can_create_profile_and_issue_token(tmp_path: Path) -> None:
     data_dir = tmp_path / "data"
+    SQLiteBootstrapper(data_dir / "video_agent.db").bootstrap()
     env = dict(os.environ)
     env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
 
@@ -58,6 +60,6 @@ def test_agent_admin_cli_can_create_profile_and_issue_token(tmp_path: Path) -> N
     assert payload["agent_token"]
 
     store = SQLiteTaskStore(data_dir / "video_agent.db")
-    store.initialize()
+    SQLiteBootstrapper(data_dir / "video_agent.db").bootstrap()
     assert store.get_agent_profile("agent-a") is not None
     assert store.get_agent_token(hash_agent_token(payload["agent_token"])) is not None

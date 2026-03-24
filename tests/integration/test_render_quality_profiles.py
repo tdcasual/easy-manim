@@ -2,6 +2,7 @@ from pathlib import Path
 
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
+from tests.support import bootstrapped_settings
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -41,7 +42,7 @@ def _build_settings(tmp_path: Path) -> tuple[Settings, Path]:
         "printf 'frame1' > \"$(dirname \"$6\")/frame_001.png\"\n",
     )
 
-    return (
+    settings = bootstrapped_settings(
         Settings(
             data_dir=data_dir,
             database_path=data_dir / "video_agent.db",
@@ -49,9 +50,9 @@ def _build_settings(tmp_path: Path) -> tuple[Settings, Path]:
             manim_command=str(fake_manim),
             ffmpeg_command=str(fake_ffmpeg),
             ffprobe_command=str(fake_ffprobe),
-        ),
-        invocation_log,
+        )
     )
+    return settings, invocation_log
 
 
 def test_output_profile_can_request_production_quality_render(tmp_path: Path) -> None:

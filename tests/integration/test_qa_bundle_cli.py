@@ -5,6 +5,7 @@ import sys
 import zipfile
 from pathlib import Path
 
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -58,6 +59,7 @@ def _build_fake_commands(tmp_path: Path) -> dict[str, Path]:
 def test_qa_bundle_cli_exports_eval_bundle(tmp_path: Path) -> None:
     data_dir = tmp_path / "data"
     commands = _build_fake_commands(tmp_path)
+    SQLiteBootstrapper(data_dir / "video_agent.db").bootstrap()
     env = os.environ.copy()
     env["PATH"] = "/usr/bin:/bin"
     env["EASY_MANIM_MANIM_COMMAND"] = str(commands["manim"])

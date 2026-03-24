@@ -5,6 +5,7 @@ from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.adapters.llm.openai_compatible_client import ProviderAuthError
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
+from tests.support import bootstrapped_settings
 
 
 class FailingLLMClient:
@@ -23,7 +24,7 @@ def _settings(tmp_path, **overrides) -> Settings:
         "llm_model": "stub-manim-v1",
     }
     values.update(overrides)
-    return Settings(**values)
+    return bootstrapped_settings(Settings(**values))
 
 
 

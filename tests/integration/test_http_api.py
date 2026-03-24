@@ -1,9 +1,23 @@
 import pytest
 
 from fastapi.testclient import TestClient
+from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError, SQLiteBootstrapper
 from video_agent.config import Settings
 from video_agent.server.api_main import build_api_parser
 from video_agent.server.http_api import create_http_api
+
+
+def test_http_api_requires_explicit_database_bootstrap(tmp_path):
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        database_path=tmp_path / "data" / "video_agent.db",
+        artifact_root=tmp_path / "data" / "tasks",
+        run_embedded_worker=False,
+    )
+
+    with pytest.raises(DatabaseBootstrapRequiredError):
+        create_http_api(settings)
+
 
 def test_http_api_exposes_health_ready_and_openapi(tmp_path):
     settings = Settings(
@@ -12,6 +26,7 @@ def test_http_api_exposes_health_ready_and_openapi(tmp_path):
         artifact_root=tmp_path / "data" / "tasks",
         run_embedded_worker=False,
     )
+    SQLiteBootstrapper(settings.database_path).bootstrap()
     app = create_http_api(settings)
     client = TestClient(app)
 

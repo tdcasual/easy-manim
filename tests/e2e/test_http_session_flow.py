@@ -8,12 +8,14 @@ from pathlib import Path
 import httpx
 
 from scripts.beta_smoke import build_fake_commands, pick_free_port, repo_root, stop_process, wait_for_server
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 
 
 def test_http_session_flow_end_to_end(tmp_path: Path) -> None:
     data_dir = tmp_path / "data"
     port = pick_free_port()
     commands = build_fake_commands(tmp_path)
+    SQLiteBootstrapper(data_dir / "video_agent.db").bootstrap()
 
     env = os.environ.copy()
     src_path = str(repo_root() / "src")

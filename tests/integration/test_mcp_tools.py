@@ -12,6 +12,7 @@ from video_agent.server.mcp_tools import (
     get_video_task_tool,
     list_video_tasks_tool,
 )
+from tests.support import bootstrapped_settings
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -47,28 +48,32 @@ def _build_auto_repair_settings(tmp_path: Path) -> Settings:
         "printf 'frame1' > \"$2/frame_001.png\"\n",
     )
 
-    return Settings(
-        data_dir=data_dir,
-        database_path=data_dir / "video_agent.db",
-        artifact_root=data_dir / "tasks",
-        manim_command=str(fake_manim),
-        ffmpeg_command=str(fake_ffmpeg),
-        ffprobe_command=str(fake_ffprobe),
-        run_embedded_worker=False,
-        auto_repair_enabled=True,
-        auto_repair_max_children_per_root=1,
-        auto_repair_retryable_issue_codes=["render_failed"],
+    return bootstrapped_settings(
+        Settings(
+            data_dir=data_dir,
+            database_path=data_dir / "video_agent.db",
+            artifact_root=data_dir / "tasks",
+            manim_command=str(fake_manim),
+            ffmpeg_command=str(fake_ffmpeg),
+            ffprobe_command=str(fake_ffprobe),
+            run_embedded_worker=False,
+            auto_repair_enabled=True,
+            auto_repair_max_children_per_root=1,
+            auto_repair_retryable_issue_codes=["render_failed"],
+        )
     )
 
 
 def _build_required_auth_settings(tmp_path: Path) -> Settings:
     data_dir = tmp_path / "data"
-    return Settings(
-        data_dir=data_dir,
-        database_path=data_dir / "video_agent.db",
-        artifact_root=data_dir / "tasks",
-        run_embedded_worker=False,
-        auth_mode="required",
+    return bootstrapped_settings(
+        Settings(
+            data_dir=data_dir,
+            database_path=data_dir / "video_agent.db",
+            artifact_root=data_dir / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+        )
     )
 
 

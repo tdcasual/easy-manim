@@ -17,9 +17,12 @@ If you are running against a real LLM provider, copy the required `EASY_MANIM_LL
 
 This starts:
 
+- `bootstrap` once to apply SQLite migrations on the shared `/app/data` volume
 - `api` at `http://127.0.0.1:8001`
 - `ui` at `http://127.0.0.1:8080`
 - `worker` on the shared `/app/data` volume
+
+`api`, `worker`, and optional `mcp` wait for the bootstrap job to finish successfully before they start.
 
 Enable the optional MCP transport only when needed:
 
@@ -37,6 +40,7 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d
 ```bash
 source .venv/bin/activate
 export EASY_MANIM_AUTH_MODE=required
+easy-manim-db-bootstrap --data-dir data
 easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -56,6 +60,7 @@ Using a local Python environment:
 
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-agent-admin --data-dir data create-profile --agent-id agent-a --name "Agent A"
 easy-manim-agent-admin --data-dir data issue-token --agent-id agent-a
 ```
@@ -95,6 +100,7 @@ curl -s http://127.0.0.1:8001/api/profile/evals \
 - revoked or expired session tokens should return `401`
 
 ## Deployment notes
+- run `easy-manim-db-bootstrap --data-dir <data-dir>` before starting local API, MCP, worker, eval, cleanup, or agent-admin processes outside Compose
 - keep `easy-manim-worker` running whenever `easy-manim-api` starts with `--no-embedded-worker`
 - the default [docker-compose.yml](/Users/lvxiaoer/Documents/codeWork/easy-manim/docker-compose.yml) expects published GHCR images, while [docker-compose.build.yml](/Users/lvxiaoer/Documents/codeWork/easy-manim/docker-compose.build.yml) adds local source builds
 - use HTTPS and a secret-bearing reverse proxy in production-like environments

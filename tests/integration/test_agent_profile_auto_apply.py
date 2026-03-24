@@ -8,19 +8,22 @@ from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile
 from video_agent.server.http_api import create_http_api
+from tests.support import bootstrapped_settings
 
 
 def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
-    settings = Settings(
-        data_dir=tmp_path / "data",
-        database_path=tmp_path / "data" / "video_agent.db",
-        artifact_root=tmp_path / "data" / "tasks",
-        run_embedded_worker=False,
-        auth_mode="required",
-        agent_learning_auto_apply_enabled=True,
-        agent_learning_auto_apply_min_completed_tasks=2,
-        agent_learning_auto_apply_min_quality_score=0.9,
-        agent_learning_auto_apply_max_recent_failures=0,
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+            agent_learning_auto_apply_enabled=True,
+            agent_learning_auto_apply_min_completed_tasks=2,
+            agent_learning_auto_apply_min_quality_score=0.9,
+            agent_learning_auto_apply_max_recent_failures=0,
+        )
     )
     app = create_http_api(settings)
     ctx = app.state.app_context

@@ -6,16 +6,19 @@ from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.http_api import create_http_api
+from tests.support import bootstrapped_settings
 
 
 def _build_http_auth_settings(tmp_path: Path) -> Settings:
     data_dir = tmp_path / "data"
-    return Settings(
-        data_dir=data_dir,
-        database_path=data_dir / "video_agent.db",
-        artifact_root=data_dir / "tasks",
-        run_embedded_worker=False,
-        auth_mode="required",
+    return bootstrapped_settings(
+        Settings(
+            data_dir=data_dir,
+            database_path=data_dir / "video_agent.db",
+            artifact_root=data_dir / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+        )
     )
 
 

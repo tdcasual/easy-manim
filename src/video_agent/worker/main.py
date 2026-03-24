@@ -4,6 +4,7 @@ import argparse
 import time
 from pathlib import Path
 
+from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
 from video_agent.server.app import create_app_context
 from video_agent.server.main import build_settings
 
@@ -25,7 +26,10 @@ def main() -> None:
     settings = build_settings(args.data_dir, run_embedded_worker=False)
     if args.worker_id:
         settings.worker_id = args.worker_id
-    app_context = create_app_context(settings)
+    try:
+        app_context = create_app_context(settings)
+    except DatabaseBootstrapRequiredError as exc:
+        raise SystemExit(str(exc)) from exc
     poll_interval = args.poll_interval if args.poll_interval is not None else settings.worker_poll_interval_seconds
 
     if args.once:

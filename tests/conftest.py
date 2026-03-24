@@ -4,6 +4,7 @@ import sys
 
 import pytest
 
+from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.config import Settings
 
 
@@ -28,8 +29,10 @@ def ensure_venv_console_scripts_on_path(monkeypatch: pytest.MonkeyPatch) -> None
 @pytest.fixture
 def temp_settings(tmp_path: Path) -> Settings:
     data_dir = tmp_path / "data"
-    return Settings(
+    settings = Settings(
         data_dir=data_dir,
         database_path=data_dir / "video_agent.db",
         artifact_root=data_dir / "tasks",
     )
+    SQLiteBootstrapper(settings.database_path).bootstrap()
+    return settings

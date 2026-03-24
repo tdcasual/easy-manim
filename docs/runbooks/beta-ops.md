@@ -27,9 +27,17 @@ easy-manim-doctor --json
 python scripts/release_candidate_gate.py --mode ci
 ```
 
+Bootstrap the local SQLite database once before the standalone server, worker, admin, eval, or cleanup commands below:
+
+```bash
+source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
+```
+
 ## Start the beta stack
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -39,6 +47,7 @@ To require named-agent authentication:
 ```bash
 source .venv/bin/activate
 export EASY_MANIM_AUTH_MODE=required
+easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000 --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -48,6 +57,7 @@ To expose the plain HTTP JSON API instead of MCP:
 ```bash
 source .venv/bin/activate
 export EASY_MANIM_AUTH_MODE=required
+easy-manim-db-bootstrap --data-dir data
 easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker
 easy-manim-worker --data-dir data
 ```
@@ -57,6 +67,7 @@ Create a profile and issue a token before handing access to an external agent:
 
 ```bash
 source .venv/bin/activate
+easy-manim-db-bootstrap --data-dir data
 easy-manim-agent-admin --data-dir data create-profile --agent-id agent-a --name "Agent A"
 easy-manim-agent-admin --data-dir data issue-token --agent-id agent-a
 ```

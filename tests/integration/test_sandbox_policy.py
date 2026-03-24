@@ -4,6 +4,7 @@ from pathlib import Path
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
 from video_agent.server.mcp_tools import get_runtime_status_tool
+from tests.support import bootstrapped_settings
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -52,7 +53,7 @@ def _settings(tmp_path: Path, **overrides) -> Settings:
         "sandbox_memory_limit_mb": 256,
     }
     values.update(overrides)
-    return Settings(**values)
+    return bootstrapped_settings(Settings(**values))
 
 
 def test_runtime_status_reports_sandbox_configuration(tmp_path: Path) -> None:

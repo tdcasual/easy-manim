@@ -5,11 +5,12 @@ from pathlib import Path
 
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
+from tests.support import bootstrapped_settings
 
 
 
 def test_export_cli_writes_bundle_zip(tmp_path: Path) -> None:
-    settings = Settings(data_dir=tmp_path / "data")
+    settings = bootstrapped_settings(Settings(data_dir=tmp_path / "data"))
     context = create_app_context(settings)
     created = context.task_service.create_video_task(prompt="draw a square")
     context.artifact_store.append_task_log(created.task_id, {"message": "test log"})

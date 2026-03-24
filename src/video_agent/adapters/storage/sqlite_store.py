@@ -37,19 +37,6 @@ class SQLiteTaskStore:
     def __init__(self, database_path: Path) -> None:
         self.database_path = Path(database_path)
 
-    def initialize(self) -> None:
-        self.database_path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
-            schema_path = Path(__file__).with_name("schema.sql")
-            connection.executescript(schema_path.read_text())
-            self._ensure_column(connection, "video_tasks", "agent_id", "TEXT")
-            self._ensure_column(connection, "video_tasks", "session_id", "TEXT")
-            self._ensure_column(connection, "video_tasks", "memory_context_summary", "TEXT")
-            self._ensure_column(connection, "video_tasks", "memory_context_digest", "TEXT")
-            self._ensure_column(connection, "agent_profiles", "profile_version", "INTEGER NOT NULL DEFAULT 1")
-            self._dedupe_agent_learning_events(connection)
-            self._ensure_agent_learning_indexes(connection)
-
     def create_task(self, task: VideoTask, idempotency_key: Optional[str] = None) -> VideoTask:
         with self._connect() as connection:
             if idempotency_key:
@@ -1005,48 +992,6 @@ class SQLiteTaskStore:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
         return connection
-
-    def _ensure_column(self, connection: sqlite3.Connection, table_name: str, column_name: str, definition: str) -> None:
-        rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
-        if any(row["name"] == column_name for row in rows):
-            return
-        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
-
-    def _dedupe_agent_learning_events(self, connection: sqlite3.Connection) -> None:
-        duplicate_rows = connection.execute(
-            """
-            SELECT task_id
-            FROM agent_learning_events
-            GROUP BY task_id
-            HAVING COUNT(*) > 1
-            """
-        ).fetchall()
-        for duplicate in duplicate_rows:
-            task_id = duplicate["task_id"]
-            rows = connection.execute(
-                """
-                SELECT rowid
-                FROM agent_learning_events
-                WHERE task_id = ?
-                ORDER BY created_at DESC, rowid DESC
-                """,
-                (task_id,),
-            ).fetchall()
-            if not rows:
-                continue
-            keep_rowid = rows[0]["rowid"]
-            connection.execute(
-                "DELETE FROM agent_learning_events WHERE task_id = ? AND rowid != ?",
-                (task_id, keep_rowid),
-            )
-
-    def _ensure_agent_learning_indexes(self, connection: sqlite3.Connection) -> None:
-        connection.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_learning_events_task_id ON agent_learning_events (task_id)"
-        )
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS idx_agent_learning_events_agent_created_at ON agent_learning_events (agent_id, created_at DESC)"
-        )
 
     def _apply_agent_profile_patch_in_connection(
         self,
