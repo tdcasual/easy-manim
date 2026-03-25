@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from video_agent.application.persistent_memory_service import PersistentMemoryError
@@ -13,6 +14,7 @@ from video_agent.server.http_auth import (
     current_internal_session_id,
     resolve_agent_session,
 )
+from video_agent.server.mcp_resources import guess_mime_type, resolve_resource_path
 from video_agent.server.mcp_tools import (
     cancel_video_task_tool,
     clear_session_memory_tool,
@@ -615,13 +617,68 @@ def create_http_api(settings: Settings) -> FastAPI:
 
     @app.get("/api/tasks/{task_id}/result")
     def get_task_result(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
-        return _tool_payload_or_http_error(
+        payload = _tool_payload_or_http_error(
             get_video_result_tool(
                 context,
                 {"task_id": task_id},
                 agent_principal=resolved.agent_principal,
             )
         )
+
+        task_dir = context.artifact_store.task_dir(task_id)
+        final_video_path = context.artifact_store.final_video_path(task_id)
+        script_path = context.artifact_store.script_path(task_id)
+        previews_dir = context.artifact_store.previews_dir(task_id)
+
+        has_video = bool(payload.get("video_resource")) or final_video_path.exists()
+        if has_video:
+            payload["video_download_url"] = f"/api/tasks/{task_id}/artifacts/final_video.mp4"
+
+        preview_resources = payload.get("preview_frame_resources") or []
+        if preview_resources:
+            payload["preview_download_urls"] = [
+                f"/api/tasks/{task_id}/artifacts/previews/{Path(str(uri)).name}" for uri in preview_resources
+            ]
+        elif previews_dir.exists():
+            frames = sorted(p.name for p in previews_dir.glob("*.png"))
+            if frames:
+                payload["preview_download_urls"] = [
+                    f"/api/tasks/{task_id}/artifacts/previews/{name}" for name in frames
+                ]
+
+        has_script = bool(payload.get("script_resource")) or script_path.exists()
+        if has_script:
+            payload["script_download_url"] = f"/api/tasks/{task_id}/artifacts/current_script.py"
+
+        if payload.get("validation_report_resource"):
+            report_rel = str(payload["validation_report_resource"]).replace(f"video-task://{task_id}/", "")
+            payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/{report_rel}"
+        else:
+            reports = sorted((task_dir / "validations").glob("*.json")) if (task_dir / "validations").exists() else []
+            if reports:
+                payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/validations/{reports[-1].name}"
+        return payload
+
+    @app.get("/api/tasks/{task_id}/artifacts/{artifact_path:path}")
+    def download_task_artifact(
+        task_id: str,
+        artifact_path: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> FileResponse:
+        resource_uri = f"video-task://{task_id}/artifacts/{artifact_path}" if not artifact_path.startswith("artifacts/") and not artifact_path.startswith("validations/") and not artifact_path.startswith("logs/") else f"video-task://{task_id}/{artifact_path}"
+        try:
+            resolved_task_id, target = resolve_resource_path(
+                context,
+                resource_uri,
+                agent_id=resolved.agent_principal.agent_id,
+            )
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="agent_access_denied") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resource_not_found") from exc
+        if resolved_task_id != task_id or not target.exists() or not target.is_file():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resource_not_found")
+        return FileResponse(target, media_type=guess_mime_type(target), filename=target.name)
 
     @app.post("/api/tasks/{task_id}/revise")
     def revise_task(

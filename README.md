@@ -64,14 +64,50 @@ SESSION_TOKEN=$(
 curl -s http://127.0.0.1:8001/api/whoami \
   -H "Authorization: Bearer ${SESSION_TOKEN}"
 
-curl -s http://127.0.0.1:8001/api/tasks \
-  -H 'content-type: application/json' \
-  -H "Authorization: Bearer ${SESSION_TOKEN}" \
-  -d '{"prompt":"draw a blue circle"}'
+TASK_ID=$(
+  curl -s http://127.0.0.1:8001/api/tasks \
+    -H 'content-type: application/json' \
+    -H "Authorization: Bearer ${SESSION_TOKEN}" \
+    -d '{"prompt":"draw a blue circle"}' | jq -r '.task_id'
+)
 
 curl -s -X DELETE http://127.0.0.1:8001/api/sessions/current \
   -H "Authorization: Bearer ${SESSION_TOKEN}"
 ```
+
+### Download artifacts over HTTP
+
+Once a task completes, clients can stay fully on the HTTP API and download task artifacts directly.
+
+`GET /api/tasks/{task_id}/result` now includes convenience URLs when artifacts exist:
+
+- `video_download_url`
+- `preview_download_urls`
+- `script_download_url`
+- `validation_report_download_url`
+
+Example:
+
+```bash
+curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/result \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -L http://127.0.0.1:8001/api/tasks/${TASK_ID}/artifacts/final_video.mp4 \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" \
+  -o final_video.mp4
+
+curl -L http://127.0.0.1:8001/api/tasks/${TASK_ID}/artifacts/current_script.py \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" \
+  -o current_script.py
+```
+
+Supported HTTP artifact paths include files under:
+
+- `artifacts/` via `/api/tasks/{task_id}/artifacts/...`
+- `validations/` via `/api/tasks/{task_id}/artifacts/validations/...`
+- `logs/` via `/api/tasks/{task_id}/artifacts/logs/...`
+
+This enables pure API clients to fetch `final_video.mp4` without SSH, Docker volume access, or Coolify-specific paths.
 
 ### Agent Auth Modes
 - `EASY_MANIM_AUTH_MODE=disabled` keeps the local developer flow: task tools work without session authentication and tasks are attributed to `local-anonymous` by default.

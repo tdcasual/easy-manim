@@ -81,10 +81,12 @@ SESSION_TOKEN=$(
 curl -s http://127.0.0.1:8001/api/whoami \
   -H "Authorization: Bearer ${SESSION_TOKEN}"
 
-curl -s http://127.0.0.1:8001/api/tasks \
-  -H 'content-type: application/json' \
-  -H "Authorization: Bearer ${SESSION_TOKEN}" \
-  -d '{"prompt":"draw a blue circle"}'
+TASK_ID=$(
+  curl -s http://127.0.0.1:8001/api/tasks \
+    -H 'content-type: application/json' \
+    -H "Authorization: Bearer ${SESSION_TOKEN}" \
+    -d '{"prompt":"draw a blue circle"}' | jq -r '.task_id'
+)
 
 curl -s http://127.0.0.1:8001/api/profile \
   -H "Authorization: Bearer ${SESSION_TOKEN}"
@@ -92,6 +94,34 @@ curl -s http://127.0.0.1:8001/api/profile \
 curl -s http://127.0.0.1:8001/api/profile/evals \
   -H "Authorization: Bearer ${SESSION_TOKEN}"
 ```
+
+## Download task artifacts over HTTP
+
+After a task finishes, use the authenticated HTTP API to fetch outputs directly.
+
+`GET /api/tasks/{task_id}/result` may include:
+
+- `video_download_url`
+- `preview_download_urls`
+- `script_download_url`
+- `validation_report_download_url`
+
+Example:
+
+```bash
+curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/result \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -L http://127.0.0.1:8001/api/tasks/${TASK_ID}/artifacts/final_video.mp4 \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" \
+  -o final_video.mp4
+
+curl -L http://127.0.0.1:8001/api/tasks/${TASK_ID}/artifacts/current_script.py \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" \
+  -o current_script.py
+```
+
+Artifact downloads remain agent-scoped. A session token can only download artifacts for tasks owned by that agent.
 
 ## Session lifecycle
 - `POST /api/sessions` exchanges a plaintext agent token for an opaque session token
