@@ -9,7 +9,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
-from video_agent.config import Settings
+from video_agent.config import DEFAULT_STUB_LLM_MODEL, Settings
 from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.validation.runtime_smoke import run_mathtex_smoke
 from video_agent.version import get_release_metadata
@@ -31,7 +31,7 @@ class RuntimeFeatureStatus(BaseModel):
 class RuntimeProviderStatus(BaseModel):
     mode: str
     configured: bool
-    base_url_present: bool
+    api_base_present: bool
 
 
 class RuntimeWorkerHeartbeat(BaseModel):
@@ -102,7 +102,7 @@ class RuntimeService:
             provider=RuntimeProviderStatus(
                 mode=self.settings.llm_provider,
                 configured=self._provider_configured(),
-                base_url_present=bool(self.settings.llm_base_url),
+                api_base_present=bool(self.settings.llm_api_base),
             ),
             worker=RuntimeWorkerStatus(
                 embedded=self.settings.run_embedded_worker,
@@ -186,8 +186,8 @@ class RuntimeService:
     def _provider_configured(self) -> bool:
         if self.settings.llm_provider == "stub":
             return True
-        if self.settings.llm_provider == "openai_compatible":
-            return bool(self.settings.llm_base_url and self.settings.llm_api_key)
+        if self.settings.llm_provider == "litellm":
+            return bool(self.settings.llm_model and self.settings.llm_model != DEFAULT_STUB_LLM_MODEL)
         return False
 
     def _sandbox_status(self) -> dict[str, object]:

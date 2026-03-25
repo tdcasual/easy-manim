@@ -4,14 +4,14 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
-from video_agent.adapters.llm.client import LLMClient
-from video_agent.adapters.llm.script_sanitizer import sanitize_script_text
-from video_agent.adapters.llm.openai_compatible_client import (
+from video_agent.adapters.llm.client import (
+    LLMClient,
     ProviderAuthError,
     ProviderRateLimitError,
     ProviderResponseError,
     ProviderTimeoutError,
 )
+from video_agent.adapters.llm.script_sanitizer import sanitize_script_text
 from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore

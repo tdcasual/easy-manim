@@ -4,6 +4,8 @@ from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 
+DEFAULT_STUB_LLM_MODEL = "stub-manim-v1"
+
 
 class Settings(BaseModel):
     data_dir: Path = Path("data")
@@ -30,8 +32,8 @@ class Settings(BaseModel):
     release_channel: str = "beta"
     default_poll_after_ms: int = 2000
     llm_provider: str = "stub"
-    llm_model: str = "stub-manim-v1"
-    llm_base_url: Optional[str] = None
+    llm_model: str = DEFAULT_STUB_LLM_MODEL
+    llm_api_base: Optional[str] = None
     llm_api_key: Optional[str] = None
     llm_timeout_seconds: int = 60
     llm_max_retries: int = 2

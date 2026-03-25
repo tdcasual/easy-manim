@@ -6,7 +6,7 @@ from pathlib import Path
 
 from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
-from video_agent.config import Settings
+from video_agent.config import DEFAULT_STUB_LLM_MODEL, Settings
 from video_agent.version import get_release_metadata
 
 
@@ -110,8 +110,8 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         release_channel=os.getenv("EASY_MANIM_RELEASE_CHANNEL", "beta"),
         default_poll_after_ms=_env_int("EASY_MANIM_DEFAULT_POLL_AFTER_MS", 2000),
         llm_provider=os.getenv("EASY_MANIM_LLM_PROVIDER", "stub"),
-        llm_model=os.getenv("EASY_MANIM_LLM_MODEL", "stub-manim-v1"),
-        llm_base_url=os.getenv("EASY_MANIM_LLM_BASE_URL"),
+        llm_model=os.getenv("EASY_MANIM_LLM_MODEL", DEFAULT_STUB_LLM_MODEL),
+        llm_api_base=os.getenv("EASY_MANIM_LLM_API_BASE"),
         llm_api_key=os.getenv("EASY_MANIM_LLM_API_KEY"),
         llm_timeout_seconds=_env_int("EASY_MANIM_LLM_TIMEOUT_SECONDS", 60),
         llm_max_retries=_env_int("EASY_MANIM_LLM_MAX_RETRIES", 2),

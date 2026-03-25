@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from video_agent.adapters.llm.client import LLMClient, StubLLMClient
-from video_agent.adapters.llm.openai_compatible_client import OpenAICompatibleLLMClient
+from video_agent.adapters.llm.litellm_client import LiteLLMClient
 from video_agent.adapters.llm.prompt_builder import build_generation_prompt
 from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
@@ -19,7 +19,7 @@ from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
 from video_agent.application.workflow_engine import WorkflowEngine
-from video_agent.config import Settings
+from video_agent.config import DEFAULT_STUB_LLM_MODEL, Settings
 from video_agent.observability.metrics import MetricsCollector
 from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.server.session_auth import SessionAuthRegistry
@@ -54,15 +54,13 @@ class AppContext:
 def _build_llm_client(settings: Settings) -> LLMClient:
     if settings.llm_provider == "stub":
         return StubLLMClient()
-    if settings.llm_provider == "openai_compatible":
-        if not settings.llm_base_url:
-            raise ValueError("llm_base_url is required for openai_compatible provider")
-        if not settings.llm_api_key:
-            raise ValueError("llm_api_key is required for openai_compatible provider")
-        return OpenAICompatibleLLMClient(
-            base_url=settings.llm_base_url,
-            api_key=settings.llm_api_key,
+    if settings.llm_provider == "litellm":
+        if not settings.llm_model or settings.llm_model == DEFAULT_STUB_LLM_MODEL:
+            raise ValueError("llm_model must be set to a real model when llm_provider=litellm")
+        return LiteLLMClient(
             model=settings.llm_model,
+            api_base=settings.llm_api_base,
+            api_key=settings.llm_api_key,
             timeout_seconds=settings.llm_timeout_seconds,
             max_retries=settings.llm_max_retries,
         )

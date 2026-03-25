@@ -1,8 +1,7 @@
 import json
 
 import video_agent.server.app as app_module
-from video_agent.adapters.llm.client import StubLLMClient
-from video_agent.adapters.llm.openai_compatible_client import ProviderAuthError
+from video_agent.adapters.llm.client import ProviderAuthError, StubLLMClient
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
 from tests.support import bootstrapped_settings
@@ -38,9 +37,9 @@ def test_generation_auth_failure_becomes_standardized_validation_issue(tmp_path,
     monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: FailingLLMClient(), raising=False)
     settings = _settings(
         tmp_path,
-        llm_provider="openai_compatible",
+        llm_provider="litellm",
         llm_model="gpt-4.1-mini",
-        llm_base_url="https://example.test/v1",
+        llm_api_base="https://example.test/v1",
         llm_api_key="secret",
     )
     app = create_app_context(settings)
@@ -57,9 +56,9 @@ def test_generation_auth_failure_writes_failure_context_artifact(tmp_path, monke
     monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: FailingLLMClient(), raising=False)
     settings = _settings(
         tmp_path,
-        llm_provider="openai_compatible",
+        llm_provider="litellm",
         llm_model="gpt-4.1-mini",
-        llm_base_url="https://example.test/v1",
+        llm_api_base="https://example.test/v1",
         llm_api_key="secret",
     )
     app = create_app_context(settings)

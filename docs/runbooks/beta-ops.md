@@ -7,9 +7,9 @@
   - `EASY_MANIM_FFMPEG_COMMAND`
   - `EASY_MANIM_FFPROBE_COMMAND`
 - optional real provider config:
-  - `EASY_MANIM_LLM_PROVIDER=openai_compatible`
-  - `EASY_MANIM_LLM_MODEL=<model>`
-  - `EASY_MANIM_LLM_BASE_URL=<base_url>`
+  - `EASY_MANIM_LLM_PROVIDER=litellm`
+  - `EASY_MANIM_LLM_MODEL=<litellm-model-route>`
+  - `EASY_MANIM_LLM_API_BASE=<provider-api-base>`
   - `EASY_MANIM_LLM_API_KEY=<api_key>`
 - beta / RC guardrails:
   - `EASY_MANIM_RELEASE_CHANNEL`

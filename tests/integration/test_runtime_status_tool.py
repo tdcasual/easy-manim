@@ -35,6 +35,7 @@ def test_runtime_status_tool_reports_binary_and_provider_state(tmp_path: Path) -
     payload = get_runtime_status_tool(context, {})
 
     assert payload["provider"]["mode"] == "stub"
+    assert payload["provider"]["api_base_present"] is False
     assert payload["storage"]["data_dir"].endswith("data")
     assert set(payload["checks"]).issuperset({"manim", "ffmpeg", "ffprobe", "latex", "dvisvgm"})
     assert payload["features"]["mathtex"]["available"] is True

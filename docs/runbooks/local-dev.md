@@ -17,7 +17,7 @@ python -m pip install -e '.[dev]'
 ## Configuration
 - copy `.env.example` to `.env` or export matching `EASY_MANIM_*` variables in your shell
 - `stub` mode is the default local mode and keeps tests deterministic
-- set `EASY_MANIM_LLM_PROVIDER=openai_compatible` plus provider credentials when using a real upstream model
+- set `EASY_MANIM_LLM_PROVIDER=litellm` plus `EASY_MANIM_LLM_MODEL` and any provider-specific credentials when using a real upstream model
 - override `EASY_MANIM_MANIM_COMMAND`, `EASY_MANIM_FFMPEG_COMMAND`, and `EASY_MANIM_FFPROBE_COMMAND` when testing with custom binaries
 - override `EASY_MANIM_LATEX_COMMAND` and `EASY_MANIM_DVISVGM_COMMAND` when TeX tools are not discoverable on PATH
 - use `EASY_MANIM_MAX_QUEUED_TASKS` and `EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK` to tune beta safety rails
@@ -42,7 +42,7 @@ easy-manim-doctor --json
 ```
 
 - In `stub` mode, missing provider credentials do not fail the doctor check.
-- In `openai_compatible` mode, add `--strict-provider` or set provider env vars before beta smoke tests.
+- In `litellm` mode, add `--strict-provider` and set at least `EASY_MANIM_LLM_MODEL` before beta smoke tests.
 - For formula-heavy prompts that may use `MathTex` or `Tex`, run `easy-manim-doctor --json --require-latex` before real-provider trials.
 - Without `--require-latex`, runtime diagnostics only confirm that `latex` / `dvisvgm` commands are discoverable.
 - With `--require-latex`, the doctor performs a small TeX-to-SVG smoke run so it can catch broken LaTeX setups even when both binaries exist on PATH.

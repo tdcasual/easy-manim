@@ -1,19 +1,20 @@
 """LLM adapters."""
 
-from video_agent.adapters.llm.client import LLMClient, StubLLMClient
-from video_agent.adapters.llm.openai_compatible_client import (
-    OpenAICompatibleLLMClient,
+from video_agent.adapters.llm.client import (
+    LLMClient,
     ProviderAuthError,
     ProviderError,
     ProviderRateLimitError,
     ProviderResponseError,
     ProviderTimeoutError,
+    StubLLMClient,
 )
+from video_agent.adapters.llm.litellm_client import LiteLLMClient
 
 __all__ = [
     "LLMClient",
     "StubLLMClient",
-    "OpenAICompatibleLLMClient",
+    "LiteLLMClient",
     "ProviderError",
     "ProviderAuthError",
     "ProviderRateLimitError",

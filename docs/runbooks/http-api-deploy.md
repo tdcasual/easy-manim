@@ -13,7 +13,7 @@ docker compose ps
 curl -fsS http://127.0.0.1:8001/healthz
 ```
 
-If you are running against a real LLM provider, copy the required `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before `docker compose up -d`.
+If you are running against a real LLM provider, copy the required LiteLLM-backed `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before `docker compose up -d`.
 
 This starts:
 

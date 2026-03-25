@@ -20,9 +20,9 @@ python -m pip install -e '.[dev]'
 ```
 
 Required variables in `.env.beta`:
-- `EASY_MANIM_LLM_PROVIDER=openai_compatible`
-- `EASY_MANIM_LLM_MODEL=<real-model>`
-- `EASY_MANIM_LLM_BASE_URL=<provider-base-url>`
+- `EASY_MANIM_LLM_PROVIDER=litellm`
+- `EASY_MANIM_LLM_MODEL=<litellm-model-route>`
+- `EASY_MANIM_LLM_API_BASE=<provider-base-url>`
 - `EASY_MANIM_LLM_API_KEY=<provider-api-key>`
 - `EASY_MANIM_RELEASE_CHANNEL=rc`
 - `EASY_MANIM_AUTO_REPAIR_ENABLED=true`

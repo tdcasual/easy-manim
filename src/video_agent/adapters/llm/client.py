@@ -8,6 +8,26 @@ class LLMClient(Protocol):
         ...
 
 
+class ProviderError(RuntimeError):
+    """Base class for normalized upstream provider failures."""
+
+
+class ProviderAuthError(ProviderError):
+    pass
+
+
+class ProviderRateLimitError(ProviderError):
+    pass
+
+
+class ProviderTimeoutError(ProviderError):
+    pass
+
+
+class ProviderResponseError(ProviderError):
+    pass
+
+
 class StubLLMClient:
     def __init__(self, script: str | None = None) -> None:
         self.script = script

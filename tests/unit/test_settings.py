@@ -16,6 +16,7 @@ def test_settings_exposes_llm_and_worker_runtime_fields() -> None:
     settings = Settings()
     assert settings.llm_provider == "stub"
     assert settings.llm_model == "stub-manim-v1"
+    assert settings.llm_api_base is None
     assert settings.llm_timeout_seconds == 60
     assert settings.llm_max_retries == 2
     assert settings.run_embedded_worker is True
@@ -51,6 +52,20 @@ def test_build_settings_reads_auth_env(monkeypatch) -> None:
 
     assert settings.auth_mode == "required"
     assert settings.anonymous_agent_id == "ops-agent"
+
+
+def test_build_settings_reads_litellm_env(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_LLM_PROVIDER", "litellm")
+    monkeypatch.setenv("EASY_MANIM_LLM_MODEL", "openai/gpt-4.1-mini")
+    monkeypatch.setenv("EASY_MANIM_LLM_API_BASE", "https://example.test/v1")
+    monkeypatch.setenv("EASY_MANIM_LLM_API_KEY", "secret")
+
+    settings = build_settings(Path("data"))
+
+    assert settings.llm_provider == "litellm"
+    assert settings.llm_model == "openai/gpt-4.1-mini"
+    assert settings.llm_api_base == "https://example.test/v1"
+    assert settings.llm_api_key == "secret"
 
 
 def test_settings_define_session_memory_limits() -> None:

@@ -175,7 +175,7 @@ EASY_MANIM_DEFAULT_POLL_AFTER_MS=2000
 
 EASY_MANIM_LLM_PROVIDER=stub
 EASY_MANIM_LLM_MODEL=stub-manim-v1
-EASY_MANIM_LLM_BASE_URL=
+EASY_MANIM_LLM_API_BASE=
 EASY_MANIM_LLM_API_KEY=
 EASY_MANIM_LLM_TIMEOUT_SECONDS=60
 EASY_MANIM_LLM_MAX_RETRIES=2
@@ -196,9 +196,9 @@ EASY_MANIM_AUTO_REPAIR_ENABLED=false
 If you want a real upstream model instead of deterministic `stub` mode, change the provider block to:
 
 ```dotenv
-EASY_MANIM_LLM_PROVIDER=openai_compatible
-EASY_MANIM_LLM_MODEL=gpt-4.1-mini
-EASY_MANIM_LLM_BASE_URL=https://api.openai.com/v1
+EASY_MANIM_LLM_PROVIDER=litellm
+EASY_MANIM_LLM_MODEL=openai/gpt-4.1-mini
+EASY_MANIM_LLM_API_BASE=https://api.openai.com/v1
 EASY_MANIM_LLM_API_KEY=<real-secret>
 ```
 

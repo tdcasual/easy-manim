@@ -158,7 +158,7 @@ docker compose pull
 docker compose up -d
 ```
 
-For a real provider deployment, merge the relevant `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before starting the stack.
+For a real provider deployment, merge the LiteLLM-oriented `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before starting the stack.
 
 The repository now ships two GitHub Actions-built images:
 
