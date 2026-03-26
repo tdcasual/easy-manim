@@ -352,6 +352,42 @@ class TaskService:
     def list_video_tasks(self, limit: int = 50, status: Optional[str] = None) -> list[dict[str, Any]]:
         return self.store.list_tasks(limit=limit, status=status)
 
+    def list_recent_videos_for_agent(self, agent_id: str, limit: int = 12) -> list[dict[str, Any]]:
+        candidates: list[dict[str, Any]] = []
+        rows = self.store.list_tasks(limit=max(limit * 2, limit), agent_id=agent_id)
+        for row in rows:
+            if row["status"] != TaskStatus.COMPLETED.value:
+                continue
+            task_id = row["task_id"]
+            task_dir = self.artifact_store.task_dir(task_id)
+            final_video_path = task_dir / "artifacts" / "final_video.mp4"
+            if not final_video_path.exists():
+                continue
+            preview_dir = task_dir / "artifacts" / "previews"
+            preview_path: Path | None = None
+            if preview_dir.exists():
+                frames = sorted(p for p in preview_dir.glob("*.png") if p.is_file())
+                if frames:
+                    preview_path = frames[-1]
+            latest_validation = self.store.get_latest_validation(task_id)
+            summary = latest_validation.summary if latest_validation else None
+            candidates.append(
+                {
+                    "task_id": task_id,
+                    "display_title": row.get("display_title"),
+                    "title_source": row.get("title_source"),
+                    "status": row["status"],
+                    "updated_at": row["updated_at"],
+                    "latest_summary": summary,
+                    "video_path": final_video_path,
+                    "preview_path": preview_path,
+                }
+            )
+            if len(candidates) >= limit:
+                break
+        candidates.sort(key=lambda item: item["updated_at"], reverse=True)
+        return candidates
+
     def _derive_display_title(self, prompt: str) -> tuple[str, str]:
         fragment = re.sub(r"\s+", " ", prompt or "").strip()
         if not fragment:

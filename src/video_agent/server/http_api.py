@@ -92,6 +92,15 @@ def _tool_payload_or_http_error(payload: dict[str, Any]) -> dict[str, Any]:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=code)
 
 
+def _permission_http_error(exc: PermissionError) -> HTTPException:
+    code = _permission_error_code(exc)
+    if code == "agent_not_authenticated":
+        return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=code)
+    if code in {"agent_access_denied", "agent_memory_forbidden", "agent_scope_denied"}:
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=code)
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=code)
+
+
 def _allowed_task_artifact_resource_uri(task_id: str, artifact_path: str) -> str:
     normalized = Path(artifact_path)
     if normalized.is_absolute() or ".." in normalized.parts or artifact_path.strip() == "":
@@ -687,6 +696,46 @@ def create_http_api(settings: Settings) -> FastAPI:
             if reports:
                 payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/validations/{reports[-1].name}"
         return payload
+
+    @app.get("/api/videos/recent")
+    def list_recent_videos(
+        limit: int = 12,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        principal = resolved.agent_principal
+        try:
+            if context.settings.auth_mode == "required" and principal is None:
+                raise PermissionError("agent_not_authenticated")
+            if principal is not None:
+                context.agent_identity_service.require_action(principal, "task:read")
+        except PermissionError as exc:
+            raise _permission_http_error(exc) from exc
+
+        agent_id = principal.agent_id if principal is not None else context.settings.anonymous_agent_id
+        safe_limit = max(1, min(limit, 50))
+        recent = context.task_service.list_recent_videos_for_agent(agent_id, limit=safe_limit)
+
+        items: list[dict[str, Any]] = []
+        for entry in recent:
+            preview_path = entry.get("preview_path")
+            preview_url = (
+                f"/api/tasks/{entry['task_id']}/artifacts/previews/{preview_path.name}"
+                if preview_path is not None
+                else None
+            )
+            items.append(
+                {
+                    "task_id": entry["task_id"],
+                    "display_title": entry["display_title"],
+                    "title_source": entry["title_source"],
+                    "status": entry["status"],
+                    "updated_at": entry["updated_at"],
+                    "latest_summary": entry["latest_summary"],
+                    "latest_video_url": f"/api/tasks/{entry['task_id']}/artifacts/final_video.mp4",
+                    "latest_preview_url": preview_url,
+                }
+            )
+        return {"items": items, "next_cursor": None}
 
     @app.get("/api/tasks/{task_id}/artifacts/{artifact_path:path}")
     def download_task_artifact(
