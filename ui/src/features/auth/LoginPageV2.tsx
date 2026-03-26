@@ -180,7 +180,7 @@ export function LoginPageV2() {
               easy-manim
             </h1>
             <p className="brand-tagline">
-              AI 驱动的数学动画创作平台
+              面向数学动画的智能创作平台
             </p>
             <div className="brand-features">
               <div className="feature-item">
@@ -211,14 +211,14 @@ export function LoginPageV2() {
               </div>
               <h2 className="form-title">欢迎回来</h2>
               <p className="form-subtitle">
-                使用 Agent Token 登录以继续
+                使用智能体令牌登录以继续
               </p>
             </div>
             
             <form onSubmit={onSubmit} className="login-form">
               <div className="form-field">
                 <label className="form-label" htmlFor="token">
-                  Agent Token
+                  智能体令牌
                 </label>
                 <div className="input-wrapper">
                   <input
@@ -227,7 +227,7 @@ export function LoginPageV2() {
                     className="form-input"
                     value={agentToken}
                     onChange={(e) => setAgentToken(e.target.value)}
-                    placeholder="输入您的 Agent Token..."
+                    placeholder="输入您的智能体令牌..."
                     autoComplete="off"
                     spellCheck={false}
                     disabled={status === "loading"}
@@ -235,7 +235,7 @@ export function LoginPageV2() {
                   <div className="input-glow" />
                 </div>
                 <p className="form-hint">
-                  在管理员 CLI 中执行 issue-token 命令获取
+                  在管理员命令行中执行 issue-token 命令获取
                 </p>
               </div>
               
@@ -266,7 +266,7 @@ export function LoginPageV2() {
             
             <div className="form-footer">
               <p>
-                easy-manim console v2.0
+                easy-manim 控制台 v2.0
               </p>
             </div>
           </div>

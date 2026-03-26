@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, RefreshCw, Loader2, ArrowRight, CheckCircle2, XCircle, ClipboardList } from "lucide-react";
+import { BarChart3, RefreshCw, Loader2, ArrowRight, CheckCircle2, XCircle, ClipboardList, AlertCircle } from "lucide-react";
 import { useSession } from "../auth/useSession";
 import { EvalRunSummary, listEvals } from "../../lib/evalsApi";
 import { SkeletonMetricCard, SkeletonCard } from "../../components/Skeleton";
@@ -20,11 +20,13 @@ export function EvalsPageV2() {
   const { sessionToken } = useSession();
   const [items, setItems] = useState<EvalRunSummary[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
   const { ARIALiveRegion, announcePolite } = useARIAMessage();
   
   const refresh = useCallback(async () => {
     if (!sessionToken) return;
     setStatus("loading");
+    setError(null);
     try {
       const response = await listEvals(sessionToken);
       setItems(Array.isArray(response.items) ? response.items : []);
@@ -32,6 +34,7 @@ export function EvalsPageV2() {
       announcePolite(`已加载 ${response.items?.length || 0} 条评测记录`);
     } catch {
       setStatus("error");
+      setError("加载评测记录失败，请稍后重试");
       announcePolite("加载评测记录失败");
     }
   }, [sessionToken, announcePolite]);
@@ -76,6 +79,13 @@ export function EvalsPageV2() {
           刷新
         </button>
       </div>
+
+      {error && (
+        <div className="eval-error" role="alert">
+          <AlertCircle size={16} />
+          {error}
+        </div>
+      )}
       
       {status === "loading" && items.length === 0 ? (
         <div className="metrics-grid-v2">
@@ -169,6 +179,12 @@ export function EvalsPageV2() {
                 </Link>
               );
             })
+          ) : error && items.length === 0 ? (
+            <div className="empty-state-v2 eval-empty">
+              <AlertCircle size={48} />
+              <p>加载评测记录失败</p>
+              <span>请稍后刷新重试</span>
+            </div>
           ) : (
             <div className="empty-state-v2 eval-empty">
               <ClipboardList size={48} />

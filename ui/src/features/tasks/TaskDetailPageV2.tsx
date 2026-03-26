@@ -1,17 +1,14 @@
 // TaskDetailPage V2 - 占位符实现
 import { useEffect, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
   RefreshCw, 
-  Play, 
   RotateCcw, 
   XCircle,
   CheckCircle2,
   Clock,
   Loader2,
-  AlertCircle,
-  FileText
 } from "lucide-react";
 import { useSession } from "../auth/useSession";
 import { 
@@ -27,6 +24,7 @@ import { resolveApiUrl } from "../../lib/api";
 import { SkeletonCard } from "../../components/Skeleton";
 import { useARIAMessage } from "../../components/ARIALiveRegion";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { getStatusLabel } from "../../app/ui";
 import "./TaskDetailPageV2.css";
 
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
@@ -54,6 +52,7 @@ export function TaskDetailPageV2() {
     
     async function loadOnce() {
       try {
+        setError(null);
         const nextSnapshot = await getTask(currentTaskId, token);
         if (cancelled) return;
         setSnapshot(nextSnapshot);
@@ -85,6 +84,7 @@ export function TaskDetailPageV2() {
     const trimmed = feedback.trim();
     if (!trimmed) return;
     
+    setError(null);
     setActionState("revise");
     try {
       await reviseTask(taskId, trimmed, sessionToken);
@@ -113,6 +113,7 @@ export function TaskDetailPageV2() {
     
     if (!confirmed) return;
     
+    setError(null);
     setActionState("retry");
     try {
       await retryTask(taskId, sessionToken);
@@ -140,6 +141,7 @@ export function TaskDetailPageV2() {
     
     if (!confirmed) return;
     
+    setError(null);
     setActionState("cancel");
     try {
       await cancelTask(taskId, sessionToken);
@@ -158,6 +160,28 @@ export function TaskDetailPageV2() {
     return (
       <div className="page-v2">
         <div className="empty-state-v2">缺少任务 ID</div>
+      </div>
+    );
+  }
+
+  if (error && !snapshot) {
+    return (
+      <div className="page-v2">
+        <ARIALiveRegion />
+        <ConfirmDialog />
+        <div className="page-header-v2">
+          <div className="page-header-content-v2">
+            <button onClick={() => navigate(-1)} className="back-link">
+              <ArrowLeft size={18} />
+              返回
+            </button>
+            <h1 className="page-title-v2">任务详情</h1>
+            <p className="page-description-v2">{taskId}</p>
+          </div>
+        </div>
+        <div className="task-detail-error" role="alert">
+          加载失败: {error}
+        </div>
       </div>
     );
   }
@@ -189,20 +213,21 @@ export function TaskDetailPageV2() {
   const displayTitle = snapshot.display_title || taskId;
   
   const statusConfig: Record<string, { icon: React.ElementType; colorVar: string; label: string }> = {
-    completed: { icon: CheckCircle2, colorVar: 'var(--success)', label: '已完成' },
-    rendering: { icon: Loader2, colorVar: 'var(--accent-blue)', label: '渲染中' },
-    running: { icon: Clock, colorVar: 'var(--accent-cyan)', label: '执行中' },
-    queued: { icon: Clock, colorVar: 'var(--warning)', label: '排队中' },
-    failed: { icon: XCircle, colorVar: 'var(--error)', label: '失败' },
-    cancelled: { icon: XCircle, colorVar: 'var(--text-muted)', label: '已取消' },
+    completed: { icon: CheckCircle2, colorVar: 'var(--success)', label: getStatusLabel("completed") },
+    rendering: { icon: Loader2, colorVar: 'var(--accent-blue)', label: getStatusLabel("rendering") },
+    running: { icon: Clock, colorVar: 'var(--accent-cyan)', label: getStatusLabel("running") },
+    queued: { icon: Clock, colorVar: 'var(--warning)', label: getStatusLabel("queued") },
+    failed: { icon: XCircle, colorVar: 'var(--error)', label: getStatusLabel("failed") },
+    cancelled: { icon: XCircle, colorVar: 'var(--text-muted)', label: getStatusLabel("cancelled") },
   };
   
   const currentStatus = statusConfig[status.toLowerCase()] || { 
     icon: Clock, 
     colorVar: 'var(--text-muted)', 
-    label: status 
+    label: getStatusLabel(status) 
   };
   const StatusIcon = currentStatus.icon;
+  const phaseLabel = getStatusLabel(String(snapshot.phase));
   
   return (
     <div className="page-v2">
@@ -230,6 +255,12 @@ export function TaskDetailPageV2() {
           刷新
         </button>
       </div>
+
+      {error && (
+        <div className="task-detail-error" role="alert">
+          操作失败: {error}
+        </div>
+      )}
       
       {/* 状态栏 */}
       <div className="task-status-bar" style={{ '--status-color': currentStatus.colorVar } as React.CSSProperties}>
@@ -238,7 +269,7 @@ export function TaskDetailPageV2() {
         </div>
         <div className="status-info">
           <span className="status-label">{currentStatus.label}</span>
-          <span className="status-phase">{snapshot.phase}</span>
+          <span className="status-phase">{phaseLabel}</span>
         </div>
         <div className="status-attempts">
           尝试次数: {snapshot.attempt_count || 0}
@@ -331,7 +362,7 @@ export function TaskDetailPageV2() {
               </div>
               <div className="info-item">
                 <span className="info-label">阶段</span>
-                <span className="info-value">{snapshot.phase}</span>
+                <span className="info-value">{phaseLabel}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">尝试次数</span>

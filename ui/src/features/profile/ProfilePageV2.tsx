@@ -10,6 +10,7 @@ import {
 } from "../../lib/profileApi";
 import { SkeletonMetricCard } from "../../components/Skeleton";
 import { useARIAMessage } from "../../components/ARIALiveRegion";
+import { getStatusLabel } from "../../app/ui";
 import "./ProfilePageV2.css";
 
 export function ProfilePageV2() {
@@ -190,7 +191,7 @@ export function ProfilePageV2() {
                     <h4>{profile.name}</h4>
                     <div className="profile-meta">
                       <span className="profile-badge">版本 {profile.profile_version}</span>
-                      <span className={`profile-status ${profile.status}`}>{profile.status}</span>
+                      <span className={`profile-status ${profile.status}`}>{getStatusLabel(profile.status)}</span>
                     </div>
                   </div>
                 </div>

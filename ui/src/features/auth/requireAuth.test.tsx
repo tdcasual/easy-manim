@@ -39,5 +39,6 @@ test("authenticated access to protected routes renders the requested page", asyn
   );
 
   expect(await screen.findByRole("heading", { name: /任务管理/i })).toBeInTheDocument();
+  expect(await screen.findByText(/智能视频工作台/i)).toBeInTheDocument();
   expect(await screen.findByText(/还没有任务/i)).toBeInTheDocument();
 });

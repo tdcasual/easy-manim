@@ -3,9 +3,9 @@ import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import { writeSessionToken } from "../../lib/session";
-import { MemoryPage } from "./MemoryPage";
+import { MemoryPageV2 } from "./MemoryPageV2";
 
-test("renders session memory summary and persistent memories", async () => {
+test("renders translated persistent memory status", async () => {
   writeSessionToken("sess-token-1");
 
   // @ts-expect-error - test shim
@@ -17,7 +17,7 @@ test("renders session memory summary and persistent memories", async () => {
           session_id: "sess-1",
           agent_id: "agent-a",
           entry_count: 1,
-          summary_text: "We prefer short, friendly prompts.",
+          summary_text: "系统会记住最近一次工作偏好",
           lineage_refs: [],
           summary_digest: "digest-a",
           entries: []
@@ -33,14 +33,12 @@ test("renders session memory summary and persistent memories", async () => {
               memory_id: "mem-1",
               agent_id: "agent-a",
               source_session_id: "sess-1",
-              status: "active",
-              summary_text: "Operator prefers clear labels.",
+              status: "disabled",
+              summary_text: "旧偏好已经停用",
               summary_digest: "digest-m1",
               lineage_refs: [],
-              snapshot: {},
-              enhancement: {},
               created_at: "2030-01-01T00:00:00Z",
-              disabled_at: null
+              disabled_at: "2030-01-02T00:00:00Z"
             }
           ]
         }),
@@ -52,11 +50,10 @@ test("renders session memory summary and persistent memories", async () => {
 
   render(
     <MemoryRouter>
-      <MemoryPage />
+      <MemoryPageV2 />
     </MemoryRouter>
   );
 
-  expect(await screen.findByText(/we prefer short/i)).toBeInTheDocument();
-  expect(screen.getByText("mem-1")).toBeInTheDocument();
+  expect(await screen.findByText("mem-1")).toBeInTheDocument();
+  expect(screen.getByText("已停用")).toBeInTheDocument();
 });
-

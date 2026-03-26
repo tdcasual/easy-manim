@@ -13,6 +13,7 @@ import {
 import { SkeletonMetricCard } from "../../components/Skeleton";
 import { useARIAMessage } from "../../components/ARIALiveRegion";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { getStatusLabel } from "../../app/ui";
 import "./MemoryPageV2.css";
 
 export function MemoryPageV2() {
@@ -289,7 +290,7 @@ export function MemoryPageV2() {
                   <div className="memory-item-header">
                     <span className="memory-id">{memory.memory_id}</span>
                     <span className={`memory-status ${memory.status.toLowerCase()}`}>
-                      {memory.status}
+                      {getStatusLabel(memory.status)}
                     </span>
                   </div>
                   <p className="memory-text">{memory.summary_text}</p>

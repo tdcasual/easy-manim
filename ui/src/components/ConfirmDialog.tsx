@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, useId, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import "./ConfirmDialog.css";
 
@@ -26,21 +26,84 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const messageId = useId();
+
+  const getFocusableElements = useCallback(() => {
+    if (!dialogRef.current) return [] as HTMLElement[];
+
+    return Array.from(
+      dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    );
+  }, []);
+
   // ESC 键关闭
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") {
       onCancel();
+      return;
     }
-  }, [onCancel]);
+
+    if (e.key !== "Tab") {
+      return;
+    }
+
+    const focusableElements = getFocusableElements();
+    if (!focusableElements.length) {
+      e.preventDefault();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement = document.activeElement as HTMLElement | null;
+
+    if (!activeElement || !dialogRef.current?.contains(activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? lastElement : firstElement).focus();
+      return;
+    }
+
+    if (e.shiftKey && activeElement === firstElement) {
+      e.preventDefault();
+      lastElement.focus();
+      return;
+    }
+
+    if (!e.shiftKey && activeElement === lastElement) {
+      e.preventDefault();
+      firstElement.focus();
+    }
+  }, [getFocusableElements, onCancel]);
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
     }
+
+    const frame = window.requestAnimationFrame(() => {
+      confirmButtonRef.current?.focus();
+    });
+
     return () => {
+      window.cancelAnimationFrame(frame);
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
+      if (previousFocusRef.current?.isConnected) {
+        previousFocusRef.current.focus();
+      }
     };
   }, [isOpen, handleKeyDown]);
 
@@ -52,12 +115,14 @@ export function ConfirmDialog({
       onClick={onCancel}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="confirm-title"
-      aria-describedby="confirm-message"
+      aria-labelledby={titleId}
+      aria-describedby={messageId}
     >
       <div 
+        ref={dialogRef}
         className="confirm-dialog"
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
       >
         <button 
           className="confirm-dialog-close"
@@ -72,11 +137,11 @@ export function ConfirmDialog({
             <AlertTriangle size={32} />
           </div>
           
-          <h3 id="confirm-title" className="confirm-dialog-title">
+          <h3 id={titleId} className="confirm-dialog-title">
             {title}
           </h3>
           
-          <p id="confirm-message" className="confirm-dialog-message">
+          <p id={messageId} className="confirm-dialog-message">
             {message}
           </p>
         </div>
@@ -90,10 +155,10 @@ export function ConfirmDialog({
             {cancelText}
           </button>
           <button
+            ref={confirmButtonRef}
             type="button"
             className={`confirm-dialog-btn confirm ${danger ? 'danger' : ''}`}
             onClick={onConfirm}
-            autoFocus
           >
             {confirmText}
           </button>
@@ -102,9 +167,6 @@ export function ConfirmDialog({
     </div>
   );
 }
-
-// Hook for using confirm dialog
-import { useState } from "react";
 
 export function useConfirm() {
   const [isOpen, setIsOpen] = useState(false);

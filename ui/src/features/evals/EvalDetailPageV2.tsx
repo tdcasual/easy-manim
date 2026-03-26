@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, BarChart3, Loader2, Clock, AlertCircle, ClipboardList, CheckCircle2 } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, BarChart3, Clock, AlertCircle, ClipboardList } from "lucide-react";
 import { useSession } from "../auth/useSession";
 import { EvalRunSummary, getEval } from "../../lib/evalsApi";
 import { SkeletonCard } from "../../components/Skeleton";
+import { getStatusLabel } from "../../app/ui";
 import "./EvalDetailPageV2.css";
 
 function formatPercent(value: number | null): string {
@@ -21,7 +22,7 @@ export function EvalDetailPageV2() {
   const { sessionToken } = useSession();
   const [run, setRun] = useState<EvalRunSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   useEffect(() => {
     if (!runId || !sessionToken) return;
     getEval(runId, sessionToken)
@@ -108,7 +109,7 @@ export function EvalDetailPageV2() {
           {cases.length > 0 ? (
             cases.map((item) => {
               const quality = typeof item.quality_score === "number" ? item.quality_score.toFixed(2) : "—";
-              const duration = typeof item.duration_seconds === "number" ? `${item.duration_seconds.toFixed(1)}s` : "—";
+              const duration = typeof item.duration_seconds === "number" ? `${item.duration_seconds.toFixed(1)} 秒` : "—";
               const issueCodes = Array.isArray(item.issue_codes) && item.issue_codes.length 
                 ? item.issue_codes.join(", ") 
                 : "无";
@@ -125,7 +126,7 @@ export function EvalDetailPageV2() {
                         </span>
                       )}
                       <span className={`case-badge ${item.status.toLowerCase()}`}>
-                        {item.status}
+                        {getStatusLabel(item.status)}
                       </span>
                     </div>
                   </div>

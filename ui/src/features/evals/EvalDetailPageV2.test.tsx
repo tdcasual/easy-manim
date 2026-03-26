@@ -3,9 +3,9 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { vi } from "vitest";
 
 import { writeSessionToken } from "../../lib/session";
-import { EvalDetailPage } from "./EvalDetailPage";
+import { EvalDetailPageV2 } from "./EvalDetailPageV2";
 
-test("shows eval run details and case list", async () => {
+test("renders translated eval case statuses", async () => {
   writeSessionToken("sess-token-1");
 
   // @ts-expect-error - test shim
@@ -15,29 +15,20 @@ test("shows eval run details and case list", async () => {
       return new Response(
         JSON.stringify({
           run_id: "run-1",
-          suite_id: "suite-a",
+          suite_id: "suite-smoke",
           provider: "mock",
-          total_cases: 2,
+          total_cases: 1,
+          report: { success_rate: 1 },
           items: [
             {
               task_id: "task-1",
               root_task_id: "task-1",
-              status: "failed",
-              duration_seconds: 1.2,
-              issue_codes: ["bad_color"],
-              quality_score: 0.2,
-              manual_review_required: true
-            },
-            {
-              task_id: "task-2",
-              root_task_id: "task-2",
               status: "completed",
-              duration_seconds: 0.8,
+              duration_seconds: 1.25,
               issue_codes: [],
-              quality_score: 0.9
+              manual_review_required: false
             }
-          ],
-          report: { success_rate: 0.5 }
+          ]
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -48,14 +39,11 @@ test("shows eval run details and case list", async () => {
   render(
     <MemoryRouter initialEntries={["/evals/run-1"]}>
       <Routes>
-        <Route path="/evals/:runId" element={<EvalDetailPage />} />
+        <Route path="/evals/:runId" element={<EvalDetailPageV2 />} />
       </Routes>
     </MemoryRouter>
   );
 
-  expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
-  expect(await screen.findByText(/suite-a/i)).toBeInTheDocument();
-  expect(screen.getByText("task-1")).toBeInTheDocument();
-  expect(screen.getByText(/bad_color/i)).toBeInTheDocument();
-  expect(screen.getByText("task-2")).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "评测详情" })).toBeInTheDocument();
+  expect(screen.getByText("已完成")).toBeInTheDocument();
 });

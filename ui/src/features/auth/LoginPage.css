@@ -3,12 +3,15 @@
    ======================================== */
 
 .login-page {
+  min-height: 100svh;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: hidden;
+  padding: var(--space-6) 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--primary-950);
 }
 
@@ -420,5 +423,11 @@
   
   .login-form-card {
     padding: var(--space-6);
+  }
+}
+
+@media (max-height: 720px) {
+  .login-page {
+    align-items: flex-start;
   }
 }

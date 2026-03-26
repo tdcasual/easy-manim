@@ -70,6 +70,22 @@ const NAV_ITEMS = [
   }
 ] as const;
 
+function useMediaQuery(query: string) {
+  const getMatches = () => window.matchMedia(query).matches;
+  const [matches, setMatches] = useState(getMatches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const updateMatches = () => setMatches(mediaQuery.matches);
+
+    updateMatches();
+    mediaQuery.addEventListener("change", updateMatches);
+    return () => mediaQuery.removeEventListener("change", updateMatches);
+  }, [query]);
+
+  return matches;
+}
+
 // 认证守卫
 function RequireAuth() {
   const { isAuthenticated } = useSession();
@@ -91,7 +107,7 @@ function Logo({ collapsed = false }: { collapsed?: boolean }) {
       {!collapsed && (
         <div className="logo-text">
           <span className="logo-title">easy-manim</span>
-          <span className="logo-subtitle">AI Video Studio</span>
+          <span className="logo-subtitle">智能视频工作台</span>
         </div>
       )}
     </Link>
@@ -133,16 +149,32 @@ function Sidebar({
   collapsed, 
   onToggle,
   mobileOpen,
-  onMobileClose
+  isMobileViewport
 }: { 
   collapsed: boolean; 
   onToggle: () => void;
   mobileOpen?: boolean;
-  onMobileClose?: () => void;
+  isMobileViewport?: boolean;
 }) {
   const { sessionToken, clearSessionToken } = useSession();
   const [logoutLoading, setLogoutLoading] = useState(false);
   const navigate = useNavigate();
+  const sidebarRef = useRef<HTMLElement>(null);
+  const hiddenOnMobile = Boolean(isMobileViewport && !mobileOpen);
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current as (HTMLElement & { inert?: boolean }) | null;
+    if (!sidebar) return;
+
+    if (hiddenOnMobile) {
+      sidebar.setAttribute("inert", "");
+      sidebar.inert = true;
+      return;
+    }
+
+    sidebar.removeAttribute("inert");
+    sidebar.inert = false;
+  }, [hiddenOnMobile]);
   
   async function handleLogout() {
     if (!sessionToken) {
@@ -161,7 +193,12 @@ function Sidebar({
   }
   
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
+    <aside
+      ref={sidebarRef}
+      id="app-sidebar"
+      className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
+      aria-hidden={hiddenOnMobile}
+    >
       <div className="sidebar-header">
         <Logo collapsed={collapsed} />
         <button 
@@ -258,7 +295,15 @@ function UserMenu() {
 }
 
 // 顶部栏组件
-function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
+function Topbar({
+  onMenuClick,
+  isMobileViewport = false,
+  mobileMenuOpen = false,
+}: {
+  onMenuClick?: () => void;
+  isMobileViewport?: boolean;
+  mobileMenuOpen?: boolean;
+}) {
   const location = useLocation();
   const currentPage = NAV_ITEMS.find(item => 
     location.pathname.startsWith(item.to)
@@ -267,13 +312,18 @@ function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <button 
-          className="mobile-menu-btn"
-          onClick={onMenuClick}
-          aria-label="打开菜单"
-        >
-          <Menu size={20} />
-        </button>
+        {isMobileViewport && (
+          <button 
+            className="mobile-menu-btn"
+            onClick={onMenuClick}
+            aria-label="打开菜单"
+            aria-controls="app-sidebar"
+            aria-expanded={mobileMenuOpen}
+            style={{ display: "flex" }}
+          >
+            <Menu size={20} />
+          </button>
+        )}
         <div className="page-info">
           <div className="page-title" role="heading" aria-level={1}>
             {currentPage?.label || "控制台"}
@@ -301,6 +351,7 @@ function AuthenticatedShell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isMobileViewport = useMediaQuery("(max-width: 1024px)");
   
   // 页面切换时滚动到顶部
   useEffect(() => {
@@ -311,6 +362,12 @@ function AuthenticatedShell() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileViewport) {
+      setMobileMenuOpen(false);
+    }
+  }, [isMobileViewport]);
   
   return (
     <div className="app-shell">
@@ -318,7 +375,7 @@ function AuthenticatedShell() {
         collapsed={sidebarCollapsed} 
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
         mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
+        isMobileViewport={isMobileViewport}
       />
       
       {/* 移动端菜单遮罩 */}
@@ -330,7 +387,11 @@ function AuthenticatedShell() {
       )}
       
       <div className={`main-area ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
+        <Topbar
+          onMenuClick={() => setMobileMenuOpen(true)}
+          isMobileViewport={isMobileViewport}
+          mobileMenuOpen={mobileMenuOpen}
+        />
         
         <main className="main-content">
           <div className="content-wrapper animate-fade-in">

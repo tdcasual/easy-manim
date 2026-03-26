@@ -33,7 +33,9 @@ test("stores session token after successful login", async () => {
     </MemoryRouter>
   );
 
-  await user.type(screen.getByLabelText(/agent token/i), "easy-manim.agent-a.secret");
+  expect(screen.getByText(/面向数学动画的智能创作平台/i)).toBeInTheDocument();
+  expect(screen.getByText(/管理员命令行中执行 issue-token 命令获取/i)).toBeInTheDocument();
+  await user.type(screen.getByLabelText(/智能体令牌/i), "easy-manim.agent-a.secret");
   await user.click(screen.getByRole("button", { name: /登录/i }));
 
   await waitFor(() => {
