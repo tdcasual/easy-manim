@@ -93,19 +93,18 @@ test("supports clearing session memory, promoting, and disabling a persistent me
 
   expect(await screen.findByText("mem-1")).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /clear session/i }));
+  await user.click(screen.getByRole("button", { name: /清空会话/i }));
   await waitFor(() => {
     expect(calls.some((c) => c.url.includes("/api/memory/session") && c.init?.method === "DELETE")).toBe(true);
   });
 
-  await user.click(screen.getByRole("button", { name: /promote to persistent/i }));
+  await user.click(screen.getByRole("button", { name: /提升为长期记忆/i }));
   await waitFor(() => {
     expect(calls.some((c) => c.url.includes("/api/memories/promote") && c.init?.method === "POST")).toBe(true);
   });
 
-  await user.click(screen.getByRole("button", { name: /disable/i }));
+  await user.click(screen.getByRole("button", { name: /停用/i }));
   await waitFor(() => {
     expect(calls.some((c) => c.url.includes("/api/memories/mem-1/disable") && c.init?.method === "POST")).toBe(true);
   });
 });
-

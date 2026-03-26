@@ -31,7 +31,9 @@ test("shows task status and result summary", async () => {
           status: "completed",
           ready: true,
           summary: "Validation passed",
-          video_resource: "video-task://task-1/artifacts/final_video.mp4"
+          video_resource: "video-task://task-1/artifacts/final_video.mp4",
+          video_download_url: "/api/tasks/task-1/artifacts/final_video.mp4",
+          preview_download_urls: ["/api/tasks/task-1/artifacts/previews/frame-1.png"]
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -47,11 +49,11 @@ test("shows task status and result summary", async () => {
     </MemoryRouter>
   );
 
-  expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
 
-  expect(await screen.findByText(/status/i)).toBeInTheDocument();
-  expect(screen.getAllByText(/completed/i).length).toBeGreaterThanOrEqual(1);
-  expect(screen.getByText(/validation passed/i)).toBeInTheDocument();
+  expect(await screen.findByText("task-1")).toBeInTheDocument();
+  expect(screen.getAllByText(/已完成/i).length).toBeGreaterThanOrEqual(1);
+  expect(screen.getAllByText(/validation passed/i).length).toBeGreaterThanOrEqual(1);
   expect(screen.getByText(/final_video\.mp4/i)).toBeInTheDocument();
 });
 
@@ -84,7 +86,8 @@ test("allows revising a task with feedback", async () => {
           status: "completed",
           ready: true,
           summary: "Validation passed",
-          video_resource: "video-task://task-1/artifacts/final_video.mp4"
+          video_resource: "video-task://task-1/artifacts/final_video.mp4",
+          video_download_url: "/api/tasks/task-1/artifacts/final_video.mp4"
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -103,10 +106,10 @@ test("allows revising a task with feedback", async () => {
     </MemoryRouter>
   );
 
-  expect(await screen.findByText(/status/i)).toBeInTheDocument();
+  expect(await screen.findByText("task-1")).toBeInTheDocument();
 
-  await user.type(screen.getByLabelText(/feedback/i), "make it blue");
-  await user.click(screen.getByRole("button", { name: /revise/i }));
+  await user.type(screen.getByLabelText(/修订说明/i), "改成蓝色");
+  await user.click(screen.getByRole("button", { name: /提交修订/i }));
 
   await waitFor(() => {
     expect(calls.some((call) => call.url.includes("/api/tasks/task-1/revise"))).toBe(true);
@@ -142,7 +145,8 @@ test("allows retrying a failed task", async () => {
           status: "failed",
           ready: true,
           summary: "Validation failed",
-          video_resource: null
+          video_resource: null,
+          video_download_url: null
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -161,9 +165,9 @@ test("allows retrying a failed task", async () => {
     </MemoryRouter>
   );
 
-  expect(await screen.findByText(/status/i)).toBeInTheDocument();
+  expect(await screen.findByText("task-1")).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /retry/i }));
+  await user.click(screen.getByRole("button", { name: /失败重试/i }));
 
   await waitFor(() => {
     expect(calls.some((call) => call.url.includes("/api/tasks/task-1/retry"))).toBe(true);
@@ -199,7 +203,8 @@ test("allows cancelling an active task", async () => {
           status: "running",
           ready: false,
           summary: null,
-          video_resource: null
+          video_resource: null,
+          video_download_url: null
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -221,9 +226,9 @@ test("allows cancelling an active task", async () => {
     </MemoryRouter>
   );
 
-  expect(await screen.findByText(/status/i)).toBeInTheDocument();
+  expect(await screen.findByText("task-1")).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /cancel/i }));
+  await user.click(screen.getByRole("button", { name: /取消任务/i }));
 
   await waitFor(() => {
     expect(calls.some((call) => call.url.includes("/api/tasks/task-1/cancel"))).toBe(true);

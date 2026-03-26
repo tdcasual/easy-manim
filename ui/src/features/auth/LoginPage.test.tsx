@@ -34,11 +34,10 @@ test("stores session token after successful login", async () => {
   );
 
   await user.type(screen.getByLabelText(/agent token/i), "easy-manim.agent-a.secret");
-  await user.click(screen.getByRole("button", { name: /log in/i }));
+  await user.click(screen.getByRole("button", { name: /登录/i }));
 
   await waitFor(() => {
     expect(localStorage.getItem("easy_manim_session_token")).toBe("sess-token-1");
   });
   expect(fetchCalls.some((call) => call.url.toString().includes("/api/sessions"))).toBe(true);
 });
-

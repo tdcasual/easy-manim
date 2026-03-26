@@ -59,13 +59,13 @@ test("renders current profile and scorecard, and allows applying a patch", async
   );
 
   expect(await screen.findByText(/agent a/i)).toBeInTheDocument();
-  expect(screen.getByText(/completed/i)).toBeInTheDocument();
-  expect(screen.getByText("3")).toBeInTheDocument();
+  expect(screen.getByText(/评分卡/i)).toBeInTheDocument();
+  expect(screen.getByText(/bad_color/i)).toBeInTheDocument();
 
-  fireEvent.change(screen.getByLabelText(/patch/i), {
+  fireEvent.change(screen.getByLabelText(/补丁 json/i), {
     target: { value: JSON.stringify({ style_hints: { tone: "editorial" } }) }
   });
-  await user.click(screen.getByRole("button", { name: /apply patch/i }));
+  await user.click(screen.getByRole("button", { name: /应用补丁/i }));
 
   await waitFor(() => {
     expect(calls.some((c) => c.url.includes("/api/profile/apply"))).toBe(true);

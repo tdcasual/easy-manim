@@ -41,9 +41,8 @@ test("lists tasks and allows creating a task", async () => {
 
   expect(await screen.findByText("task-0")).toBeInTheDocument();
 
-  await user.type(screen.getByLabelText(/prompt/i), "draw a circle");
-  await user.click(screen.getByRole("button", { name: /create task/i }));
+  await user.type(screen.getByLabelText(/任务描述/i), "画一个圆形");
+  await user.click(screen.getByRole("button", { name: /创建任务/i }));
 
   expect(await screen.findByText("task-1")).toBeInTheDocument();
 });
-

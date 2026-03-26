@@ -1,263 +1,503 @@
 :root {
-  --bg: oklch(0.975 0.015 86);
-  --bg2: oklch(0.955 0.02 86);
-  --surface: oklch(0.985 0.012 86);
-  --ink: oklch(0.22 0.02 60);
-  --muted: oklch(0.42 0.02 60);
-  --hairline: oklch(0.85 0.03 86);
-  --shadow: 0 16px 40px rgba(16, 12, 6, 0.08);
+  --bg: oklch(0.972 0.012 84);
+  --bg-soft: oklch(0.958 0.014 84);
+  --surface: oklch(0.988 0.008 82);
+  --surface-strong: oklch(0.95 0.018 82);
+  --surface-tint: oklch(0.938 0.03 78);
+  --ink: oklch(0.23 0.025 48);
+  --ink-soft: oklch(0.34 0.02 52);
+  --muted: oklch(0.5 0.018 58);
+  --hairline: oklch(0.86 0.02 80);
+  --accent: oklch(0.6 0.14 38);
+  --accent-soft: oklch(0.83 0.05 72);
+  --accent-deep: oklch(0.36 0.06 36);
+  --success: oklch(0.61 0.11 150);
+  --warning: oklch(0.76 0.12 84);
+  --danger: oklch(0.61 0.17 28);
+  --focus: oklch(0.73 0.12 44);
 
-  --accent: oklch(0.63 0.14 40);
-  --accent2: oklch(0.72 0.10 85);
-  --focus: oklch(0.72 0.14 45);
+  --radius-lg: 28px;
+  --radius-md: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 12px;
 
-  --radius-lg: 18px;
-  --radius-md: 14px;
-  --radius-sm: 10px;
+  --font-display: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "Fraunces", serif;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  --font-display: "Fraunces", serif;
-  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.25rem;
+  --space-5: 1.75rem;
+  --space-6: 2.5rem;
+  --space-7: 3.5rem;
+  --space-8: 5rem;
 
-  --space-1: 8px;
-  --space-2: 12px;
-  --space-3: 16px;
-  --space-4: 20px;
-  --space-5: 28px;
-  --space-6: 40px;
+  --container: min(1320px, calc(100vw - 2rem));
+  --content: min(980px, 100%);
 
-  --container: min(1120px, 92vw);
   color-scheme: light;
 }
 
 body {
   background:
-    radial-gradient(1200px 800px at 15% -10%, color-mix(in oklab, var(--accent2), transparent 55%), transparent 60%),
-    radial-gradient(900px 600px at 90% 0%, color-mix(in oklab, var(--accent), transparent 72%), transparent 60%),
-    linear-gradient(180deg, var(--bg), var(--bg2));
+    linear-gradient(180deg, transparent 0%, color-mix(in oklab, var(--accent-soft), transparent 84%) 100%),
+    radial-gradient(1200px 700px at 0% 0%, color-mix(in oklab, var(--accent-soft), transparent 42%), transparent 70%),
+    linear-gradient(180deg, var(--bg), var(--bg-soft));
   color: var(--ink);
   font-family: var(--font-body);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), color-mix(in oklab, var(--hairline), transparent 60%) calc(100% - 1px), color-mix(in oklab, var(--hairline), transparent 60%) 100%),
+    linear-gradient(180deg, transparent 0, transparent calc(100% - 1px), color-mix(in oklab, var(--hairline), transparent 72%) calc(100% - 1px), color-mix(in oklab, var(--hairline), transparent 72%) 100%);
+  background-size: 96px 96px;
+  mask: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 75%);
+  opacity: 0.7;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent-soft), white 20%);
 }
 
 .appShell {
   min-height: 100vh;
+  padding-bottom: var(--space-7);
 }
 
 .topBar {
   position: sticky;
   top: 0;
-  z-index: 10;
-  backdrop-filter: blur(8px);
-  background: color-mix(in oklab, var(--surface), transparent 18%);
-  border-bottom: 1px solid color-mix(in oklab, var(--hairline), transparent 35%);
+  z-index: 20;
+  backdrop-filter: blur(18px);
+  background: color-mix(in oklab, var(--surface), transparent 15%);
+  border-bottom: 1px solid color-mix(in oklab, var(--hairline), transparent 30%);
 }
 
 .topBarInner {
   width: var(--container);
   margin: 0 auto;
-  padding: var(--space-3) var(--space-3);
+  padding: var(--space-3) 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .brand {
   display: inline-flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
 }
 
 .brandMark {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 20px;
-  letter-spacing: -0.03em;
-  color: var(--accent);
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  min-height: 3rem;
   border-radius: 999px;
-  background: color-mix(in oklab, var(--accent2), transparent 70%);
-  border: 1px solid color-mix(in oklab, var(--hairline), transparent 10%);
+  background:
+    radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--accent-soft), white 12%), transparent 58%),
+    color-mix(in oklab, var(--accent), white 86%);
+  border: 1px solid color-mix(in oklab, var(--accent), transparent 74%);
+  color: var(--accent-deep);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.06em;
+  box-shadow: 0 18px 40px rgba(82, 51, 31, 0.12);
+}
+
+.brandText {
+  min-width: 0;
 }
 
 .brandTitle {
   margin: 0;
   font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
   font-weight: 600;
-  font-size: clamp(20px, 2.0vw, 26px);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
 }
 
-.pill {
-  display: inline-flex;
+.brandSubtitle {
+  margin: 0.18rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.topBarMeta {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  color: color-mix(in oklab, var(--ink), transparent 20%);
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.contextBadge {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--surface), var(--accent-soft) 18%);
   border: 1px solid color-mix(in oklab, var(--hairline), transparent 10%);
-  background: color-mix(in oklab, var(--surface), transparent 10%);
+  min-width: 8.5rem;
+}
+
+.contextLabel {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
 }
 
 .layout {
   width: var(--container);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: var(--space-5);
-  padding: var(--space-5) var(--space-3) var(--space-6);
+  grid-template-columns: minmax(16rem, 19rem) minmax(0, 1fr);
+  gap: clamp(1.25rem, 2vw, 2.5rem);
+  padding-top: var(--space-5);
 }
 
 .sideNav {
   position: sticky;
-  top: 74px;
+  top: 5.6rem;
   align-self: start;
-  background: color-mix(in oklab, var(--surface), transparent 6%);
-  border: 1px solid color-mix(in oklab, var(--hairline), transparent 6%);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  overflow: hidden;
+  padding: 1.1rem;
+  border-radius: calc(var(--radius-lg) + 0.3rem);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface), white 8%), color-mix(in oklab, var(--surface-strong), white 20%));
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 5%);
+  box-shadow: 0 24px 60px rgba(52, 39, 29, 0.09);
 }
 
 .sideNavInner {
   display: grid;
-  gap: 4px;
-  padding: var(--space-3);
+  gap: 0.5rem;
+}
+
+.sideNavEyebrow,
+.pageEyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.73rem;
+  letter-spacing: 0.08em;
 }
 
 .navItem {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding: 0.95rem 1rem;
   border-radius: var(--radius-md);
-  color: color-mix(in oklab, var(--ink), transparent 20%);
-  transition: background 120ms ease, color 120ms ease;
+  color: color-mix(in oklab, var(--ink), transparent 16%);
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+  border: 1px solid transparent;
 }
 
 .navItem:hover {
-  background: color-mix(in oklab, var(--accent2), transparent 78%);
-  color: var(--ink);
+  transform: translateY(-1px);
+  background: color-mix(in oklab, var(--surface-tint), white 28%);
+  border-color: color-mix(in oklab, var(--hairline), transparent 20%);
 }
 
 .navItem.isActive {
-  background: color-mix(in oklab, var(--accent), transparent 84%);
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--accent-soft), white 22%), color-mix(in oklab, var(--surface), white 10%));
+  border-color: color-mix(in oklab, var(--accent), transparent 72%);
   color: var(--ink);
-  border: 1px solid color-mix(in oklab, var(--accent), transparent 70%);
+}
+
+.navItemIndex {
+  color: color-mix(in oklab, var(--accent-deep), transparent 22%);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.navItemText {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.navItemText strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.navItemText span:last-child {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
 }
 
 .sideNavFooter {
-  padding: 12px 16px 16px;
-  border-top: 1px solid color-mix(in oklab, var(--hairline), transparent 25%);
-  background: color-mix(in oklab, var(--surface), transparent 2%);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in oklab, var(--hairline), transparent 26%);
 }
 
 .main {
-  background: color-mix(in oklab, var(--surface), transparent 2%);
-  border: 1px solid color-mix(in oklab, var(--hairline), transparent 6%);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: clamp(18px, 2.0vw, 28px);
-  min-height: 520px;
+  min-width: 0;
 }
 
-h2 {
-  margin: 0 0 10px;
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  font-size: clamp(18px, 2vw, 24px);
+.page {
+  display: grid;
+  gap: clamp(1.25rem, 2vw, 2rem);
+  animation: page-rise 320ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.muted {
-  color: var(--muted);
+.pageIntro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.85fr);
+  gap: clamp(1rem, 2vw, 2rem);
+  align-items: start;
 }
 
-.small {
-  font-size: 12px;
+.pageIntroMain {
+  display: grid;
+  gap: 0.75rem;
 }
 
-/* Shared primitives (kept minimal; pages can still use inline styles when needed). */
-.card {
-  background: color-mix(in oklab, var(--surface), transparent 2%);
-  border: 1px solid color-mix(in oklab, var(--hairline), transparent 10%);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-}
-
-.cardTitle {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-bottom: 6px;
-}
-
-.sectionHeader {
+.pageIntroHeading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 1rem;
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3vw, 3.35rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+
+.pageLead {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--ink-soft);
+  font-size: clamp(1rem, 1.15vw, 1.08rem);
+  line-height: 1.6;
+}
+
+.pageIntroActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pageIntroAside {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.metricStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.metricChip {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--surface), white 10%);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 4%);
+  box-shadow: 0 16px 34px rgba(66, 45, 30, 0.07);
+}
+
+.metricChipLabel {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.metricChipValue {
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.pageSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(1rem, 1.6vw, 1.5rem);
+}
+
+.pageSplit--wide {
+  grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr);
+}
+
+.pageSplit--facts {
+  grid-template-columns: minmax(16rem, 0.95fr) minmax(0, 1.05fr);
+}
+
+.pageStack {
+  display: grid;
+  gap: clamp(1rem, 1.4vw, 1.4rem);
+}
+
+.sectionPanel {
+  container-type: inline-size;
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.1rem, 2vw, 1.45rem);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface), white 8%), color-mix(in oklab, var(--surface-strong), white 12%));
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 6%);
+  box-shadow: 0 18px 48px rgba(59, 43, 32, 0.08);
+}
+
+.sectionPanel--list {
+  gap: 0.9rem;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.panelDetail,
+.panelParagraph {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.panelActions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
 }
 
 .field {
   display: grid;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 0.55rem;
 }
 
 .fieldLabel {
-  font-size: 13px;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
 }
 
 .input,
 .textarea {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
   border: 1px solid color-mix(in oklab, var(--hairline), transparent 0%);
-  background: color-mix(in oklab, var(--surface), transparent 0%);
+  background: color-mix(in oklab, var(--surface), white 4%);
   color: var(--ink);
+  border-radius: 1.1rem;
+  padding: 0.95rem 1rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.input:hover,
+.textarea:hover {
+  border-color: color-mix(in oklab, var(--accent), transparent 72%);
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: color-mix(in oklab, var(--accent), transparent 56%);
+  background: color-mix(in oklab, var(--surface), white 10%);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent-soft), transparent 46%);
+  outline: none;
 }
 
 .input {
-  min-height: 44px;
+  min-height: 3rem;
 }
 
 .textarea {
+  min-height: 7rem;
   resize: vertical;
-  min-height: 108px;
+  line-height: 1.6;
+}
+
+.textarea--hero {
+  min-height: 13rem;
+}
+
+.textarea--code,
+.jsonBlock {
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.input--hero {
+  min-height: 3.5rem;
+  font-size: 1rem;
+}
+
+.stackForm {
+  display: grid;
+  gap: 1rem;
 }
 
 .buttonRow {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.buttonRow--stacked {
+  align-items: stretch;
+  flex-direction: column;
 }
 
 .button {
   appearance: none;
-  border: 1px solid color-mix(in oklab, var(--hairline), transparent 0%);
-  background: color-mix(in oklab, var(--surface), transparent 0%);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 6%);
+  background: color-mix(in oklab, var(--surface), white 3%);
   color: var(--ink);
-  padding: 10px 12px;
-  border-radius: 12px;
-  min-height: 44px;
-  touch-action: manipulation;
+  min-height: 2.9rem;
+  padding: 0.8rem 1rem;
+  border-radius: 999px;
   cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, transform 80ms ease;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
-.button:hover {
-  background: color-mix(in oklab, var(--accent2), transparent 84%);
-}
-
-.button:active {
-  transform: translateY(1px);
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--accent), transparent 65%);
 }
 
 .button:disabled {
@@ -266,112 +506,618 @@ h2 {
 }
 
 .buttonPrimary {
-  border-color: color-mix(in oklab, var(--accent), transparent 65%);
-  background: color-mix(in oklab, var(--accent), transparent 86%);
+  background: var(--accent-deep);
+  color: color-mix(in oklab, var(--surface), white 6%);
+  border-color: color-mix(in oklab, var(--accent-deep), black 10%);
+  box-shadow: 0 14px 28px rgba(74, 44, 23, 0.16);
 }
 
-.buttonPrimary:hover {
-  background: color-mix(in oklab, var(--accent), transparent 82%);
+.buttonPrimary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent-deep), black 10%);
 }
 
 .buttonQuiet {
-  padding: 8px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  letter-spacing: 0.02em;
+  background: color-mix(in oklab, var(--surface), white 12%);
 }
 
-.alert {
-  margin: 12px 0 0;
-  color: color-mix(in oklab, var(--accent), black 18%);
+.buttonDanger {
+  color: color-mix(in oklab, var(--danger), black 12%);
+  border-color: color-mix(in oklab, var(--danger), transparent 72%);
+  background: color-mix(in oklab, var(--danger), transparent 92%);
 }
 
-/* Tasks page */
-.tasksGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 16px;
+.buttonWide {
+  width: 100%;
+  justify-content: center;
 }
 
-.taskItems {
-  list-style: none;
-  padding: 0;
-  margin: 14px 0 0;
-  display: grid;
-  gap: 8px;
-}
-
-.taskItem {
-  border-radius: var(--radius-md);
-  border: 1px solid color-mix(in oklab, var(--hairline), transparent 22%);
-  background: color-mix(in oklab, var(--surface), transparent 6%);
-  overflow: hidden;
-}
-
-.taskLink {
+.quickPromptRow {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 12px;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
-.taskId {
-  font-weight: 560;
+.quickPrompt {
+  appearance: none;
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 8%);
+  background: color-mix(in oklab, var(--accent-soft), white 32%);
+  color: var(--accent-deep);
+  border-radius: 999px;
+  padding: 0.7rem 0.95rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.quickPrompt:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--accent), transparent 65%);
+}
+
+.formHint {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.listStack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.listLinkRow,
+.listStaticRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--surface), white 12%);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 10%);
+}
+
+.listLinkRow {
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.listLinkRow:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--accent), transparent 68%);
+  background: color-mix(in oklab, var(--surface-tint), white 30%);
+}
+
+.listPrimary {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.listTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.listTitle {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+
+.listCaption {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.listMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.listMeta--column {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.listChevron {
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.inlineActions,
+.inlineStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.workflowList {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.75rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.identityBand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent-soft), white 26%), color-mix(in oklab, var(--surface), white 8%));
+  border: 1px solid color-mix(in oklab, var(--accent), transparent 80%);
+}
+
+.identityCode {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2vw, 1.65rem);
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+
+.identityCode--soft {
+  font-size: clamp(1.1rem, 1.5vw, 1.4rem);
+}
+
+.identityBandMeta {
+  max-width: 28rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.identityBandMeta p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.resultStack {
+  display: grid;
+  gap: 1rem;
+}
+
+.infoBlock {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.infoLabel {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.infoValue {
+  margin: 0;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.resourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent-deep);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.factsGrid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 10rem) 1fr;
+  gap: 0.8rem 1rem;
+  margin: 0;
+}
+
+.factsGrid dd {
+  margin: 0;
+}
+
+.metaChips {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface-tint), white 26%);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 14%);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.profileIdentity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.jsonBlock {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 8%);
+  background: color-mix(in oklab, var(--surface), black 1%);
+  max-height: 22rem;
+}
+
+.emptyState {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.15rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--surface), white 18%);
+  border: 1px dashed color-mix(in oklab, var(--hairline), transparent 18%);
+}
+
+.emptyStateTitle {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
   letter-spacing: -0.01em;
 }
 
-.taskStatus {
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  padding: 5px 9px;
+.emptyStateBody {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.emptyStateAction {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.loginShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  position: relative;
+}
+
+.loginBackdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(700px 500px at 20% 20%, color-mix(in oklab, var(--accent-soft), white 12%), transparent 78%),
+    radial-gradient(900px 600px at 85% 0%, color-mix(in oklab, var(--accent), transparent 84%), transparent 70%);
+  pointer-events: none;
+}
+
+.loginLayout {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(18rem, 0.92fr);
+  gap: clamp(1rem, 2vw, 2rem);
+  align-items: stretch;
+}
+
+.loginShowcase,
+.loginPanel {
+  padding: clamp(1.25rem, 2.4vw, 2rem);
+  border-radius: calc(var(--radius-lg) + 0.4rem);
+  background: color-mix(in oklab, var(--surface), white 10%);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 8%);
+  box-shadow: 0 28px 70px rgba(54, 39, 29, 0.1);
+}
+
+.loginShowcase {
+  display: grid;
+  gap: 1rem;
+}
+
+.loginLead {
+  margin: 0;
+  font-size: clamp(1rem, 1.35vw, 1.2rem);
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.loginStatement {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--surface-tint), white 28%);
+}
+
+.loginStatementLabel {
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+}
+
+.loginStatement p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.loginSteps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.95rem;
+}
+
+.loginSteps li {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding-top: 0.9rem;
+  border-top: 1px solid color-mix(in oklab, var(--hairline), transparent 24%);
+}
+
+.loginStepIndex {
+  color: var(--accent-deep);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.loginPanel {
+  align-self: center;
+  display: grid;
+  gap: 1rem;
+}
+
+.loginPanelHeader {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--hairline), transparent 25%);
-  background: color-mix(in oklab, var(--accent2), transparent 86%);
-  color: color-mix(in oklab, var(--ink), transparent 18%);
+  background: color-mix(in oklab, var(--accent-soft), white 22%);
+  border: 1px solid color-mix(in oklab, var(--accent), transparent 74%);
+  color: var(--accent-deep);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
 }
 
-.taskStatus_completed {
-  background: color-mix(in oklab, var(--accent2), transparent 76%);
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 10%);
+  background: color-mix(in oklab, var(--surface-tint), white 32%);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
 }
 
-.taskStatus_failed {
-  background: color-mix(in oklab, var(--accent), transparent 86%);
+.videoGallery {
+  display: grid;
+  gap: 1rem;
 }
 
-@media (max-width: 940px) {
-  .layout {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
+.videoCard {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 10%);
+  background: color-mix(in oklab, var(--surface), white 12%);
+}
+
+.videoFrame,
+.mediaStage {
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--radius-md) - 4px);
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in oklab, var(--accent-soft), white 20%), transparent 60%),
+    color-mix(in oklab, var(--accent-deep), black 4%);
+  border: 1px solid color-mix(in oklab, var(--hairline), transparent 18%);
+}
+
+.videoPlayer,
+.mediaPreview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: color-mix(in oklab, var(--accent-deep), black 10%);
+}
+
+.videoPlayer--detail {
+  max-height: 28rem;
+}
+
+.videoCardBody {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.statusPill--compact {
+  min-height: 1.75rem;
+  padding-inline: 0.62rem;
+  font-size: 0.72rem;
+}
+
+.statusPill--completed,
+.statusPill--active,
+.statusPill--applied {
+  background: color-mix(in oklab, var(--success), transparent 88%);
+  border-color: color-mix(in oklab, var(--success), transparent 72%);
+  color: color-mix(in oklab, var(--success), black 14%);
+}
+
+.statusPill--failed,
+.statusPill--cancelled,
+.statusPill--dismissed {
+  background: color-mix(in oklab, var(--danger), transparent 90%);
+  border-color: color-mix(in oklab, var(--danger), transparent 72%);
+  color: color-mix(in oklab, var(--danger), black 8%);
+}
+
+.statusPill--queued,
+.statusPill--running,
+.statusPill--rendering,
+.statusPill--pending,
+.statusPill--review {
+  background: color-mix(in oklab, var(--warning), transparent 88%);
+  border-color: color-mix(in oklab, var(--warning), transparent 72%);
+  color: color-mix(in oklab, var(--accent-deep), black 4%);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.alert {
+  margin: 0;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--danger), transparent 91%);
+  border: 1px solid color-mix(in oklab, var(--danger), transparent 78%);
+  color: color-mix(in oklab, var(--danger), black 12%);
+}
+
+@keyframes page-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  .sideNav {
-    position: relative;
-    top: 0;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  .sideNavInner {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+}
+
+@container (max-width: 36rem) {
+  .panelHeader {
+    flex-direction: column;
   }
-  .navItem {
-    border: 1px solid color-mix(in oklab, var(--hairline), transparent 20%);
-    background: color-mix(in oklab, var(--surface), transparent 6%);
-    border-radius: 999px;
+
+  .listLinkRow,
+  .listStaticRow {
+    flex-direction: column;
   }
-  .navItem.isActive {
-    border-color: color-mix(in oklab, var(--accent), transparent 70%);
-  }
-  .tasksGrid {
-    grid-template-columns: 1fr;
+
+  .listMeta,
+  .listMeta--column {
+    align-items: flex-start;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page,
+  .button,
   .navItem,
-  .button {
-    transition: none;
+  .quickPrompt,
+  .listLinkRow {
+    animation: none !important;
+    transition: none !important;
   }
-  .button:active {
-    transform: none;
+}
+
+@media (max-width: 1100px) {
+  .pageIntro,
+  .pageSplit,
+  .pageSplit--wide,
+  .pageSplit--facts,
+  .loginLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .pageIntroAside {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 920px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sideNav {
+    position: static;
+  }
+
+  .sideNavInner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .topBarInner,
+  .layout {
+    width: min(100vw - 1rem, 100%);
+  }
+
+  .topBarInner {
+    padding-inline: 0;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topBarMeta {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .sideNavInner {
+    grid-template-columns: 1fr;
+  }
+
+  .pageIntroHeading {
+    flex-direction: column;
+  }
+
+  .pageIntroActions,
+  .metricStrip,
+  .profileIdentity,
+  .identityBand {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .identityBandMeta {
+    max-width: none;
+  }
+
+  .factsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .buttonRow {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

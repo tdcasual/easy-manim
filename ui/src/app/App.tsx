@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 
 import { EvalsPage } from "./pages/EvalsPage";
@@ -8,12 +9,13 @@ import { LoginPage } from "../features/auth/LoginPage";
 import { useSession } from "../features/auth/useSession";
 import { TaskDetailPage } from "../features/tasks/TaskDetailPage";
 import { EvalDetailPage } from "../features/evals/EvalDetailPage";
+import { deleteCurrentSession } from "../lib/api";
 
 const NAV_ITEMS = [
-  { to: "/tasks", label: "Tasks" },
-  { to: "/memory", label: "Memory" },
-  { to: "/profile", label: "Profile" },
-  { to: "/evals", label: "Evals" }
+  { to: "/tasks", label: "任务", note: "创建任务、查看队列，并围绕结果快速迭代。", index: "01" },
+  { to: "/memory", label: "记忆", note: "把会话经验沉淀为可复用的长期上下文。", index: "02" },
+  { to: "/profile", label: "画像", note: "管理智能体画像，并显式应用补丁。", index: "03" },
+  { to: "/evals", label: "评测", note: "回看质量回归与评测运行结果。", index: "04" }
 ] as const;
 
 function RequireAuth() {
@@ -25,7 +27,33 @@ function RequireAuth() {
   return <Outlet />;
 }
 
-export function App() {
+function matchActiveItem(pathname: string) {
+  return NAV_ITEMS.find((item) => pathname === item.to || pathname.startsWith(`${item.to}/`)) ?? NAV_ITEMS[0];
+}
+
+function AuthenticatedShell() {
+  const location = useLocation();
+  const { sessionToken, clearSessionToken } = useSession();
+  const [logoutState, setLogoutState] = useState<"idle" | "loading">("idle");
+  const activeItem = matchActiveItem(location.pathname);
+
+  async function onSignOut() {
+    if (!sessionToken || logoutState === "loading") {
+      clearSessionToken();
+      return;
+    }
+
+    setLogoutState("loading");
+    try {
+      await deleteCurrentSession(sessionToken);
+    } catch {
+      // We still clear local state so the operator can recover quickly.
+    } finally {
+      clearSessionToken();
+      setLogoutState("idle");
+    }
+  }
+
   return (
     <div className="appShell">
       <header className="topBar">
@@ -34,47 +62,73 @@ export function App() {
             <span className="brandMark" aria-hidden="true">
               em
             </span>
-            <h1 className="brandTitle">easy-manim console</h1>
+            <div className="brandText">
+              <h1 className="brandTitle">easy-manim console</h1>
+              <p className="brandSubtitle">面向智能体工作流的视频生成控制台</p>
+            </div>
           </Link>
+
           <div className="topBarMeta">
-            <span className="pill">Operator</span>
+            <div className="contextBadge">
+              <span className="contextLabel">当前焦点</span>
+              <strong>{activeItem.label}</strong>
+            </div>
+            <span className="pill">会话已连接</span>
+            <button className="button buttonQuiet" type="button" onClick={onSignOut}>
+              {logoutState === "loading" ? "正在退出…" : "退出登录"}
+            </button>
           </div>
         </div>
       </header>
 
       <div className="layout">
-        <nav className="sideNav" aria-label="Primary">
+        <nav className="sideNav" aria-label="主导航">
           <div className="sideNavInner">
+            <p className="sideNavEyebrow">工作流</p>
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) => `navItem ${isActive ? "isActive" : ""}`}
               >
-                {item.label}
+                <span className="navItemIndex" aria-hidden="true">
+                  {item.index}
+                </span>
+                <span className="navItemText">
+                  <strong>{item.label}</strong>
+                  <span>{item.note}</span>
+                </span>
               </NavLink>
             ))}
           </div>
           <div className="sideNavFooter">
-            <p className="muted small">Local-first. Agent-scoped.</p>
+            <p className="muted small">先生成，再校验，再微调，把真正有效的经验沉淀下来。</p>
           </div>
         </nav>
 
         <main className="main" role="main">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<RequireAuth />}>
-              <Route path="/" element={<TasksPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
-              <Route path="/memory" element={<MemoryPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/evals" element={<EvalsPage />} />
-              <Route path="/evals/:runId" element={<EvalDetailPage />} />
-            </Route>
-          </Routes>
+          <Outlet />
         </main>
       </div>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<AuthenticatedShell />}>
+          <Route path="/" element={<TasksPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
+          <Route path="/memory" element={<MemoryPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/evals" element={<EvalsPage />} />
+          <Route path="/evals/:runId" element={<EvalDetailPage />} />
+        </Route>
+      </Route>
+    </Routes>
   );
 }

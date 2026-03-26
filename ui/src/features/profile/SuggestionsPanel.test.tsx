@@ -73,16 +73,16 @@ test("lists suggestions and allows generating, applying, and dismissing", async 
 
   expect(await screen.findByText("sug-1")).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /generate suggestions/i }));
+  await user.click(screen.getByRole("button", { name: /生成建议/i }));
   expect(await screen.findByText("sug-2")).toBeInTheDocument();
 
   // Apply sug-1 specifically (avoid ambiguity after generate inserts sug-2).
-  await user.click(screen.getAllByRole("button", { name: /^apply$/i })[1]);
+  await user.click(screen.getAllByRole("button", { name: /^应用$/i })[1]);
   await waitFor(() => {
     expect(calls.some((c) => c.url.includes("/api/profile/suggestions/sug-1/apply"))).toBe(true);
   });
 
-  await user.click(screen.getAllByRole("button", { name: /^dismiss$/i })[1]);
+  await user.click(screen.getAllByRole("button", { name: /^忽略$/i })[1]);
   await waitFor(() => {
     expect(calls.some((c) => c.url.includes("/api/profile/suggestions/sug-1/dismiss"))).toBe(true);
   });

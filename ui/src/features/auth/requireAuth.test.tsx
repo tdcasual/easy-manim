@@ -13,7 +13,7 @@ test("unauthenticated access to protected routes renders login page", () => {
     </MemoryRouter>
   );
 
-  expect(screen.getByRole("heading", { name: /log in/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /登录工作台/i })).toBeInTheDocument();
 });
 
 test("authenticated access to protected routes renders the requested page", async () => {
@@ -38,6 +38,6 @@ test("authenticated access to protected routes renders the requested page", asyn
     </MemoryRouter>
   );
 
-  expect(await screen.findByRole("heading", { name: /^tasks$/i })).toBeInTheDocument();
-  expect(await screen.findByText(/no tasks yet/i)).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /^任务$/i })).toBeInTheDocument();
+  expect(await screen.findByText(/还没有任务/i)).toBeInTheDocument();
 });

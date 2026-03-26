@@ -35,6 +35,8 @@ export type TaskResult = {
   ready: boolean;
   summary?: string | null;
   video_resource?: string | null;
+  video_download_url?: string | null;
+  preview_download_urls?: string[] | null;
 };
 
 export type TaskListResponse = { items: Array<{ task_id: string; status: string }> };

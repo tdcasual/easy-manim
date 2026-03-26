@@ -1,9 +1,16 @@
 type JsonObject = Record<string, unknown>;
 
-function apiBaseUrl(): string {
+export function apiBaseUrl(): string {
   // Prefer same-origin (Vite can proxy /api in dev).
   const base = (import.meta as any).env?.VITE_API_BASE_URL;
   return typeof base === "string" ? base.replace(/\/+$/, "") : "";
+}
+
+export function resolveApiUrl(path?: string | null): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("/")) return `${apiBaseUrl()}${path}`;
+  return `${apiBaseUrl()}/${path.replace(/^\/+/, "")}`;
 }
 
 async function readJson(response: Response): Promise<JsonObject> {
@@ -36,3 +43,18 @@ export async function postSession(agentToken: string): Promise<{
   return payload as any;
 }
 
+export async function deleteCurrentSession(token: string): Promise<void> {
+  const response = await fetch(`${apiBaseUrl()}/api/sessions/current`, {
+    method: "DELETE",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok && response.status !== 401) {
+    const payload = await readJson(response);
+    const detail = typeof payload.detail === "string" ? payload.detail : "logout_failed";
+    throw new Error(detail);
+  }
+}

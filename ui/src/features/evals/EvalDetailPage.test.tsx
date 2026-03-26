@@ -53,10 +53,9 @@ test("shows eval run details and case list", async () => {
     </MemoryRouter>
   );
 
-  expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
   expect(await screen.findByText(/suite-a/i)).toBeInTheDocument();
   expect(screen.getByText("task-1")).toBeInTheDocument();
   expect(screen.getByText(/bad_color/i)).toBeInTheDocument();
   expect(screen.getByText("task-2")).toBeInTheDocument();
 });
-

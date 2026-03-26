@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { getEval, EvalRunSummary } from "../../lib/evalsApi";
+import { JsonBlock, MetricChip, PageIntro, SectionPanel, StatusPill } from "../../app/ui";
+import { EvalRunSummary, getEval } from "../../lib/evalsApi";
 import { useSession } from "../auth/useSession";
 
-function safeStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return "{}";
-  }
+function safeSuccessRate(report?: Record<string, unknown>): string {
+  const raw = report?.success_rate;
+  return typeof raw === "number" && Number.isFinite(raw) ? `${Math.round(raw * 100)}%` : "—";
 }
 
 export function EvalDetailPage() {
@@ -23,9 +21,9 @@ export function EvalDetailPage() {
     let cancelled = false;
     setError(null);
     getEval(runId, sessionToken)
-      .then((r) => {
+      .then((nextRun) => {
         if (cancelled) return;
-        setRun(r);
+        setRun(nextRun);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -38,36 +36,36 @@ export function EvalDetailPage() {
 
   if (!runId) {
     return (
-      <section>
-        <h2>Eval</h2>
-        <p className="muted">Missing run id.</p>
+      <section className="page">
+        <h2>评测详情</h2>
+        <p className="muted">缺少运行 ID。</p>
       </section>
     );
   }
 
   if (!sessionToken) {
     return (
-      <section>
-        <h2>Eval</h2>
-        <p className="muted">Not authenticated.</p>
+      <section className="page">
+        <h2>评测详情</h2>
+        <p className="muted">当前未登录。</p>
       </section>
     );
   }
 
   if (error) {
     return (
-      <section>
-        <h2>Eval</h2>
-        <p className="muted">Error: {error}</p>
+      <section className="page">
+        <h2>评测详情</h2>
+        <p className="muted">加载失败：{error}</p>
       </section>
     );
   }
 
   if (!run) {
     return (
-      <section>
-        <h2>Eval</h2>
-        <p className="muted">Loading…</p>
+      <section className="page">
+        <h2>评测详情</h2>
+        <p className="muted">正在加载…</p>
       </section>
     );
   }
@@ -75,83 +73,73 @@ export function EvalDetailPage() {
   const cases = Array.isArray(run.items) ? run.items : [];
 
   return (
-    <section>
-      <header className="sectionHeader">
+    <section className="page page--detail">
+      <PageIntro
+        eyebrow="评测运行"
+        title="评测详情"
+        description="查看用例结果、识别需要人工复核的热点，并在同一控制台里快速判断本轮质量表现。"
+        actions={
+          <Link className="button buttonQuiet" to="/evals">
+            返回评测列表
+          </Link>
+        }
+        aside={
+          <div className="metricStrip">
+            <MetricChip label="套件" value={run.suite_id} />
+            <MetricChip label="用例数" value={run.total_cases} />
+            <MetricChip label="通过率" value={safeSuccessRate(run.report)} />
+          </div>
+        }
+      />
+
+      <div className="identityBand">
         <div>
-          <h2>Eval</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            {run.run_id}
-          </p>
+          <span className="muted small">运行 ID</span>
+          <div className="identityCode">{run.run_id}</div>
         </div>
-        <Link className="button buttonQuiet" to="/evals">
-          Back
-        </Link>
-      </header>
-
-      <dl style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: "8px 12px", margin: "0 0 16px" }}>
-        <dt className="muted">Suite</dt>
-        <dd style={{ margin: 0 }}>{run.suite_id}</dd>
-        <dt className="muted">Provider</dt>
-        <dd style={{ margin: 0 }}>{run.provider}</dd>
-        <dt className="muted">Cases</dt>
-        <dd style={{ margin: 0 }}>{run.total_cases}</dd>
-      </dl>
-
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="cardTitle">Cases</div>
-        <div className="muted small">Per-case outcomes captured during the run.</div>
-        {cases.length ? (
-          <ul className="taskItems" style={{ marginTop: 12 }}>
-            {cases.map((c) => {
-              const status = String(c.status || "").toLowerCase();
-              const statusClass = status ? `taskStatus taskStatus_${status}` : "taskStatus";
-              const issueCodes = Array.isArray(c.issue_codes) ? c.issue_codes : [];
-              const quality = typeof c.quality_score === "number" ? c.quality_score : null;
-              const secs = typeof c.duration_seconds === "number" ? c.duration_seconds : null;
-              return (
-                <li key={`${c.task_id}:${c.root_task_id}`} className="taskItem">
-                  <div className="taskLink" style={{ cursor: "default" }}>
-                    <span className="taskId">{c.task_id}</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                      {c.manual_review_required ? <span className="taskStatus">review</span> : null}
-                      <span className={statusClass}>{c.status}</span>
-                    </span>
-                  </div>
-                  <div style={{ padding: "0 12px 12px" }} className="muted small">
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {secs !== null ? <span>{secs.toFixed(1)}s</span> : null}
-                      {quality !== null ? <span>q={quality.toFixed(2)}</span> : null}
-                      {issueCodes.length ? <span>issues: {issueCodes.join(", ")}</span> : <span>issues: none</span>}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="muted" style={{ marginTop: 12 }}>
-            No case results in this run payload.
-          </p>
-        )}
+        <div className="identityBandMeta">
+          <span className="muted small">提供方</span>
+          <p>{run.provider}</p>
+        </div>
       </div>
 
-      <div className="card">
-        <div className="cardTitle">Report</div>
-        <pre
-          style={{
-            margin: 0,
-            padding: 12,
-            borderRadius: 12,
-            border: "1px solid color-mix(in oklab, var(--hairline), transparent 22%)",
-            background: "color-mix(in oklab, var(--surface), transparent 4%)",
-            overflow: "auto",
-            maxHeight: 360,
-            lineHeight: 1.35,
-            fontSize: 12
-          }}
-        >
-          {safeStringify(run.report ?? {})}
-        </pre>
+      <div className="pageSplit">
+        <SectionPanel title="用例结果" detail="逐条查看本轮评测中的用例结果、人工复核标记和问题码。">
+          {cases.length ? (
+            <ul className="listStack">
+              {cases.map((item) => {
+                const quality = typeof item.quality_score === "number" ? item.quality_score.toFixed(2) : "—";
+                const duration = typeof item.duration_seconds === "number" ? `${item.duration_seconds.toFixed(1)}s` : "—";
+                const issueCodes = Array.isArray(item.issue_codes) && item.issue_codes.length ? item.issue_codes.join(", ") : "无";
+
+                return (
+                  <li key={`${item.task_id}:${item.root_task_id}`} className="listStaticRow">
+                    <div className="listPrimary">
+                      <div className="listTitleRow">
+                        <span className="listTitle">{item.task_id}</span>
+                        <div className="inlineStatusRow">
+                          {item.manual_review_required ? <StatusPill value="review" compact /> : null}
+                          <StatusPill value={item.status} compact />
+                        </div>
+                      </div>
+                      <p className="listCaption">问题码：{issueCodes}</p>
+                    </div>
+                    <div className="listMeta listMeta--column">
+                      <span className="muted small">{duration}</span>
+                      <span className="muted small">质量分：{quality}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="muted">这次运行里暂时没有可显示的用例结果。</p>
+          )}
+        </SectionPanel>
+
+        <SectionPanel title="评测报告" detail="当前评测运行返回的原始报告载荷。">
+          <JsonBlock value={run.report ?? {}} />
+        </SectionPanel>
       </div>
     </section>
   );

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 
+import { EmptyState, MetricChip, PageIntro, SectionPanel, StatusPill } from "../../app/ui";
 import {
+  AgentMemoryRecord,
   clearSessionMemory,
   disableMemory,
   getSessionMemorySummary,
   listMemories,
   promoteSessionMemory,
-  SessionMemorySummary,
-  AgentMemoryRecord
+  SessionMemorySummary
 } from "../../lib/memoryApi";
 import { useSession } from "../auth/useSession";
 
@@ -25,9 +26,9 @@ export function MemoryPage() {
     setStatus("loading");
     setError(null);
     try {
-      const [s, m] = await Promise.all([getSessionMemorySummary(sessionToken), listMemories(sessionToken)]);
-      setSummary(s);
-      setMemories(Array.isArray(m.items) ? m.items : []);
+      const [nextSummary, nextMemories] = await Promise.all([getSessionMemorySummary(sessionToken), listMemories(sessionToken)]);
+      setSummary(nextSummary);
+      setMemories(Array.isArray(nextMemories.items) ? nextMemories.items : []);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -85,19 +86,35 @@ export function MemoryPage() {
 
   if (!sessionToken) {
     return (
-      <section>
-        <h2>Memory</h2>
-        <p className="muted">Not authenticated.</p>
+      <section className="page">
+        <h2>记忆</h2>
+        <p className="muted">当前未登录。</p>
       </section>
     );
   }
 
+  const activeMemories = memories.filter((memory) => String(memory.status).toLowerCase() === "active").length;
+  const disabledMemories = memories.filter((memory) => String(memory.status).toLowerCase() !== "active").length;
+
   return (
-    <section>
-      <h2>Memory</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Session summary and persistent memories.
-      </p>
+    <section className="page">
+      <PageIntro
+        eyebrow="连续性"
+        title="记忆"
+        description="把当前会话里的有效经验整理清楚，再把值得保留的部分提升为长期记忆，帮助后续任务从更好的上下文开始。"
+        actions={
+          <button className="button buttonQuiet" type="button" onClick={refresh} disabled={status === "loading"}>
+            {status === "loading" ? "正在刷新…" : "刷新"}
+          </button>
+        }
+        aside={
+          <div className="metricStrip">
+            <MetricChip label="会话条目" value={summary?.entry_count ?? 0} />
+            <MetricChip label="启用记忆" value={activeMemories} />
+            <MetricChip label="已停用" value={disabledMemories} />
+          </div>
+        }
+      />
 
       {status === "error" ? (
         <p role="alert" className="alert">
@@ -111,74 +128,80 @@ export function MemoryPage() {
         </p>
       ) : null}
 
-      <div className="tasksGrid" style={{ marginTop: 14 }}>
-        <div className="card">
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-            <div className="cardTitle">Session</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button
-                className="button buttonQuiet"
-                type="button"
-                onClick={onClearSession}
-                disabled={actionState !== "idle"}
-              >
-                {actionState === "clearing" ? "Clearing…" : "Clear session"}
+      <div className="pageSplit">
+        <SectionPanel
+          title="会话记忆"
+          detail="这里汇总当前工作会话中的临时经验。上下文过时可以清空，判断有价值时可以提升为长期记忆。"
+          actions={
+            <div className="inlineActions">
+              <button className="button buttonQuiet" type="button" onClick={onClearSession} disabled={actionState !== "idle"}>
+                {actionState === "clearing" ? "正在清空…" : "清空会话"}
               </button>
-              <button
-                className="button buttonQuiet"
-                type="button"
-                onClick={onPromote}
-                disabled={actionState !== "idle"}
-              >
-                {actionState === "promoting" ? "Promoting…" : "Promote to persistent"}
+              <button className="button buttonPrimary" type="button" onClick={onPromote} disabled={actionState !== "idle"}>
+                {actionState === "promoting" ? "正在提升…" : "提升为长期记忆"}
               </button>
             </div>
-          </div>
+          }
+        >
           {summary ? (
-            <div style={{ display: "grid", gap: 10 }}>
-              <div className="muted small">{summary.entry_count} entr{summary.entry_count === 1 ? "y" : "ies"}</div>
-              <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{summary.summary_text || "No summary yet."}</div>
+            <div className="resultStack">
+              <div className="infoBlock">
+                <span className="infoLabel">摘要</span>
+                <p className="infoValue">{summary.summary_text || "暂时还没有会话摘要。"}</p>
+              </div>
+              <div className="metaChips">
+                <span className="metaChip">条目 {summary.entry_count}</span>
+                {summary.summary_digest ? <span className="metaChip">摘要指纹 {summary.summary_digest}</span> : null}
+                {summary.lineage_refs?.length ? <span className="metaChip">来源链路 {summary.lineage_refs.length}</span> : null}
+              </div>
             </div>
           ) : (
-            <p className="muted">{status === "loading" ? "Loading…" : "No session summary yet."}</p>
+            <EmptyState
+              title={status === "loading" ? "正在加载会话记忆" : "还没有会话摘要"}
+              body="先创建或修订几个任务。只有当智能体有了连续的工作轨迹，会话记忆才会真正变得有用。"
+            />
           )}
-        </div>
+        </SectionPanel>
 
-        <div className="card">
-          <div className="cardTitle">Persistent</div>
-          <div className="muted small">Memories promoted from sessions.</div>
+        <SectionPanel
+          title="长期记忆"
+          detail="提升后的记忆会继续附着在当前智能体上；当它不再有帮助时，也可以随时停用。"
+          className="sectionPanel--list"
+        >
           {memories.length ? (
-            <ul className="taskItems">
-              {memories.map((m) => (
-                <li key={m.memory_id} className="taskItem">
-                  <div className="taskLink" style={{ cursor: "default" }}>
-                    <span className="taskId">{m.memory_id}</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                      <span className="taskStatus">{m.status}</span>
-                      {String(m.status).toLowerCase() === "active" ? (
-                        <button
-                          className="button buttonQuiet"
-                          type="button"
-                          onClick={() => onDisable(m.memory_id)}
-                          disabled={actionState !== "idle"}
-                        >
-                          Disable
-                        </button>
-                      ) : null}
-                    </span>
+            <ul className="listStack">
+              {memories.map((memory) => (
+                <li key={memory.memory_id} className="listStaticRow">
+                  <div className="listPrimary">
+                    <div className="listTitleRow">
+                      <span className="listTitle">{memory.memory_id}</span>
+                      <StatusPill value={memory.status} compact />
+                    </div>
+                    <p className="listCaption">{memory.summary_text}</p>
                   </div>
-                  <div style={{ padding: "0 12px 12px" }} className="muted small">
-                    {m.summary_text}
+                  <div className="listMeta listMeta--column">
+                    <span className="muted small">来源会话：{memory.source_session_id}</span>
+                    {String(memory.status).toLowerCase() === "active" ? (
+                      <button
+                        className="button buttonQuiet"
+                        type="button"
+                        onClick={() => onDisable(memory.memory_id)}
+                        disabled={actionState !== "idle"}
+                      >
+                        停用
+                      </button>
+                    ) : null}
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="muted" style={{ marginTop: 12 }}>
-              No persistent memories yet.
-            </p>
+            <EmptyState
+              title="还没有长期记忆"
+              body="当会话摘要已经体现出可复用的偏好或流程习惯时，再把它提升为长期记忆会更合适。"
+            />
           )}
-        </div>
+        </SectionPanel>
       </div>
     </section>
   );

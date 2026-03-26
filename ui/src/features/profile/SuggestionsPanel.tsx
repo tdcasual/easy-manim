@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { EmptyState, SectionPanel, StatusPill } from "../../app/ui";
 import {
   AgentProfileSuggestion,
   applySuggestion,
@@ -91,74 +92,73 @@ export function SuggestionsPanel() {
   }
 
   if (!sessionToken) {
-    return <p className="muted">Not authenticated.</p>;
+    return <p className="muted">当前未登录。</p>;
   }
 
   return (
-    <div style={{ marginTop: 16 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-        <div className="cardTitle" style={{ marginBottom: 0 }}>
-          Suggestions
-        </div>
+    <SectionPanel
+      title="建议"
+      detail="查看系统生成的画像补丁建议，并决定是否显式应用或忽略。"
+      actions={
         <button className="button buttonQuiet" type="button" onClick={onGenerate} disabled={actionState !== "idle"}>
-          {actionState === "generating" ? "Generating…" : "Generate suggestions"}
+          {actionState === "generating" ? "正在生成…" : "生成建议"}
         </button>
-      </div>
-      <div className="muted small" style={{ marginTop: 6 }}>
-        Review proposed profile patches, then apply or dismiss.
-      </div>
-
+      }
+      className="sectionPanel--list"
+    >
       {status === "error" ? (
         <p role="alert" className="alert">
           {error || "suggestions_load_failed"}
         </p>
       ) : null}
 
-      {status === "loading" && items.length === 0 ? <p className="muted">Loading…</p> : null}
+      {status === "loading" && items.length === 0 ? <p className="muted">正在加载…</p> : null}
 
       {items.length ? (
-        <ul className="taskItems" style={{ marginTop: 12 }}>
-          {items.map((s) => (
-            <li key={s.suggestion_id} className="taskItem">
-              <div className="taskLink" style={{ cursor: "default" }}>
-                <span className="taskId">{s.suggestion_id}</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <span className="taskStatus">{s.status}</span>
-                  {String(s.status).toLowerCase() === "pending" ? (
-                    <>
-                      <button
-                        className="button buttonQuiet"
-                        type="button"
-                        onClick={() => onApply(s.suggestion_id)}
-                        disabled={actionState !== "idle"}
-                      >
-                        Apply
-                      </button>
-                      <button
-                        className="button buttonQuiet"
-                        type="button"
-                        onClick={() => onDismiss(s.suggestion_id)}
-                        disabled={actionState !== "idle"}
-                      >
-                        Dismiss
-                      </button>
-                    </>
-                  ) : null}
-                </span>
+        <ul className="listStack">
+          {items.map((suggestion) => (
+            <li key={suggestion.suggestion_id} className="listStaticRow">
+              <div className="listPrimary">
+                <div className="listTitleRow">
+                  <span className="listTitle">{suggestion.suggestion_id}</span>
+                  <StatusPill value={suggestion.status} compact />
+                </div>
+                <p className="listCaption">补丁：{safeOneLine(suggestion.patch_json)}</p>
+                {Object.keys(suggestion.rationale_json || {}).length ? (
+                  <p className="listCaption">原因：{safeOneLine(suggestion.rationale_json)}</p>
+                ) : null}
               </div>
-              <div style={{ padding: "0 12px 12px" }} className="muted small">
-                <div>Patch: {safeOneLine(s.patch_json)}</div>
-                {Object.keys(s.rationale_json || {}).length ? <div>Rationale: {safeOneLine(s.rationale_json)}</div> : null}
+              <div className="listMeta">
+                {String(suggestion.status).toLowerCase() === "pending" ? (
+                  <div className="inlineActions">
+                    <button
+                      className="button buttonQuiet"
+                      type="button"
+                      onClick={() => onApply(suggestion.suggestion_id)}
+                      disabled={actionState !== "idle"}
+                    >
+                      应用
+                    </button>
+                    <button
+                      className="button buttonQuiet"
+                      type="button"
+                      onClick={() => onDismiss(suggestion.suggestion_id)}
+                      disabled={actionState !== "idle"}
+                    >
+                      忽略
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </li>
           ))}
         </ul>
       ) : status === "loading" ? null : (
-        <p className="muted" style={{ marginTop: 10 }}>
-          No suggestions yet.
-        </p>
+        <EmptyState
+          title="还没有建议"
+          body="等智能体再多积累一些任务、记忆或评测历史后，再生成一批建议会更有价值。"
+        />
       )}
-    </div>
+    </SectionPanel>
   );
 }
-
