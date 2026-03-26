@@ -108,7 +108,8 @@ def test_recent_videos_endpoint_returns_playable_tasks(tmp_path: Path) -> None:
     assert entry["display_title"] == "蓝色圆形开场动画"
     assert entry["title_source"] == "prompt"
     assert entry["status"] == TaskStatus.COMPLETED.value
+    assert isinstance(entry["updated_at"], str)
+    assert datetime.fromisoformat(entry["updated_at"])
     assert entry["latest_summary"] == "最新摘要"
     assert entry["latest_video_url"] == f"/api/tasks/{task_id}/artifacts/final_video.mp4"
     assert entry["latest_preview_url"] == f"/api/tasks/{task_id}/artifacts/previews/{preview.name}"
-
