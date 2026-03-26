@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -86,9 +87,31 @@ def _tool_payload_or_http_error(payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=code)
     if code in {"agent_access_denied", "agent_memory_forbidden", "agent_scope_denied"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=code)
-    if code == "agent_memory_not_found":
+    if code in {"agent_memory_not_found", "task_not_found"}:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=code)
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=code)
+
+
+def _allowed_task_artifact_resource_uri(task_id: str, artifact_path: str) -> str:
+    normalized = Path(artifact_path)
+    if normalized.is_absolute() or ".." in normalized.parts or artifact_path.strip() == "":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resource_not_found")
+
+    allowed_prefixes = ("previews/",)
+    allowed_names = {
+        "final_video.mp4",
+        "current_script.py",
+        "scene_plan.json",
+        "failure_context.json",
+        "failure_contract.json",
+    }
+    path_text = normalized.as_posix()
+
+    if path_text.startswith(allowed_prefixes) or path_text in allowed_names:
+        return f"video-task://{task_id}/artifacts/{path_text}"
+    if path_text.startswith("validations/") or path_text.startswith("logs/"):
+        return f"video-task://{task_id}/{path_text}"
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resource_not_found")
 
 
 def _strip_internal_session_fields(payload: dict[str, Any]) -> dict[str, Any]:
@@ -617,44 +640,50 @@ def create_http_api(settings: Settings) -> FastAPI:
 
     @app.get("/api/tasks/{task_id}/result")
     def get_task_result(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
-        payload = _tool_payload_or_http_error(
-            get_video_result_tool(
-                context,
-                {"task_id": task_id},
-                agent_principal=resolved.agent_principal,
+        try:
+            payload = _tool_payload_or_http_error(
+                get_video_result_tool(
+                    context,
+                    {"task_id": task_id},
+                    agent_principal=resolved.agent_principal,
+                )
             )
-        )
+        except KeyError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task_not_found") from exc
 
-        task_dir = context.artifact_store.task_dir(task_id)
         final_video_path = context.artifact_store.final_video_path(task_id)
         script_path = context.artifact_store.script_path(task_id)
         previews_dir = context.artifact_store.previews_dir(task_id)
+        validations_dir = context.artifact_store.task_dir(task_id) / "validations"
 
-        has_video = bool(payload.get("video_resource")) or final_video_path.exists()
-        if has_video:
+        if final_video_path.exists():
             payload["video_download_url"] = f"/api/tasks/{task_id}/artifacts/final_video.mp4"
 
         preview_resources = payload.get("preview_frame_resources") or []
+        preview_urls: list[str] = []
         if preview_resources:
-            payload["preview_download_urls"] = [
-                f"/api/tasks/{task_id}/artifacts/previews/{Path(str(uri)).name}" for uri in preview_resources
-            ]
+            for uri in preview_resources:
+                name = Path(str(uri)).name
+                candidate = previews_dir / name
+                if candidate.exists() and candidate.is_file():
+                    preview_urls.append(f"/api/tasks/{task_id}/artifacts/previews/{name}")
         elif previews_dir.exists():
-            frames = sorted(p.name for p in previews_dir.glob("*.png"))
-            if frames:
-                payload["preview_download_urls"] = [
-                    f"/api/tasks/{task_id}/artifacts/previews/{name}" for name in frames
-                ]
+            for frame in sorted(previews_dir.glob("*.png")):
+                if frame.is_file():
+                    preview_urls.append(f"/api/tasks/{task_id}/artifacts/previews/{frame.name}")
+        if preview_urls:
+            payload["preview_download_urls"] = preview_urls
 
-        has_script = bool(payload.get("script_resource")) or script_path.exists()
-        if has_script:
+        if script_path.exists():
             payload["script_download_url"] = f"/api/tasks/{task_id}/artifacts/current_script.py"
 
         if payload.get("validation_report_resource"):
             report_rel = str(payload["validation_report_resource"]).replace(f"video-task://{task_id}/", "")
-            payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/{report_rel}"
-        else:
-            reports = sorted((task_dir / "validations").glob("*.json")) if (task_dir / "validations").exists() else []
+            candidate = context.artifact_store.task_dir(task_id) / report_rel
+            if candidate.exists() and candidate.is_file():
+                payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/{report_rel}"
+        elif validations_dir.exists():
+            reports = [p for p in sorted(validations_dir.glob("*.json")) if p.is_file()]
             if reports:
                 payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/validations/{reports[-1].name}"
         return payload
@@ -665,7 +694,15 @@ def create_http_api(settings: Settings) -> FastAPI:
         artifact_path: str,
         resolved: ResolvedAgentSession = Depends(resolve_agent_session),
     ) -> FileResponse:
-        resource_uri = f"video-task://{task_id}/artifacts/{artifact_path}" if not artifact_path.startswith("artifacts/") and not artifact_path.startswith("validations/") and not artifact_path.startswith("logs/") else f"video-task://{task_id}/{artifact_path}"
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "task:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="agent_scope_denied") from exc
+
+        if artifact_path.startswith(("artifacts/", "validations/", "logs/")):
+            resource_uri = f"video-task://{task_id}/{artifact_path}"
+        else:
+            resource_uri = f"video-task://{task_id}/artifacts/{artifact_path}"
         try:
             resolved_task_id, target = resolve_resource_path(
                 context,
@@ -674,6 +711,8 @@ def create_http_api(settings: Settings) -> FastAPI:
             )
         except PermissionError as exc:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="agent_access_denied") from exc
+        except KeyError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task_not_found") from exc
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resource_not_found") from exc
         if resolved_task_id != task_id or not target.exists() or not target.is_file():
