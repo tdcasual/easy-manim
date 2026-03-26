@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
@@ -24,33 +24,44 @@ function mockViewport(isMobile: boolean) {
 
 test("mobile closed sidebar stays out of the accessibility tree until opened", async () => {
   const user = userEvent.setup();
-  writeSessionToken("sess-token-1");
-  mockViewport(true);
+  const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    writeSessionToken("sess-token-1");
+    mockViewport(true);
 
-  // @ts-expect-error - test shim
-  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
-    const path = new URL(String(url), "http://example.test").pathname;
-    if (path === "/api/tasks" && (!init?.method || init.method === "GET")) {
-      return new Response(JSON.stringify({ items: [] }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    }
-    return new Response("not found", { status: 404 });
-  });
+    // @ts-expect-error - test shim
+    globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      const path = new URL(String(url), "http://example.test").pathname;
+      if (path === "/api/tasks" && (!init?.method || init.method === "GET")) {
+        return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
 
-  render(
-    <MemoryRouter initialEntries={["/tasks"]}>
-      <App />
-    </MemoryRouter>
-  );
+    render(
+      <MemoryRouter initialEntries={["/tasks"]}>
+        <App />
+      </MemoryRouter>
+    );
 
-  expect(await screen.findByRole("heading", { name: /任务管理/i })).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /退出登录/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /任务管理/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /退出登录/i })).not.toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /打开菜单/i }));
+    await user.click(screen.getByRole("button", { name: /打开菜单/i }));
 
-  expect(screen.getByRole("button", { name: /退出登录/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /退出登录/i })).toBeInTheDocument();
 
-  clearSessionToken();
+    act(() => {
+      clearSessionToken();
+    });
+
+    expect(
+      consoleErrorSpy.mock.calls.some(([firstArg]) => String(firstArg).includes("not wrapped in act"))
+    ).toBe(false);
+  } finally {
+    consoleErrorSpy.mockRestore();
+  }
 });
