@@ -3,23 +3,19 @@ import { Link } from "react-router-dom";
 
 import { EmptyState, MetricChip, PageIntro, SectionPanel, StatusPill } from "../../app/ui";
 import { resolveApiUrl } from "../../lib/api";
-import { createTask, getTaskResult, listTasks } from "../../lib/tasksApi";
+import { createTask, listTasks, TaskListItem } from "../../lib/tasksApi";
+import { listRecentVideos, RecentVideoItem } from "../../lib/videosApi";
 import { useSession } from "../auth/useSession";
-
-type TaskListItem = { task_id: string; status: string };
-type RecentVideoItem = {
-  task_id: string;
-  status: string;
-  summary: string;
-  videoUrl: string;
-  previewUrl?: string;
-};
 
 const QUICK_PROMPTS = [
   "画一个蓝色圆形，并保持画面干净简洁",
   "制作一个带中文标签的正弦波动画",
   "做一个对比季度营收的柱状图，适合中文演示"
 ] as const;
+
+function readDisplayTitle(displayTitle: string | null | undefined, taskId: string): string {
+  return String(displayTitle || "").trim() || taskId;
+}
 
 export function TasksPage() {
   const { sessionToken } = useSession();
@@ -33,42 +29,16 @@ export function TasksPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function refreshRecentVideos(taskItems: TaskListItem[], token: string) {
-    const candidates = taskItems.slice(0, 8);
-    if (!candidates.length) {
-      setRecentVideos([]);
-      setVideoState("idle");
-      return;
-    }
-
+  async function refreshRecentVideos(token: string) {
     setVideoState("loading");
-    const settled = await Promise.allSettled(
-      candidates.map(async (task) => {
-        const result = await getTaskResult(task.task_id, token);
-        const videoUrl = resolveApiUrl(result.video_download_url);
-        if (!videoUrl) return null;
-
-        const previewUrls = Array.isArray(result.preview_download_urls)
-          ? result.preview_download_urls.map((url) => resolveApiUrl(url)).filter((url): url is string => Boolean(url))
-          : [];
-
-        return {
-          task_id: task.task_id,
-          status: task.status,
-          summary: String(result.summary ?? "").trim() || "视频已生成，可继续查看任务详情或发起修订。",
-          videoUrl,
-          previewUrl: previewUrls[0]
-        } satisfies RecentVideoItem;
-      })
-    );
-
-    setRecentVideos(
-      settled.flatMap((item) => {
-        if (item.status !== "fulfilled" || !item.value) return [];
-        return [item.value];
-      })
-    );
-    setVideoState("idle");
+    try {
+      const response = await listRecentVideos(token, 8);
+      setRecentVideos(Array.isArray(response.items) ? response.items : []);
+    } catch {
+      setRecentVideos([]);
+    } finally {
+      setVideoState("idle");
+    }
   }
 
   async function refresh() {
@@ -80,7 +50,7 @@ export function TasksPage() {
       const nextItems = Array.isArray(response.items) ? response.items : [];
       setItems(nextItems);
       setLoadingState("idle");
-      void refreshRecentVideos(nextItems, sessionToken);
+      void refreshRecentVideos(sessionToken);
     } catch (err) {
       setLoadingState("error");
       setError(err instanceof Error ? err.message : "task_list_failed");
@@ -112,8 +82,16 @@ export function TasksPage() {
       const created = await createTask(trimmed, sessionToken);
       setPrompt("");
       if (created?.task_id) {
-        // Optimistic insert so the operator sees the new id immediately.
-        setItems((prev) => [{ task_id: created.task_id, status: "queued" }, ...prev]);
+        // Optimistic insert so the operator sees the new title immediately.
+        setItems((prev) => [
+          {
+            task_id: created.task_id,
+            status: "queued",
+            display_title: created.display_title ?? trimmed,
+            title_source: created.title_source ?? "prompt"
+          },
+          ...prev
+        ]);
       }
       await refresh();
     } catch (err) {
@@ -208,35 +186,47 @@ export function TasksPage() {
 
           {recentVideos.length ? (
             <div className="videoGallery" aria-label="recent videos">
-              {recentVideos.map((video) => (
-                <article key={video.task_id} className="videoCard">
-                  <div className="videoFrame">
-                    <video
-                      className="videoPlayer"
-                      controls
-                      playsInline
-                      preload="metadata"
-                      poster={video.previewUrl}
-                      src={video.videoUrl}
-                    />
-                  </div>
-                  <div className="videoCardBody">
-                    <div className="listTitleRow">
-                      <span className="listTitle">{video.task_id}</span>
-                      <StatusPill value={String(video.status)} compact />
+              {recentVideos.map((video) => {
+                const displayTitle = readDisplayTitle(video.display_title, video.task_id);
+                const videoUrl = resolveApiUrl(video.latest_video_url);
+                const previewUrl = resolveApiUrl(video.latest_preview_url);
+                return (
+                  <article key={video.task_id} className="videoCard">
+                    <div className="videoFrame">
+                      <video
+                        className="videoPlayer"
+                        controls
+                        playsInline
+                        preload="metadata"
+                        poster={previewUrl || undefined}
+                        src={videoUrl || undefined}
+                      />
                     </div>
-                    <p className="listCaption">{video.summary}</p>
-                    <div className="inlineActions">
-                      <Link className="button buttonQuiet" to={`/tasks/${encodeURIComponent(video.task_id)}`}>
-                        查看任务
-                      </Link>
-                      <a className="resourceLink" href={video.videoUrl} target="_blank" rel="noreferrer">
-                        打开视频
-                      </a>
+                    <div className="videoCardBody">
+                      <div className="listTitleRow">
+                        <span className="listTitle">{displayTitle}</span>
+                        <StatusPill value={String(video.status)} compact />
+                      </div>
+                      <div className="metaChips">
+                        <span className="metaChip">{video.task_id}</span>
+                      </div>
+                      <p className="listCaption">
+                        {String(video.latest_summary || "").trim() || "视频已生成，可继续查看任务详情或发起修订。"}
+                      </p>
+                      <div className="inlineActions">
+                        <Link className="button buttonQuiet" to={`/tasks/${encodeURIComponent(video.task_id)}`}>
+                          查看详情
+                        </Link>
+                        {videoUrl ? (
+                          <a className="resourceLink" href={videoUrl} target="_blank" rel="noreferrer">
+                            打开视频
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           ) : videoState === "loading" ? null : (
             <EmptyState
@@ -261,8 +251,8 @@ export function TasksPage() {
                 <li key={task.task_id}>
                   <Link className="listLinkRow" to={`/tasks/${encodeURIComponent(task.task_id)}`}>
                     <div className="listPrimary">
-                      <span className="listTitle">{task.task_id}</span>
-                      <span className="listCaption">打开详情页，查看视频、校验结果和修订入口。</span>
+                      <span className="listTitle">{readDisplayTitle(task.display_title, task.task_id)}</span>
+                      <span className="listCaption">任务 ID {task.task_id} · 打开详情页，查看视频、校验结果和修订入口。</span>
                     </div>
                     <div className="listMeta">
                       <StatusPill value={String(task.status)} />

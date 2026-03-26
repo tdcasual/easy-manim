@@ -85,6 +85,7 @@ easy-manim-worker --data-dir data
 - use `easy-manim-agent-admin --data-dir data create-profile ...` and `issue-token ...` before external agent clients log in
 - login once through `POST /api/sessions`, then send `Authorization: Bearer <session_token>` on task, memory, profile, and eval requests
 - use `GET /api/profile/evals` and `GET /api/profile/evals/<run_id>` to inspect agent-scoped eval summaries over plain HTTP
+- `GET /api/videos/recent` returns the most recent playable task outputs, already shaped for the operator console's `视频` page
 
 ## Run server and worker separately
 ```bash
@@ -104,6 +105,16 @@ easy-manim-cleanup --data-dir data --older-than-hours 24 --status completed --dr
 easy-manim-export-task --data-dir data --task-id <task_id> --output /tmp/<task_id>.zip
 easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --agent-id agent-a --memory-id mem-1 --profile-patch-json '{"style_hints":{"tone":"teaching"}}' --json
 ```
+
+## Run the operator console
+```bash
+npm --prefix ui install
+VITE_API_BASE_URL=http://127.0.0.1:8001 npm --prefix ui dev
+```
+
+- after login, `/tasks` acts as the Chinese-first creation queue and now shows `display_title` before `task_id`
+- `/videos` aggregates recent playable results over `GET /api/videos/recent` so operators can review outputs before jumping back into revision
+- task detail pages keep `task_id` visible as secondary metadata while using the human-readable title as the primary heading
 
 ## Local execution model
 - `FastMCP` server lives in `video_agent.server.fastmcp_server`

@@ -1,9 +1,5 @@
 import { clearSessionToken } from "./session";
-
-function apiBaseUrl(): string {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL;
-  return typeof base === "string" ? base.replace(/\/+$/, "") : "";
-}
+import { apiBaseUrl } from "./api";
 
 async function requestJson<T>(path: string, init: RequestInit, token: string): Promise<T> {
   const headers = new Headers(init.headers);
@@ -22,6 +18,8 @@ async function requestJson<T>(path: string, init: RequestInit, token: string): P
 
 export type TaskSnapshot = {
   task_id: string;
+  display_title?: string | null;
+  title_source?: string | null;
   status: string;
   phase: string;
   attempt_count?: number;
@@ -39,14 +37,27 @@ export type TaskResult = {
   preview_download_urls?: string[] | null;
 };
 
-export type TaskListResponse = { items: Array<{ task_id: string; status: string }> };
+export type TaskListItem = {
+  task_id: string;
+  status: string;
+  display_title?: string | null;
+  title_source?: string | null;
+};
+
+export type TaskListResponse = { items: TaskListItem[] };
+
+export type CreateTaskResponse = {
+  task_id: string;
+  display_title?: string | null;
+  title_source?: string | null;
+};
 
 export async function listTasks(token: string): Promise<TaskListResponse> {
   return requestJson<TaskListResponse>("/api/tasks", { method: "GET" }, token);
 }
 
-export async function createTask(prompt: string, token: string): Promise<{ task_id: string }> {
-  return requestJson<{ task_id: string }>(
+export async function createTask(prompt: string, token: string): Promise<CreateTaskResponse> {
+  return requestJson<CreateTaskResponse>(
     "/api/tasks",
     { method: "POST", body: JSON.stringify({ prompt }) },
     token

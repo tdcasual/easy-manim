@@ -922,6 +922,11 @@ h2 {
   gap: 1rem;
 }
 
+.videoGallery--tiles {
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  align-items: start;
+}
+
 .videoCard {
   display: grid;
   gap: 0.9rem;

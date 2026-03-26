@@ -15,6 +15,8 @@ test("shows task status and result summary", async () => {
       return new Response(
         JSON.stringify({
           task_id: "task-1",
+          display_title: "蓝色圆形开场动画",
+          title_source: "prompt",
           status: "completed",
           phase: "completed",
           attempt_count: 1,
@@ -51,6 +53,7 @@ test("shows task status and result summary", async () => {
 
   expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
 
+  expect(await screen.findByRole("heading", { name: "蓝色圆形开场动画" })).toBeInTheDocument();
   expect(await screen.findByText("task-1")).toBeInTheDocument();
   expect(screen.getAllByText(/已完成/i).length).toBeGreaterThanOrEqual(1);
   expect(screen.getAllByText(/validation passed/i).length).toBeGreaterThanOrEqual(1);
@@ -70,6 +73,8 @@ test("allows revising a task with feedback", async () => {
       return new Response(
         JSON.stringify({
           task_id: "task-1",
+          display_title: "蓝色圆形开场动画",
+          title_source: "prompt",
           status: "completed",
           phase: "completed",
           attempt_count: 1,
@@ -106,7 +111,7 @@ test("allows revising a task with feedback", async () => {
     </MemoryRouter>
   );
 
-  expect(await screen.findByText("task-1")).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "蓝色圆形开场动画" })).toBeInTheDocument();
 
   await user.type(screen.getByLabelText(/修订说明/i), "改成蓝色");
   await user.click(screen.getByRole("button", { name: /提交修订/i }));
@@ -129,6 +134,8 @@ test("allows retrying a failed task", async () => {
       return new Response(
         JSON.stringify({
           task_id: "task-1",
+          display_title: "蓝色圆形开场动画",
+          title_source: "prompt",
           status: "failed",
           phase: "failed",
           attempt_count: 2,
@@ -165,7 +172,7 @@ test("allows retrying a failed task", async () => {
     </MemoryRouter>
   );
 
-  expect(await screen.findByText("task-1")).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "蓝色圆形开场动画" })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: /失败重试/i }));
 
@@ -187,6 +194,8 @@ test("allows cancelling an active task", async () => {
       return new Response(
         JSON.stringify({
           task_id: "task-1",
+          display_title: "蓝色圆形开场动画",
+          title_source: "prompt",
           status: "running",
           phase: "rendering",
           attempt_count: 1,
@@ -226,7 +235,7 @@ test("allows cancelling an active task", async () => {
     </MemoryRouter>
   );
 
-  expect(await screen.findByText("task-1")).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "蓝色圆形开场动画" })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: /取消任务/i }));
 

@@ -75,6 +75,15 @@ curl -s -X DELETE http://127.0.0.1:8001/api/sessions/current \
   -H "Authorization: Bearer ${SESSION_TOKEN}"
 ```
 
+### Browse the operator console
+
+With the API running, the React console now exposes two primary browser surfaces:
+
+- `/tasks` for Chinese-first task creation, queue review, and title-first task cards
+- `/videos` for recent playable outputs aggregated from `GET /api/videos/recent`
+
+Task and video cards now prefer the backend `display_title` while still keeping `task_id` visible as secondary metadata in list/detail views.
+
 ### Download artifacts over HTTP
 
 Once a task completes, clients can stay fully on the HTTP API and download task artifacts directly.

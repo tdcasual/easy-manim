@@ -5,6 +5,7 @@ import { EvalsPage } from "./pages/EvalsPage";
 import { MemoryPage } from "./pages/MemoryPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { TasksPage } from "./pages/TasksPage";
+import { VideosPage } from "./pages/VideosPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { useSession } from "../features/auth/useSession";
 import { TaskDetailPage } from "../features/tasks/TaskDetailPage";
@@ -13,9 +14,10 @@ import { deleteCurrentSession } from "../lib/api";
 
 const NAV_ITEMS = [
   { to: "/tasks", label: "任务", note: "创建任务、查看队列，并围绕结果快速迭代。", index: "01" },
-  { to: "/memory", label: "记忆", note: "把会话经验沉淀为可复用的长期上下文。", index: "02" },
-  { to: "/profile", label: "画像", note: "管理智能体画像，并显式应用补丁。", index: "03" },
-  { to: "/evals", label: "评测", note: "回看质量回归与评测运行结果。", index: "04" }
+  { to: "/videos", label: "视频", note: "回看最近可播放的结果，并快速继续修订。", index: "02" },
+  { to: "/memory", label: "记忆", note: "把会话经验沉淀为可复用的长期上下文。", index: "03" },
+  { to: "/profile", label: "画像", note: "管理智能体画像，并显式应用补丁。", index: "04" },
+  { to: "/evals", label: "评测", note: "回看质量回归与评测运行结果。", index: "05" }
 ] as const;
 
 function RequireAuth() {
@@ -122,6 +124,7 @@ export function App() {
         <Route element={<AuthenticatedShell />}>
           <Route path="/" element={<TasksPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/videos" element={<VideosPage />} />
           <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
           <Route path="/memory" element={<MemoryPage />} />
           <Route path="/profile" element={<ProfilePage />} />

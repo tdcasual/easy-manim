@@ -132,6 +132,7 @@ export function TaskDetailPage() {
 
   const status = String(snapshot.status);
   const phase = String(snapshot.phase);
+  const displayTitle = String(snapshot.display_title || "").trim() || snapshot.task_id;
   const terminal = TERMINAL.has(status);
   const validationSummary = snapshot.latest_validation_summary?.summary || result?.summary || "暂时还没有校验结论。";
   const videoUrl = resolveApiUrl(result?.video_download_url);
@@ -149,8 +150,8 @@ export function TaskDetailPage() {
   return (
     <section className="page page--detail">
       <PageIntro
-        eyebrow="任务"
-        title="任务详情"
+        eyebrow="视频工作台"
+        title={displayTitle}
         description="查看当前产出，直接回看视频，并通过精确的中文修订说明继续推动同一条工作链路。"
         actions={
           <div className="inlineActions">
@@ -240,7 +241,7 @@ export function TaskDetailPage() {
                 </div>
               ) : previewUrls[0] ? (
                 <div className="mediaStage">
-                  <img className="mediaPreview" src={previewUrls[0]} alt={`${snapshot.task_id} 预览帧`} />
+                  <img className="mediaPreview" src={previewUrls[0]} alt={`${displayTitle} 预览帧`} />
                 </div>
               ) : null}
 
