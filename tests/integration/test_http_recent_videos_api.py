@@ -115,7 +115,7 @@ def test_recent_videos_endpoint_returns_playable_tasks(tmp_path: Path) -> None:
     assert entry["latest_preview_url"] == f"/api/tasks/{task_id}/artifacts/previews/{preview.name}"
 
 
-def test_recent_videos_endpoint_orders_by_last_update(tmp_path: Path) -> None:
+def test_recent_videos_endpoint_prefers_most_recent_updated_playable_tasks(tmp_path: Path) -> None:
     client = TestClient(create_http_api(_build_http_task_settings(tmp_path)))
     _seed_agent(client, "agent-a", "agent-a-secret")
     session_token = _login(client, "agent-a-secret")
@@ -162,15 +162,26 @@ def test_recent_videos_endpoint_orders_by_last_update(tmp_path: Path) -> None:
         ValidationReport(decision=ValidationDecision.PASS, passed=True, summary="second summary"),
     )
 
+    third = client.post(
+        "/api/tasks",
+        json={"prompt": "做一个临时占位任务"},
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+    third_id = third.json()["task_id"]
+    third_task = context.store.get_task(third_id)
+    assert third_task is not None
+    third_task.status = TaskStatus.COMPLETED
+    third_task.phase = TaskPhase.COMPLETED
+    context.store.update_task(third_task)
+
     first_task = context.store.get_task(first_id)
     assert first_task is not None
     first_task.status = TaskStatus.COMPLETED
     first_task.phase = TaskPhase.COMPLETED
     context.store.update_task(first_task)
 
-    response = client.get("/api/videos/recent", headers={"Authorization": f"Bearer {session_token}"})
+    response = client.get("/api/videos/recent?limit=1", headers={"Authorization": f"Bearer {session_token}"})
     assert response.status_code == 200
     items = response.json()["items"]
-    assert len(items) == 2
+    assert len(items) == 1
     assert items[0]["task_id"] == first_id
-    assert items[1]["task_id"] == second_id

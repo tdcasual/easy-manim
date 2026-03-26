@@ -354,11 +354,13 @@ class TaskService:
 
     def list_recent_videos_for_agent(self, agent_id: str, limit: int = 12) -> list[dict[str, Any]]:
         candidates: list[dict[str, Any]] = []
-        rows = self.store.list_tasks(limit=max(limit * 2, limit), agent_id=agent_id)
-        rows.sort(key=lambda row: row.get("updated_at") or "", reverse=True)
+        rows = self.store.list_tasks(
+            limit=None,
+            status=TaskStatus.COMPLETED.value,
+            agent_id=agent_id,
+            order_by="updated_at",
+        )
         for row in rows:
-            if row["status"] != TaskStatus.COMPLETED.value:
-                continue
             task_id = row["task_id"]
             task_dir = self.artifact_store.task_dir(task_id)
             final_video_path = task_dir / "artifacts" / "final_video.mp4"
@@ -386,7 +388,6 @@ class TaskService:
             )
             if len(candidates) >= limit:
                 break
-        candidates.sort(key=lambda item: item["updated_at"], reverse=True)
         return candidates
 
     def _derive_display_title(self, prompt: str) -> tuple[str, str]:

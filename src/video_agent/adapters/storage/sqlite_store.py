@@ -776,10 +776,13 @@ class SQLiteTaskStore:
 
     def list_tasks(
         self,
-        limit: int = 50,
+        limit: Optional[int] = 50,
         status: Optional[str] = None,
         agent_id: Optional[str] = None,
+        order_by: str = "created_at",
     ) -> list[dict[str, Any]]:
+        if order_by not in {"created_at", "updated_at"}:
+            raise ValueError(f"unsupported_task_order:{order_by}")
         query = "SELECT task_id, display_title, title_source, status, phase, prompt, created_at, updated_at FROM video_tasks"
         params: list[Any] = []
         clauses: list[str] = []
@@ -791,8 +794,10 @@ class SQLiteTaskStore:
             params.append(agent_id)
         if clauses:
             query += " WHERE " + " AND ".join(clauses)
-        query += " ORDER BY created_at DESC LIMIT ?"
-        params.append(limit)
+        query += f" ORDER BY {order_by} DESC"
+        if limit is not None:
+            query += " LIMIT ?"
+            params.append(limit)
         with self._connect() as connection:
             rows = connection.execute(query, tuple(params)).fetchall()
         return [
