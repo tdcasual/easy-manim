@@ -43,6 +43,8 @@ class VideoTask(BaseModel):
     repair_stop_reason: Optional[str] = None
     current_script_artifact_id: Optional[str] = None
     best_result_artifact_id: Optional[str] = None
+    display_title: Optional[str] = None
+    title_source: Optional[str] = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
 
@@ -81,4 +83,6 @@ class VideoTask(BaseModel):
             effective_policy_flags=parent.effective_policy_flags,
             current_script_artifact_id=parent.current_script_artifact_id if preserve_working_parts else None,
             best_result_artifact_id=parent.best_result_artifact_id if preserve_working_parts else None,
+            display_title=parent.display_title,
+            title_source=parent.title_source,
         )

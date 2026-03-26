@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -26,11 +27,34 @@ from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
 
 
+_DISPLAY_TITLE_SPLIT_REGEX = re.compile(r"[\n\r，,.;:：；？！!?]+")
+_DISPLAY_TITLE_MAX_LENGTH = 20
+_TITLE_PREFIXES_TO_STRIP = (
+    "请帮我做一个",
+    "请帮我生成一个",
+    "帮我做一个",
+    "帮我生成一个",
+    "请制作一个",
+    "请创建一个",
+    "请做一个",
+    "制作一个",
+    "生成一个",
+    "创建一个",
+    "设计一个",
+    "做一个",
+    "做个",
+    "画一个",
+    "画个",
+)
+
+
 class CreateVideoTaskResult(BaseModel):
     task_id: str
     status: TaskStatus
     poll_after_ms: int
     resource_refs: list[str] = Field(default_factory=list)
+    display_title: Optional[str] = None
+    title_source: Optional[str] = None
 
 
 class VideoTaskSnapshot(BaseModel):
@@ -113,6 +137,7 @@ class TaskService:
                 validation_profile=validation_profile,
             ),
         )
+        display_title, title_source = self._derive_display_title(prompt)
         task = VideoTask(
             agent_id=principal.agent_id,
             session_id=session_id,
@@ -128,6 +153,8 @@ class TaskService:
             effective_request_profile=effective_request_profile,
             effective_profile_digest=compute_profile_digest(effective_request_profile),
             effective_policy_flags=dict(principal.profile.policy_json),
+            display_title=display_title,
+            title_source=title_source,
         )
         persisted = self.store.create_task(task, idempotency_key=idempotency_key)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
@@ -140,6 +167,8 @@ class TaskService:
             status=persisted.status,
             poll_after_ms=self.settings.default_poll_after_ms,
             resource_refs=[self._task_resource_ref(persisted.task_id)],
+            display_title=persisted.display_title,
+            title_source=persisted.title_source,
         )
 
     def get_video_task(self, task_id: str) -> VideoTaskSnapshot:
@@ -319,6 +348,30 @@ class TaskService:
     def list_video_tasks(self, limit: int = 50, status: Optional[str] = None) -> list[dict[str, Any]]:
         return self.store.list_tasks(limit=limit, status=status)
 
+    def _derive_display_title(self, prompt: str) -> tuple[str, str]:
+        fragment = re.sub(r"\s+", " ", prompt or "").strip()
+        if not fragment:
+            return fragment, "prompt"
+
+        fragment = _DISPLAY_TITLE_SPLIT_REGEX.split(fragment)[0].strip()
+        for prefix in _TITLE_PREFIXES_TO_STRIP:
+            if fragment.startswith(prefix):
+                fragment = fragment[len(prefix):].strip()
+                break
+
+        fragment = fragment.strip("。.,;:，；！？!? '\"“”‘’")
+        if not fragment:
+            fragment = re.sub(r"\s+", " ", prompt or "").strip()
+
+        if len(fragment) > _DISPLAY_TITLE_MAX_LENGTH:
+            fragment = fragment[:_DISPLAY_TITLE_MAX_LENGTH].rstrip("。.,;:，；！？!? '\"“”‘’")
+
+        fragment = fragment.strip()
+        if not fragment:
+            fragment = re.sub(r"\s+", " ", prompt or "").strip()
+
+        return fragment, "prompt"
+
     def get_task_events(self, task_id: str, limit: int = 200) -> list[dict[str, Any]]:
         self._require_task(task_id)
         return self.store.list_events(task_id, limit=limit)
@@ -448,6 +501,8 @@ class TaskService:
             status=persisted.status,
             poll_after_ms=self.settings.default_poll_after_ms,
             resource_refs=[self._task_resource_ref(persisted.task_id)],
+            display_title=persisted.display_title,
+            title_source=persisted.title_source,
         )
 
     def _apply_memory_context(self, session_id: str | None, child_task: VideoTask) -> None:

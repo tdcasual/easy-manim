@@ -58,6 +58,20 @@ def test_sqlite_bootstrapper_applies_migrations_and_prepares_store(tmp_path) -> 
     assert loaded.prompt == "draw a circle"
 
 
+def test_sqlite_bootstrapper_adds_task_title_columns(tmp_path) -> None:
+    database_path = tmp_path / "agent.db"
+    SQLiteBootstrapper(database_path).bootstrap()
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(video_tasks)").fetchall()
+        }
+
+    assert "display_title" in columns
+    assert "title_source" in columns
+
+
 def test_idempotency_key_returns_existing_task(tmp_path) -> None:
     store = _build_store(tmp_path)
     first = VideoTask(prompt="draw a circle")

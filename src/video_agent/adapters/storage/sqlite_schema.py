@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS video_tasks (
     idempotency_key TEXT UNIQUE,
     current_script_artifact_id TEXT,
     best_result_artifact_id TEXT,
+    display_title TEXT,
+    title_source TEXT,
     task_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -228,6 +230,11 @@ def apply_agent_session_token_binding(connection: sqlite3.Connection) -> None:
     ensure_column(connection, "agent_sessions", "token_hash", "TEXT NOT NULL DEFAULT ''")
 
 
+def apply_task_display_title_fields(connection: sqlite3.Connection) -> None:
+    ensure_column(connection, "video_tasks", "display_title", "TEXT")
+    ensure_column(connection, "video_tasks", "title_source", "TEXT")
+
+
 SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
     SQLiteMigration(
         migration_id="001_initial_schema",
@@ -248,5 +255,10 @@ SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
         migration_id="004_agent_session_token_binding",
         description="bind agent sessions to the issuing token hash",
         apply=apply_agent_session_token_binding,
+    ),
+    SQLiteMigration(
+        migration_id="005_task_display_title_fields",
+        description="persist display titles and sources for tasks",
+        apply=apply_task_display_title_fields,
     ),
 )

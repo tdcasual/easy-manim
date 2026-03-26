@@ -52,8 +52,8 @@ class SQLiteTaskStore:
                 INSERT INTO video_tasks (
                     task_id, root_task_id, parent_task_id, agent_id, session_id, status, phase, prompt, feedback,
                     memory_context_summary, memory_context_digest, idempotency_key,
-                    current_script_artifact_id, best_result_artifact_id, task_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    current_script_artifact_id, best_result_artifact_id, display_title, title_source, task_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task.task_id,
@@ -70,6 +70,8 @@ class SQLiteTaskStore:
                     idempotency_key,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
+                    task.display_title,
+                    task.title_source,
                     task.model_dump_json(),
                     task.created_at.isoformat(),
                     task.updated_at.isoformat(),
@@ -95,7 +97,7 @@ class SQLiteTaskStore:
                 UPDATE video_tasks
                 SET root_task_id = ?, parent_task_id = ?, agent_id = ?, session_id = ?, status = ?, phase = ?, prompt = ?,
                     feedback = ?, memory_context_summary = ?, memory_context_digest = ?, current_script_artifact_id = ?,
-                    best_result_artifact_id = ?, task_json = ?, updated_at = ?
+                    best_result_artifact_id = ?, display_title = ?, title_source = ?, task_json = ?, updated_at = ?
                 WHERE task_id = ?
                 """,
                 (
@@ -111,6 +113,8 @@ class SQLiteTaskStore:
                     task.memory_context_digest,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
+                    task.display_title,
+                    task.title_source,
                     task.model_dump_json(),
                     task.updated_at.isoformat(),
                     task.task_id,
