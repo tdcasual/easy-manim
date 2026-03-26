@@ -47,6 +47,7 @@ class AgentSessionService:
             session_id=f"sess-{uuid4().hex}",
             session_hash=self.hash_session_token(plain_session_token),
             agent_id=principal.agent_id,
+            token_hash=principal.token.token_hash,
         )
         persisted = self.create_session_record(session)
         return CreatedAgentSession(

@@ -86,3 +86,83 @@ def test_login_rejects_invalid_agent_token(tmp_path: Path) -> None:
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_agent_token"
+
+
+def test_session_remains_bound_to_issuing_token_across_cache_reset(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_auth_settings(tmp_path)))
+    context = client.app.state.app_context
+    context.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient", "pace": "steady"}},
+        )
+    )
+    context.store.issue_agent_token(
+        AgentToken(
+            token_hash=hash_agent_token("agent-a-create-secret"),
+            agent_id="agent-a",
+            scopes_json={"allow": ["task:create"]},
+        )
+    )
+    context.store.issue_agent_token(
+        AgentToken(
+            token_hash=hash_agent_token("agent-a-read-secret"),
+            agent_id="agent-a",
+            scopes_json={"allow": ["task:read"]},
+        )
+    )
+
+    login = client.post("/api/sessions", json={"agent_token": "agent-a-create-secret"})
+    assert login.status_code == 200
+    session_token = login.json()["session_token"]
+
+    create = client.post(
+        "/api/tasks",
+        json={"prompt": "draw a blue circle"},
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+    assert create.status_code == 200
+    task_id = create.json()["task_id"]
+    context.artifact_store.final_video_path(task_id).write_bytes(b"fake-mp4-data")
+
+    # Simulate process restart / cache loss.
+    context.session_auth._sessions.clear()
+
+    denied = client.get(
+        f"/api/tasks/{task_id}/artifacts/final_video.mp4",
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "agent_scope_denied"
+
+
+def test_session_becomes_invalid_when_issuing_token_is_disabled(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_auth_settings(tmp_path)))
+    context = client.app.state.app_context
+    context.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient", "pace": "steady"}},
+        )
+    )
+    issuing_hash = hash_agent_token("agent-a-secret")
+    context.store.issue_agent_token(
+        AgentToken(
+            token_hash=issuing_hash,
+            agent_id="agent-a",
+            scopes_json={"allow": ["task:create", "task:read"]},
+        )
+    )
+
+    login = client.post("/api/sessions", json={"agent_token": "agent-a-secret"})
+    assert login.status_code == 200
+    session_token = login.json()["session_token"]
+
+    assert context.store.disable_agent_token(issuing_hash) is True
+    context.session_auth._sessions.clear()
+
+    whoami = client.get("/api/whoami", headers={"Authorization": f"Bearer {session_token}"})
+    assert whoami.status_code == 401
+    assert whoami.json()["detail"] == "invalid_session_token"

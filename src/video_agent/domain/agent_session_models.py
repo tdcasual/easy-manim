@@ -13,6 +13,7 @@ class AgentSession(BaseModel):
     session_id: str
     session_hash: str
     agent_id: str
+    token_hash: str
     status: str = "active"
     created_at: datetime = Field(default_factory=_utcnow)
     expires_at: datetime = Field(default_factory=lambda: _utcnow() + timedelta(days=7))

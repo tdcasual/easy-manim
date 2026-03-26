@@ -557,13 +557,14 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 INSERT INTO agent_sessions (
-                    session_id, session_hash, agent_id, status, created_at, expires_at, last_seen_at, revoked_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    session_id, session_hash, agent_id, token_hash, status, created_at, expires_at, last_seen_at, revoked_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session.session_id,
                     session.session_hash,
                     session.agent_id,
+                    session.token_hash,
                     session.status,
                     session.created_at.isoformat(),
                     session.expires_at.isoformat(),
@@ -578,7 +579,7 @@ class SQLiteTaskStore:
             row = connection.execute(
                 """
                 SELECT
-                    session_id, session_hash, agent_id, status, created_at, expires_at, last_seen_at, revoked_at
+                    session_id, session_hash, agent_id, token_hash, status, created_at, expires_at, last_seen_at, revoked_at
                 FROM agent_sessions
                 WHERE session_hash = ?
                 """,
@@ -593,7 +594,7 @@ class SQLiteTaskStore:
             row = connection.execute(
                 """
                 SELECT
-                    session_id, session_hash, agent_id, status, created_at, expires_at, last_seen_at, revoked_at
+                    session_id, session_hash, agent_id, token_hash, status, created_at, expires_at, last_seen_at, revoked_at
                 FROM agent_sessions
                 WHERE session_id = ?
                 """,
@@ -1111,6 +1112,7 @@ class SQLiteTaskStore:
             session_id=row["session_id"],
             session_hash=row["session_hash"],
             agent_id=row["agent_id"],
+            token_hash=row["token_hash"],
             status=row["status"],
             created_at=datetime.fromisoformat(row["created_at"]),
             expires_at=datetime.fromisoformat(row["expires_at"]),

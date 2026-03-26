@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS agent_sessions (
     session_id TEXT PRIMARY KEY,
     session_hash TEXT NOT NULL UNIQUE,
     agent_id TEXT NOT NULL,
+    token_hash TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
@@ -223,6 +224,10 @@ def apply_agent_learning_normalization(connection: sqlite3.Connection) -> None:
     create_agent_learning_indexes(connection)
 
 
+def apply_agent_session_token_binding(connection: sqlite3.Connection) -> None:
+    ensure_column(connection, "agent_sessions", "token_hash", "TEXT NOT NULL DEFAULT ''")
+
+
 SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
     SQLiteMigration(
         migration_id="001_initial_schema",
@@ -238,5 +243,10 @@ SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
         migration_id="003_agent_learning_normalization",
         description="dedupe learning events and create supporting indexes",
         apply=apply_agent_learning_normalization,
+    ),
+    SQLiteMigration(
+        migration_id="004_agent_session_token_binding",
+        description="bind agent sessions to the issuing token hash",
+        apply=apply_agent_session_token_binding,
     ),
 )

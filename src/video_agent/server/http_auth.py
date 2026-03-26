@@ -34,24 +34,21 @@ def resolve_agent_session(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token") from exc
 
-    cached_principal = context.session_auth.get(session.session_id)
     profile = context.store.get_agent_profile(session.agent_id)
-    active_tokens = [token for token in context.store.list_agent_tokens(session.agent_id) if token.status == "active"]
-    if profile is None or profile.status != "active" or not active_tokens:
+    bound_token = context.store.get_agent_token(session.token_hash)
+    if (
+        profile is None
+        or profile.status != "active"
+        or bound_token is None
+        or bound_token.status != "active"
+        or bound_token.agent_id != session.agent_id
+    ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token")
 
-    selected_token = next(
-        (
-            token
-            for token in active_tokens
-            if cached_principal is not None and token.token_hash == cached_principal.token.token_hash
-        ),
-        active_tokens[-1],
-    )
     principal = AgentPrincipal(
         agent_id=session.agent_id,
         profile=profile,
-        token=selected_token,
+        token=bound_token,
     )
     context.session_auth.authenticate(session.session_id, principal)
 
