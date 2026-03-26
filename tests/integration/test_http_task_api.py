@@ -53,20 +53,29 @@ def test_task_create_list_get_result_roundtrip(tmp_path: Path) -> None:
 
     created = client.post(
         "/api/tasks",
-        json={"prompt": "draw a circle"},
+        json={"prompt": "做一个蓝色圆形开场动画，画面干净简洁"},
         headers={"Authorization": f"Bearer {login_token}"},
     )
     assert created.status_code == 200
-    task_id = created.json()["task_id"]
+    created_payload = created.json()
+    task_id = created_payload["task_id"]
+    assert created_payload["display_title"] == "蓝色圆形开场动画"
+    assert created_payload["title_source"] == "prompt"
 
     listed = client.get("/api/tasks", headers={"Authorization": f"Bearer {login_token}"})
     assert listed.status_code == 200
-    assert any(item["task_id"] == task_id for item in listed.json()["items"])
+    listed_items = listed.json()["items"]
+    assert any(item["task_id"] == task_id for item in listed_items)
+    assert listed_items[0]["display_title"] == "蓝色圆形开场动画"
+    assert listed_items[0]["title_source"] == "prompt"
 
     snapshot = client.get(f"/api/tasks/{task_id}", headers={"Authorization": f"Bearer {login_token}"})
     assert snapshot.status_code == 200
-    assert snapshot.json()["task_id"] == task_id
-    assert snapshot.json()["agent_id"] == "agent-a"
+    snapshot_payload = snapshot.json()
+    assert snapshot_payload["task_id"] == task_id
+    assert snapshot_payload["agent_id"] == "agent-a"
+    assert snapshot_payload["display_title"] == "蓝色圆形开场动画"
+    assert snapshot_payload["title_source"] == "prompt"
 
     result = client.get(f"/api/tasks/{task_id}/result", headers={"Authorization": f"Bearer {login_token}"})
     assert result.status_code == 200

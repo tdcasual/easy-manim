@@ -780,7 +780,7 @@ class SQLiteTaskStore:
         status: Optional[str] = None,
         agent_id: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        query = "SELECT task_id, status, phase, prompt, created_at, updated_at FROM video_tasks"
+        query = "SELECT task_id, display_title, title_source, status, phase, prompt, created_at, updated_at FROM video_tasks"
         params: list[Any] = []
         clauses: list[str] = []
         if status is not None:
@@ -798,6 +798,8 @@ class SQLiteTaskStore:
         return [
             {
                 "task_id": row["task_id"],
+                "display_title": row["display_title"],
+                "title_source": row["title_source"],
                 "status": row["status"],
                 "phase": row["phase"],
                 "prompt": row["prompt"],
