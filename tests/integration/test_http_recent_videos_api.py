@@ -185,3 +185,22 @@ def test_recent_videos_endpoint_prefers_most_recent_updated_playable_tasks(tmp_p
     items = response.json()["items"]
     assert len(items) == 1
     assert items[0]["task_id"] == first_id
+
+
+def test_recent_videos_endpoint_requires_task_read_scope(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_task_settings(tmp_path)))
+    context = client.app.state.app_context
+    context.store.upsert_agent_profile(AgentProfile(agent_id="agent-a", name="agent-a", profile_json={}))
+    context.store.issue_agent_token(
+        AgentToken(
+            token_hash=hash_agent_token("agent-a-create-secret"),
+            agent_id="agent-a",
+            scopes_json={"allow": ["task:create"]},
+        )
+    )
+
+    session_token = _login(client, "agent-a-create-secret")
+    response = client.get("/api/videos/recent", headers={"Authorization": f"Bearer {session_token}"})
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "agent_scope_denied"

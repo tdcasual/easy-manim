@@ -92,6 +92,13 @@ def _tool_payload_or_http_error(payload: dict[str, Any]) -> dict[str, Any]:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=code)
 
 
+def _permission_error_code(exc: PermissionError) -> str:
+    code = str(exc)
+    if code in {"agent_not_authenticated", "agent_access_denied", "agent_scope_denied"}:
+        return code
+    return "agent_access_denied"
+
+
 def _permission_http_error(exc: PermissionError) -> HTTPException:
     code = _permission_error_code(exc)
     if code == "agent_not_authenticated":
