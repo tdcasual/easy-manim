@@ -113,3 +113,64 @@ def test_recent_videos_endpoint_returns_playable_tasks(tmp_path: Path) -> None:
     assert entry["latest_summary"] == "最新摘要"
     assert entry["latest_video_url"] == f"/api/tasks/{task_id}/artifacts/final_video.mp4"
     assert entry["latest_preview_url"] == f"/api/tasks/{task_id}/artifacts/previews/{preview.name}"
+
+
+def test_recent_videos_endpoint_orders_by_last_update(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_task_settings(tmp_path)))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    session_token = _login(client, "agent-a-secret")
+    context = client.app.state.app_context
+
+    first = client.post(
+        "/api/tasks",
+        json={"prompt": "做一个蓝色圆形开场动画"},
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+    first_id = first.json()["task_id"]
+    first_task = context.store.get_task(first_id)
+    assert first_task is not None
+    first_task.status = TaskStatus.COMPLETED
+    first_task.phase = TaskPhase.COMPLETED
+    context.store.update_task(first_task)
+    context.artifact_store.task_dir(first_id).mkdir(parents=True, exist_ok=True)
+    context.artifact_store.final_video_path(first_id).write_bytes(b"a")
+    context.artifact_store.previews_dir(first_id).mkdir(parents=True, exist_ok=True)
+    frame1 = context.artifact_store.previews_dir(first_id) / "frame1.png"
+    frame1.write_bytes(b"a")
+    context.store.record_validation(
+        first_id,
+        ValidationReport(decision=ValidationDecision.PASS, passed=True, summary="first summary"),
+    )
+
+    second = client.post(
+        "/api/tasks",
+        json={"prompt": "做一个绿叶动画"},
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+    second_id = second.json()["task_id"]
+    second_task = context.store.get_task(second_id)
+    assert second_task is not None
+    second_task.status = TaskStatus.COMPLETED
+    second_task.phase = TaskPhase.COMPLETED
+    context.store.update_task(second_task)
+    context.artifact_store.final_video_path(second_id).write_bytes(b"b")
+    context.artifact_store.previews_dir(second_id).mkdir(parents=True, exist_ok=True)
+    frame2 = context.artifact_store.previews_dir(second_id) / "frame2.png"
+    frame2.write_bytes(b"b")
+    context.store.record_validation(
+        second_id,
+        ValidationReport(decision=ValidationDecision.PASS, passed=True, summary="second summary"),
+    )
+
+    first_task = context.store.get_task(first_id)
+    assert first_task is not None
+    first_task.status = TaskStatus.COMPLETED
+    first_task.phase = TaskPhase.COMPLETED
+    context.store.update_task(first_task)
+
+    response = client.get("/api/videos/recent", headers={"Authorization": f"Bearer {session_token}"})
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 2
+    assert items[0]["task_id"] == first_id
+    assert items[1]["task_id"] == second_id

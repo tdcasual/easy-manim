@@ -355,6 +355,7 @@ class TaskService:
     def list_recent_videos_for_agent(self, agent_id: str, limit: int = 12) -> list[dict[str, Any]]:
         candidates: list[dict[str, Any]] = []
         rows = self.store.list_tasks(limit=max(limit * 2, limit), agent_id=agent_id)
+        rows.sort(key=lambda row: row.get("updated_at") or "", reverse=True)
         for row in rows:
             if row["status"] != TaskStatus.COMPLETED.value:
                 continue
