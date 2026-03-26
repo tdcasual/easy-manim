@@ -1,0 +1,72 @@
+/* Evals Page V2 */
+
+.eval-list {
+  padding: var(--space-2);
+}
+
+.eval-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+  animation: slide-in 0.4s var(--ease-out) backwards;
+}
+
+.eval-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.eval-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.eval-id {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.eval-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.eval-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+.eval-rate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.eval-cases {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.eval-arrow {
+  color: var(--text-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s;
+}
+
+.eval-row:hover .eval-arrow {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--accent-cyan);
+}

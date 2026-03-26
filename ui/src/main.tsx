@@ -1,18 +1,15 @@
-import "@fontsource/fraunces/600.css";
-import "@fontsource/ibm-plex-sans/400.css";
-import "@fontsource/ibm-plex-sans/500.css";
-
-import "./styles/reset.css";
-import "./styles/theme.css";
-
-import React from "react";
-import ReactDOM from "react-dom/client";
-
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { AppRouter } from "./app/router";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <AppRouter />
-  </React.StrictMode>
-);
+// 新主题 (V2)
+import "./styles/theme-v2.css";
 
+// Lucide icons (需要安装)
+// npm install lucide-react
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <AppRouter />
+  </StrictMode>
+);

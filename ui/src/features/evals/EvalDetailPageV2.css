@@ -1,0 +1,131 @@
+/* Eval Detail Page V2 */
+
+.eval-detail-header {
+  margin-bottom: var(--space-6);
+}
+
+.eval-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.eval-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-value.success {
+  color: var(--success);
+}
+
+.stat-value.warning {
+  color: var(--warning);
+}
+
+.stat-value.error {
+  color: var(--error);
+}
+
+.case-list {
+  padding: var(--space-2);
+}
+
+.case-item {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.case-item:last-child {
+  border-bottom: none;
+}
+
+.case-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.case-id {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.case-badges {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.case-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.case-badge.review {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+}
+
+.case-badge.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+
+.case-badge.failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+}
+
+.case-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.case-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.case-issues {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .eval-detail-stats {
+    grid-template-columns: 1fr;
+  }
+}

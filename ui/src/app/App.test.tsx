@@ -10,7 +10,6 @@ test("renders the operator console shell", () => {
     </MemoryRouter>,
   );
 
-  expect(screen.getByRole("heading", { name: /easy-manim console/i })).toBeInTheDocument();
-  expect(screen.getByRole("form", { name: /login form/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /easy-manim/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /登录/i })).toBeInTheDocument();
 });
