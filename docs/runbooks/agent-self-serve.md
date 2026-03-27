@@ -160,37 +160,26 @@ volumes:
 
 ### `.env`
 ```dotenv
-EASY_MANIM_AUTH_MODE=required
-EASY_MANIM_ANONYMOUS_AGENT_ID=local-anonymous
-
-EASY_MANIM_MANIM_COMMAND=manim
-EASY_MANIM_FFMPEG_COMMAND=ffmpeg
-EASY_MANIM_FFPROBE_COMMAND=ffprobe
-EASY_MANIM_LATEX_COMMAND=latex
-EASY_MANIM_DVISVGM_COMMAND=dvisvgm
-
-EASY_MANIM_RENDER_TIMEOUT_SECONDS=300
-EASY_MANIM_DEFAULT_QUALITY_PRESET=development
-EASY_MANIM_DEFAULT_POLL_AFTER_MS=2000
+# Deployment overrides for the stock container images.
+# The backend image already ships safe defaults for auth mode, command paths,
+# worker timings, queue limits, and conservative feature flags.
+# Keep this file focused on values that commonly vary per deployment.
 
 EASY_MANIM_LLM_PROVIDER=stub
 EASY_MANIM_LLM_MODEL=stub-manim-v1
 EASY_MANIM_LLM_API_BASE=
 EASY_MANIM_LLM_API_KEY=
-EASY_MANIM_LLM_TIMEOUT_SECONDS=60
-EASY_MANIM_LLM_MAX_RETRIES=2
 
-EASY_MANIM_WORKER_POLL_INTERVAL_SECONDS=0.2
-EASY_MANIM_WORKER_ID=worker-1
-EASY_MANIM_WORKER_LEASE_SECONDS=30
-EASY_MANIM_WORKER_RECOVERY_GRACE_SECONDS=5
-EASY_MANIM_WORKER_STALE_AFTER_SECONDS=30
+# Optional provider tuning overrides
+# EASY_MANIM_LLM_TIMEOUT_SECONDS=60
+# EASY_MANIM_LLM_MAX_RETRIES=2
 
-EASY_MANIM_MAX_QUEUED_TASKS=20
-EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK=5
-
-EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED=false
-EASY_MANIM_AUTO_REPAIR_ENABLED=false
+# Optional runtime overrides
+# EASY_MANIM_AUTH_MODE=required
+# EASY_MANIM_DEFAULT_QUALITY_PRESET=development
+# EASY_MANIM_RENDER_TIMEOUT_SECONDS=300
+# EASY_MANIM_WORKER_ID=worker-1
+# EASY_MANIM_MCP_PORT=8000
 ```
 
 If you want a real upstream model instead of deterministic `stub` mode, change the provider block to:

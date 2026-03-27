@@ -203,6 +203,8 @@ docker compose pull
 docker compose up -d
 ```
 
+The stock backend image now bakes in safe runtime defaults for auth mode, command paths, worker timings, queue limits, and conservative feature flags. Keep `.env` focused on deployment-specific overrides such as LLM provider settings, secrets, and optional runtime tweaks.
+
 For a real provider deployment, merge the LiteLLM-oriented `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before starting the stack.
 
 The repository now ships two GitHub Actions-built images:

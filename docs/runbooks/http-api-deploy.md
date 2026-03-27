@@ -15,6 +15,8 @@ curl -fsS http://127.0.0.1:8001/healthz
 
 If you are running against a real LLM provider, copy the required LiteLLM-backed `EASY_MANIM_LLM_*` values from `.env.beta.example` into `.env` before `docker compose up -d`.
 
+The stock backend image already includes safe defaults for auth mode, command paths, worker timings, queue limits, and conservative feature flags, so `.env` can stay focused on deployment-specific overrides.
+
 This starts:
 
 - `bootstrap` once to apply SQLite migrations on the shared `/app/data` volume

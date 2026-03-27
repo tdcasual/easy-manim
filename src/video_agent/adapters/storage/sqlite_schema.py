@@ -166,6 +166,8 @@ CREATE TABLE IF NOT EXISTS worker_heartbeats (
 
 def ensure_column(connection: sqlite3.Connection, table_name: str, column_name: str, definition: str) -> None:
     rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+    if not rows:
+        return
     if any(row["name"] == column_name for row in rows):
         return
     connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
