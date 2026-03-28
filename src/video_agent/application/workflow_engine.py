@@ -18,10 +18,15 @@ from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_learning_service import AgentLearningService, compute_quality_score
 from video_agent.application.auto_repair_service import AutoRepairService
+from video_agent.application.capability_gate_service import CapabilityGateService
 from video_agent.application.failure_context import build_failure_context
+from video_agent.application.quality_judge_service import QualityJudgeService
+from video_agent.application.recovery_policy_service import RecoveryPolicyService
 from video_agent.application.runtime_service import RuntimeService
+from video_agent.application.scene_spec_service import SceneSpecService
 from video_agent.application.scene_plan import build_scene_plan
 from video_agent.application.session_memory_service import SessionMemoryService
+from video_agent.application.task_risk_service import TaskRiskService
 from video_agent.application.workflow_phases import (
     combined_validation_report,
     latex_dependency_report,
@@ -58,6 +63,11 @@ class WorkflowEngine:
         session_memory_service: SessionMemoryService | None = None,
         runtime_policy: RuntimePolicy | None = None,
         metrics: MetricsCollector | None = None,
+        task_risk_service: TaskRiskService | None = None,
+        scene_spec_service: SceneSpecService | None = None,
+        capability_gate_service: CapabilityGateService | None = None,
+        recovery_policy_service: RecoveryPolicyService | None = None,
+        quality_judge_service: QualityJudgeService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
@@ -74,10 +84,18 @@ class WorkflowEngine:
         self.session_memory_service = session_memory_service
         self.runtime_policy = runtime_policy or RuntimePolicy(work_root=artifact_store.root)
         self.metrics = metrics or MetricsCollector()
+        self.task_risk_service = task_risk_service or TaskRiskService()
+        self.scene_spec_service = scene_spec_service or SceneSpecService()
+        self.capability_gate_service = capability_gate_service or CapabilityGateService()
+        self.recovery_policy_service = recovery_policy_service or RecoveryPolicyService()
+        self.quality_judge_service = quality_judge_service or QualityJudgeService(
+            min_score=runtime_service.settings.quality_gate_min_score
+        )
         self.auto_repair_service = AutoRepairService(
             store=store,
             artifact_store=artifact_store,
             settings=runtime_service.settings,
+            recovery_policy_service=self.recovery_policy_service,
         )
 
     def run_task(self, task_id: str) -> None:
@@ -92,10 +110,38 @@ class WorkflowEngine:
         self.metrics.increment("task_runs")
         task.status = TaskStatus.RUNNING
         task.attempt_count += 1
-        self._transition(task, TaskPhase.PLANNING)
+        self._transition(task, TaskPhase.RISK_ROUTING)
 
         try:
+            risk_profile = self.task_risk_service.classify(prompt=task.prompt, style_hints=task.style_hints)
+            task.risk_level = risk_profile.risk_level
+            task.generation_mode = risk_profile.generation_mode
+            self.store.update_task(task)
+            self.artifact_store.write_task_snapshot(task)
+            self._log(
+                task,
+                TaskPhase.RISK_ROUTING,
+                "Risk profile classified",
+                risk_level=task.risk_level,
+                generation_mode=task.generation_mode,
+            )
+
+            self._transition(task, TaskPhase.SCENE_PLANNING)
             render_profile = self._resolve_render_profile(task)
+            scene_spec = self.scene_spec_service.build(
+                prompt=task.prompt,
+                output_profile=render_profile,
+                style_hints=task.style_hints,
+                generation_mode=task.generation_mode or "guided_generate",
+            ).model_copy(update={"task_id": task.task_id})
+            scene_spec_path = self.artifact_store.scene_spec_path(task.task_id)
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.SCENE_PLANNING, scene_spec_path, "scene spec artifact"):
+                return
+            written_scene_spec_path = self.artifact_store.write_scene_spec(task.task_id, scene_spec.model_dump(mode="json"))
+            self.store.register_artifact(task.task_id, "scene_spec", written_scene_spec_path)
+            task.scene_spec_id = scene_spec.scene_spec_id
+            self.store.update_task(task)
+            self.artifact_store.write_task_snapshot(task)
             scene_plan = build_scene_plan(
                 prompt=task.prompt,
                 output_profile=render_profile,
@@ -108,11 +154,29 @@ class WorkflowEngine:
             self.store.register_artifact(task.task_id, "scene_plan", written_scene_plan_path)
             self._log(
                 task,
-                TaskPhase.PLANNING,
+                TaskPhase.SCENE_PLANNING,
                 "Scene plan generated",
                 scene_class=scene_plan.scene_class,
                 camera_strategy=scene_plan.camera_strategy,
             )
+
+            self._transition(task, TaskPhase.PREFLIGHT_CHECK)
+            mathtex_status = self.runtime_service.inspect_mathtex_feature()
+            gate = self.capability_gate_service.evaluate(
+                prompt=task.prompt,
+                scene_spec=scene_spec.model_dump(mode="json"),
+                runtime_status={"mathtex": mathtex_status.model_dump(mode="json")},
+            )
+            if not gate.allowed:
+                if gate.block_reason == "latex_dependency_missing":
+                    self._fail_task(
+                        task,
+                        latex_dependency_report(
+                            "Script uses MathTex/Tex but required LaTeX commands are unavailable",
+                            mathtex_status.missing_checks or ["latex", "dvisvgm"],
+                        ),
+                    )
+                    return
             prompt_text = self.prompt_builder(
                 prompt=task.prompt,
                 output_profile=render_profile,
@@ -264,23 +328,28 @@ class WorkflowEngine:
             self.artifact_store.write_task_snapshot(task)
             self._log(task, TaskPhase.RENDERING, "Render completed", video_path=str(final_video_path))
 
-            self._transition(task, TaskPhase.FRAME_EXTRACT)
+            self._transition(task, TaskPhase.PREVIEW_RENDER)
             preview_dir = self.artifact_store.previews_dir(task.task_id)
-            if not self._ensure_allowed_artifact_path(task, TaskPhase.FRAME_EXTRACT, preview_dir, "preview directory"):
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.PREVIEW_RENDER, preview_dir, "preview directory"):
                 return
             preview_paths = self.frame_extractor.extract(final_video_path, preview_dir)
             for preview_path in preview_paths:
                 self.store.register_artifact(task.task_id, "preview_frame", preview_path)
-            self._log(task, TaskPhase.FRAME_EXTRACT, "Preview extraction completed", preview_count=len(preview_paths))
+            self._log(task, TaskPhase.PREVIEW_RENDER, "Preview extraction completed", preview_count=len(preview_paths))
 
+            self._transition(task, TaskPhase.PREVIEW_VALIDATION)
+            preview_report = self.preview_quality_validator.validate(preview_paths, profile=task.validation_profile)
             self._transition(task, TaskPhase.VALIDATION)
             validation_started = time.monotonic()
             hard_report = self.hard_validator.validate(final_video_path, profile=task.validation_profile)
             rule_report = self.rule_validator.validate(final_video_path, profile=task.validation_profile)
-            preview_report = self.preview_quality_validator.validate(preview_paths, profile=task.validation_profile)
             self.metrics.increment("validation_runs")
             self.metrics.record_timing("validation_seconds", time.monotonic() - validation_started)
             combined_report = combined_validation_report(hard_report, rule_report, preview_report)
+            if not combined_report.passed:
+                self._fail_task(task, combined_report)
+                return
+
             validation_report_path = self.artifact_store.validation_report_path(task.task_id)
             if not self._ensure_allowed_artifact_path(task, TaskPhase.VALIDATION, validation_report_path, "validation report"):
                 return
@@ -288,19 +357,35 @@ class WorkflowEngine:
             self.store.record_validation(task.task_id, combined_report)
             self.store.register_artifact(task.task_id, "validation_report", report_path)
 
+            self._transition(task, TaskPhase.QUALITY_JUDGING)
+            preview_issue_codes = [issue.code for issue in preview_report.issues]
+            scorecard = self.quality_judge_service.score(
+                status="completed",
+                issue_codes=[issue.code for issue in combined_report.issues],
+                preview_issue_codes=preview_issue_codes,
+                summary=combined_report.summary,
+            ).model_copy(update={"task_id": task.task_id})
+            quality_score_path = self.artifact_store.quality_score_path(task.task_id)
+            if not self._ensure_allowed_artifact_path(task, TaskPhase.QUALITY_JUDGING, quality_score_path, "quality score artifact"):
+                return
+            written_quality_score_path = self.artifact_store.write_quality_score(task.task_id, scorecard.model_dump(mode="json"))
+            self.store.register_artifact(task.task_id, "quality_score", written_quality_score_path)
+            self.store.upsert_task_quality_score(task.task_id, scorecard)
+            task.quality_gate_status = "accepted" if scorecard.accepted else "needs_revision"
+
             task.status, task.phase = terminal_task_state(combined_report)
-            if combined_report.passed:
-                self.metrics.increment("tasks_completed")
-            else:
-                self.metrics.increment("tasks_failed")
+            self.metrics.increment("tasks_completed")
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
             self.store.append_event(task.task_id, "task_finished", {"status": task.status.value})
-            self._record_agent_learning_outcome(task, combined_report)
+            self._record_agent_learning_outcome(task, combined_report, quality_score=scorecard.total_score or 0.0)
             self._record_session_memory_outcome(
                 task,
                 result_summary=combined_report.summary,
-                extra_artifact_refs=[self.artifact_store.resource_uri(task.task_id, report_path)],
+                extra_artifact_refs=[
+                    self.artifact_store.resource_uri(task.task_id, report_path),
+                    self.artifact_store.resource_uri(task.task_id, written_quality_score_path),
+                ],
             )
             self._log(task, task.phase, "Task finished", status=task.status.value, passed=combined_report.passed)
         except Exception as exc:
@@ -349,6 +434,7 @@ class WorkflowEngine:
         persist_report_artifact: bool = True,
         persist_snapshot: bool = True,
     ) -> None:
+        top_issue = report.issues[0] if report.issues else None
         self.store.record_validation(task.task_id, report)
         if persist_report_artifact:
             report_path = self.artifact_store.validation_report_path(task.task_id)
@@ -392,6 +478,17 @@ class WorkflowEngine:
                 if self.runtime_policy.is_allowed_write(failure_contract_path):
                     written_failure_contract_path = self.artifact_store.write_failure_contract(task.task_id, failure_contract)
                     self.store.register_artifact(task.task_id, "failure_contract", written_failure_contract_path)
+                recovery_plan = self.recovery_policy_service.build(
+                    issue_code=top_issue.code if top_issue else None,
+                    failure_contract=failure_contract,
+                ).model_copy(update={"task_id": task.task_id})
+                recovery_plan_path = self.artifact_store.recovery_plan_path(task.task_id)
+                if self.runtime_policy.is_allowed_write(recovery_plan_path):
+                    written_recovery_plan_path = self.artifact_store.write_recovery_plan(
+                        task.task_id,
+                        recovery_plan.model_dump(mode="json"),
+                    )
+                    self.store.register_artifact(task.task_id, "recovery_plan", written_recovery_plan_path)
             written_failure_context_path = self.artifact_store.write_failure_context(task.task_id, failure_context)
             self.store.register_artifact(task.task_id, "failure_context", written_failure_context_path)
         else:
@@ -472,7 +569,7 @@ class WorkflowEngine:
             extra_artifact_refs=extra_artifact_refs,
         )
 
-    def _record_agent_learning_outcome(self, task, report: ValidationReport) -> None:
+    def _record_agent_learning_outcome(self, task, report: ValidationReport, quality_score: float | None = None) -> None:
         if self.agent_learning_service is None or not task.agent_id:
             return
         issue_codes = [issue.code for issue in report.issues]
@@ -483,7 +580,7 @@ class WorkflowEngine:
                 session_id=task.session_id,
                 status=task.status.value,
                 issue_codes=issue_codes,
-                quality_score=compute_quality_score(task.status.value, issue_codes),
+                quality_score=quality_score if quality_score is not None else compute_quality_score(task.status.value, issue_codes),
                 profile_digest=task.effective_profile_digest,
                 memory_ids=task.selected_memory_ids,
             )

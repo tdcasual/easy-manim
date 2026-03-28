@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.agent_learning_service import compute_quality_score, select_quality_issue_codes
+from video_agent.application.policy_promotion_service import PolicyPromotionService
 from video_agent.evaluation.corpus import load_prompt_suite
 from video_agent.evaluation.live_reporting import build_live_report
 from video_agent.evaluation.quality_reporting import build_quality_report
@@ -18,6 +19,7 @@ from video_agent.evaluation.run_manifest import EvalCaseState, EvalRunManifest
 from video_agent.evaluation.reviewer_digest import render_reviewer_digest
 from video_agent.evaluation.reporting import build_eval_report, render_eval_report_markdown
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.strategy_models import StrategyProfile
 from video_agent.server.app import AppContext
 
 
@@ -70,6 +72,7 @@ class EvaluationRunSummary(BaseModel):
 class EvaluationService:
     def __init__(self, context: AppContext) -> None:
         self.context = context
+        self.policy_promotion_service = PolicyPromotionService()
 
     def run_suite(
         self,
@@ -193,6 +196,47 @@ class EvaluationService:
             memory_ids=[] if terminal_task is None else list(terminal_task.selected_memory_ids),
         )
 
+    def run_strategy_challenger(
+        self,
+        *,
+        suite_path: str,
+        challenger_profile: StrategyProfile,
+        include_tags: set[str] | None = None,
+        limit: int | None = None,
+        match_all_tags: bool = False,
+    ) -> dict[str, Any]:
+        baseline_summary = self.run_suite(
+            suite_path=suite_path,
+            include_tags=include_tags,
+            limit=limit,
+            match_all_tags=match_all_tags,
+        )
+        challenger_summary = self.run_suite(
+            suite_path=suite_path,
+            include_tags=include_tags,
+            limit=limit,
+            match_all_tags=match_all_tags,
+            profile_patch=challenger_profile.params,
+        )
+
+        baseline_metrics = self._promotion_metrics_from_summary(baseline_summary)
+        challenger_metrics = self._promotion_metrics_from_summary(challenger_summary)
+        promotion_recommended = self.policy_promotion_service.should_promote(
+            baseline=baseline_metrics,
+            challenger=challenger_metrics,
+        )
+        self.context.store.record_strategy_eval_run(
+            challenger_profile.strategy_id,
+            baseline_summary=baseline_summary.model_dump(mode="json"),
+            challenger_summary=challenger_summary.model_dump(mode="json"),
+            promotion_recommended=promotion_recommended,
+        )
+        return {
+            "baseline": baseline_summary.model_dump(mode="json"),
+            "challenger": challenger_summary.model_dump(mode="json"),
+            "promotion_recommended": promotion_recommended,
+        }
+
     def _load_or_create_manifest(
         self,
         run_id: str,
@@ -261,6 +305,14 @@ class EvaluationService:
             profile=profile,
             token=AgentToken(token_hash=f"eval:{profile.agent_id}", agent_id=profile.agent_id),
         )
+
+    @staticmethod
+    def _promotion_metrics_from_summary(summary: EvaluationRunSummary) -> dict[str, float]:
+        quality_report = summary.report.get("quality", {})
+        return {
+            "final_success_rate": float(summary.report.get("success_rate", 0.0) or 0.0),
+            "accepted_quality_rate": float(quality_report.get("pass_rate", 0.0) or 0.0),
+        }
 
     @staticmethod
     def _request_overrides_from_profile_patch(profile_patch: dict[str, Any] | None) -> dict[str, dict[str, Any]]:

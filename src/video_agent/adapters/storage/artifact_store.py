@@ -59,6 +59,48 @@ class ArtifactStore:
         target.write_text(json.dumps(payload, indent=2))
         return target
 
+    def scene_spec_path(self, task_id: str) -> Path:
+        return self.task_dir(task_id) / "artifacts" / "scene_spec.json"
+
+    def write_scene_spec(self, task_id: str, payload: dict[str, Any]) -> Path:
+        target = self.ensure_task_dirs(task_id) / "artifacts" / "scene_spec.json"
+        target.write_text(json.dumps(payload, indent=2))
+        return target
+
+    def read_scene_spec(self, task_id: str) -> dict[str, Any] | None:
+        target = self.scene_spec_path(task_id)
+        if not target.exists():
+            return None
+        return json.loads(target.read_text())
+
+    def recovery_plan_path(self, task_id: str) -> Path:
+        return self.task_dir(task_id) / "artifacts" / "recovery_plan.json"
+
+    def write_recovery_plan(self, task_id: str, payload: dict[str, Any]) -> Path:
+        target = self.ensure_task_dirs(task_id) / "artifacts" / "recovery_plan.json"
+        target.write_text(json.dumps(payload, indent=2))
+        return target
+
+    def read_recovery_plan(self, task_id: str) -> dict[str, Any] | None:
+        target = self.recovery_plan_path(task_id)
+        if not target.exists():
+            return None
+        return json.loads(target.read_text())
+
+    def quality_score_path(self, task_id: str) -> Path:
+        return self.task_dir(task_id) / "artifacts" / "quality_score.json"
+
+    def write_quality_score(self, task_id: str, payload: dict[str, Any]) -> Path:
+        target = self.ensure_task_dirs(task_id) / "artifacts" / "quality_score.json"
+        target.write_text(json.dumps(payload, indent=2))
+        return target
+
+    def read_quality_score(self, task_id: str) -> dict[str, Any] | None:
+        target = self.quality_score_path(task_id)
+        if not target.exists():
+            return None
+        return json.loads(target.read_text())
+
     def failure_context_path(self, task_id: str) -> Path:
         return self.task_dir(task_id) / "artifacts" / "failure_context.json"
 

@@ -145,6 +145,47 @@ curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/review-decision \
   }'
 ```
 
+### Reliability Metadata
+
+Each task now records reliability metadata alongside the existing task lifecycle:
+
+- risk routing chooses a `generation_mode` before generation starts
+- scene specs are persisted to `artifacts/scene_spec.json`
+- recovery plans are persisted to `artifacts/recovery_plan.json` when a task fails through a guarded path
+- quality scorecards are persisted to `artifacts/quality_score.json` and mirrored in SQLite
+
+HTTP clients can inspect those artifacts directly:
+
+```bash
+curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/scene-spec \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/quality-score \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/recovery-plan \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -s -X POST http://127.0.0.1:8001/api/tasks/${TASK_ID}/accept-best \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+```
+
+MCP-native callers have matching read tools:
+
+- `get_scene_spec(task_id)`
+- `get_quality_score(task_id)`
+- `get_recovery_plan(task_id)`
+
+These reads stay behind the existing `task:read` permission checks, and `accept-best` remains the only new mutating reliability endpoint.
+
+### Strategy Challenger Runs
+
+Strategy promotion is intentionally conservative. Use challenger evals to compare a stored strategy profile against the current baseline before changing defaults.
+
+- strategy profiles live in SQLite and keep the latest eval outcome in `metrics.last_eval_run`
+- `PolicyPromotionService` only recommends promotion when final success rate does not regress and accepted quality rate improves
+- production traffic does not auto-promote a challenger
+
 ### Agent Auth Modes
 - `EASY_MANIM_AUTH_MODE=disabled` keeps the local developer flow: task tools work without session authentication and tasks are attributed to `local-anonymous` by default.
 - `EASY_MANIM_AUTH_MODE=required` makes mutating task tools and task resources require an authenticated agent session.

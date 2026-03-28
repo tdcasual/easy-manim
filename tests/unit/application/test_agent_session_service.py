@@ -28,7 +28,12 @@ def test_create_session_returns_plaintext_secret_and_persisted_record() -> None:
 def test_resolve_session_returns_persisted_record_and_touches_last_seen() -> None:
     touched_hashes: list[str] = []
     session_hash = AgentSessionService.hash_session_token("esm_sess.plain")
-    persisted = AgentSession(session_id="sess-1", session_hash=session_hash, agent_id="agent-a")
+    persisted = AgentSession(
+        session_id="sess-1",
+        session_hash=session_hash,
+        agent_id="agent-a",
+        token_hash="token-hash-1",
+    )
     service = AgentSessionService(
         lookup_session_record=lambda lookup_hash: persisted if lookup_hash == session_hash else None,
         touch_session_record=lambda session_hash: touched_hashes.append(session_hash) or persisted,
@@ -52,7 +57,12 @@ def test_revoke_session_hashes_token_before_revoking() -> None:
 
 def test_resolve_session_id_returns_internal_session_id() -> None:
     session_hash = AgentSessionService.hash_session_token("esm_sess.plain")
-    persisted = AgentSession(session_id="sess-1", session_hash=session_hash, agent_id="agent-a")
+    persisted = AgentSession(
+        session_id="sess-1",
+        session_hash=session_hash,
+        agent_id="agent-a",
+        token_hash="token-hash-1",
+    )
     service = AgentSessionService(
         lookup_session_record=lambda lookup_hash: persisted if lookup_hash == session_hash else None,
         touch_session_record=lambda session_hash: persisted,

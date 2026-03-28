@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.quality_models import QualityScorecard
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from tests.support import bootstrapped_settings
 
@@ -126,6 +127,11 @@ def test_task_create_list_get_result_roundtrip(tmp_path: Path) -> None:
     assert snapshot_payload["agent_id"] == "agent-a"
     assert snapshot_payload["display_title"] == "蓝色圆形开场动画"
     assert snapshot_payload["title_source"] == "prompt"
+    assert snapshot_payload["risk_level"] is None
+    assert snapshot_payload["generation_mode"] is None
+    assert snapshot_payload["quality_gate_status"] is None
+    assert snapshot_payload["accepted_as_best"] is False
+    assert snapshot_payload["accepted_version_rank"] is None
 
     result = client.get(f"/api/tasks/{task_id}/result", headers={"Authorization": f"Bearer {login_token}"})
     assert result.status_code == 200
@@ -202,6 +208,52 @@ def test_task_revise_retry_cancel_endpoints_are_agent_scoped(tmp_path: Path) -> 
     assert cancelled.status_code == 200
     assert cancelled.json()["task_id"] == task_id
     assert cancelled.json()["status"] == "cancelled"
+
+
+def test_reliability_endpoints_are_agent_scoped(tmp_path: Path) -> None:
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    _seed_agent(client, "agent-b", "agent-b-secret")
+    login_token_a = _login(client, "agent-a-secret")
+    login_token_b = _login(client, "agent-b-secret")
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "draw a circle"},
+        headers={"Authorization": f"Bearer {login_token_a}"},
+    )
+    assert created.status_code == 200
+    task_id = created.json()["task_id"]
+
+    context = client.app.state.app_context
+    context.artifact_store.write_scene_spec(
+        task_id,
+        {"task_id": task_id, "summary": "draw a circle", "scene_count": 1, "scenes": []},
+    )
+    context.store.upsert_task_quality_score(
+        task_id,
+        QualityScorecard(task_id=task_id, total_score=0.9, accepted=True),
+    )
+
+    forbidden_scene_spec = client.get(
+        f"/api/tasks/{task_id}/scene-spec",
+        headers={"Authorization": f"Bearer {login_token_b}"},
+    )
+    forbidden_quality = client.get(
+        f"/api/tasks/{task_id}/quality-score",
+        headers={"Authorization": f"Bearer {login_token_b}"},
+    )
+    forbidden_accept = client.post(
+        f"/api/tasks/{task_id}/accept-best",
+        headers={"Authorization": f"Bearer {login_token_b}"},
+    )
+
+    assert forbidden_scene_spec.status_code == 403
+    assert forbidden_scene_spec.json()["detail"] == "agent_access_denied"
+    assert forbidden_quality.status_code == 403
+    assert forbidden_quality.json()["detail"] == "agent_access_denied"
+    assert forbidden_accept.status_code == 403
+    assert forbidden_accept.json()["detail"] == "agent_access_denied"
 
 
 def test_new_review_endpoints_do_not_change_existing_task_roundtrip(tmp_path: Path) -> None:

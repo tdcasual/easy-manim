@@ -102,3 +102,29 @@ def test_build_settings_reads_multi_agent_workflow_env(monkeypatch) -> None:
     assert settings.multi_agent_workflow_enabled is True
     assert settings.multi_agent_workflow_max_child_attempts == 6
     assert settings.multi_agent_workflow_require_completed_for_accept is False
+
+
+def test_settings_expose_reliability_defaults() -> None:
+    settings = Settings()
+
+    assert settings.preview_gate_enabled is True
+    assert settings.preview_gate_frame_limit == 12
+    assert settings.quality_gate_min_score == 0.75
+    assert settings.risk_routing_enabled is True
+    assert settings.strategy_promotion_enabled is False
+
+
+def test_build_settings_reads_reliability_env(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_PREVIEW_GATE_ENABLED", "false")
+    monkeypatch.setenv("EASY_MANIM_PREVIEW_GATE_FRAME_LIMIT", "24")
+    monkeypatch.setenv("EASY_MANIM_QUALITY_GATE_MIN_SCORE", "0.9")
+    monkeypatch.setenv("EASY_MANIM_RISK_ROUTING_ENABLED", "false")
+    monkeypatch.setenv("EASY_MANIM_STRATEGY_PROMOTION_ENABLED", "true")
+
+    settings = build_settings(Path("data"))
+
+    assert settings.preview_gate_enabled is False
+    assert settings.preview_gate_frame_limit == 24
+    assert settings.quality_gate_min_score == 0.9
+    assert settings.risk_routing_enabled is False
+    assert settings.strategy_promotion_enabled is True

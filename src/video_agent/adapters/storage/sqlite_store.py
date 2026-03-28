@@ -16,6 +16,8 @@ from video_agent.domain.agent_profile_suggestion_models import AgentProfileSugge
 from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
+from video_agent.domain.quality_models import QualityScorecard
+from video_agent.domain.strategy_models import StrategyProfile
 from video_agent.domain.validation_models import ValidationReport
 
 
@@ -52,8 +54,10 @@ class SQLiteTaskStore:
                 INSERT INTO video_tasks (
                     task_id, root_task_id, parent_task_id, agent_id, session_id, status, phase, prompt, feedback,
                     memory_context_summary, memory_context_digest, idempotency_key,
-                    current_script_artifact_id, best_result_artifact_id, display_title, title_source, task_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    current_script_artifact_id, best_result_artifact_id, display_title, title_source,
+                    risk_level, generation_mode, strategy_profile_id, scene_spec_id, quality_gate_status,
+                    accepted_as_best, accepted_version_rank, task_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task.task_id,
@@ -72,6 +76,13 @@ class SQLiteTaskStore:
                     task.best_result_artifact_id,
                     task.display_title,
                     task.title_source,
+                    task.risk_level,
+                    task.generation_mode,
+                    task.strategy_profile_id,
+                    task.scene_spec_id,
+                    task.quality_gate_status,
+                    int(task.accepted_as_best),
+                    task.accepted_version_rank,
                     task.model_dump_json(),
                     task.created_at.isoformat(),
                     task.updated_at.isoformat(),
@@ -97,7 +108,9 @@ class SQLiteTaskStore:
                 UPDATE video_tasks
                 SET root_task_id = ?, parent_task_id = ?, agent_id = ?, session_id = ?, status = ?, phase = ?, prompt = ?,
                     feedback = ?, memory_context_summary = ?, memory_context_digest = ?, current_script_artifact_id = ?,
-                    best_result_artifact_id = ?, display_title = ?, title_source = ?, task_json = ?, updated_at = ?
+                    best_result_artifact_id = ?, display_title = ?, title_source = ?, risk_level = ?,
+                    generation_mode = ?, strategy_profile_id = ?, scene_spec_id = ?, quality_gate_status = ?,
+                    accepted_as_best = ?, accepted_version_rank = ?, task_json = ?, updated_at = ?
                 WHERE task_id = ?
                 """,
                 (
@@ -115,6 +128,13 @@ class SQLiteTaskStore:
                     task.best_result_artifact_id,
                     task.display_title,
                     task.title_source,
+                    task.risk_level,
+                    task.generation_mode,
+                    task.strategy_profile_id,
+                    task.scene_spec_id,
+                    task.quality_gate_status,
+                    int(task.accepted_as_best),
+                    task.accepted_version_rank,
                     task.model_dump_json(),
                     task.updated_at.isoformat(),
                     task.task_id,
@@ -831,6 +851,19 @@ class SQLiteTaskStore:
             ).fetchone()
         return int(row["task_count"])
 
+    def list_lineage_tasks(self, root_task_id: str) -> list[VideoTask]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT task_json
+                FROM video_tasks
+                WHERE root_task_id = ?
+                ORDER BY created_at ASC, task_id ASC
+                """,
+                (root_task_id,),
+            ).fetchall()
+        return [VideoTask.model_validate_json(row["task_json"]) for row in rows]
+
     def list_events(self, task_id: str, limit: int = 200) -> list[dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute(
@@ -851,6 +884,149 @@ class SQLiteTaskStore:
             }
             for row in rows
         ]
+
+    def upsert_task_quality_score(self, task_id: str, scorecard: QualityScorecard) -> QualityScorecard:
+        payload = scorecard.model_copy(update={"task_id": task_id})
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO task_quality_scores (task_id, scorecard_json, created_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(task_id) DO UPDATE SET
+                    scorecard_json = excluded.scorecard_json,
+                    created_at = excluded.created_at
+                """,
+                (
+                    task_id,
+                    payload.model_dump_json(),
+                    _utcnow_iso(),
+                ),
+            )
+        return payload
+
+    def get_task_quality_score(self, task_id: str) -> Optional[QualityScorecard]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT scorecard_json FROM task_quality_scores WHERE task_id = ?",
+                (task_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return QualityScorecard.model_validate_json(row["scorecard_json"])
+
+    def create_strategy_profile(self, profile: StrategyProfile) -> StrategyProfile:
+        with self._connect() as connection:
+            existing = connection.execute(
+                """
+                SELECT strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
+                FROM strategy_profiles
+                WHERE strategy_id = ?
+                """,
+                (profile.strategy_id,),
+            ).fetchone()
+            profile.updated_at = _utcnow()
+            if existing is not None:
+                profile.created_at = datetime.fromisoformat(existing["created_at"])
+            connection.execute(
+                """
+                INSERT INTO strategy_profiles (
+                    strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(strategy_id) DO UPDATE SET
+                    scope = excluded.scope,
+                    prompt_cluster = excluded.prompt_cluster,
+                    status = excluded.status,
+                    params_json = excluded.params_json,
+                    metrics_json = excluded.metrics_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    profile.strategy_id,
+                    profile.scope,
+                    profile.prompt_cluster,
+                    profile.status,
+                    json.dumps(profile.params),
+                    json.dumps(profile.metrics),
+                    profile.created_at.isoformat(),
+                    profile.updated_at.isoformat(),
+                ),
+            )
+        return profile
+
+    def get_strategy_profile(self, strategy_id: str) -> Optional[StrategyProfile]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
+                FROM strategy_profiles
+                WHERE strategy_id = ?
+                """,
+                (strategy_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return StrategyProfile(
+            strategy_id=row["strategy_id"],
+            scope=row["scope"],
+            prompt_cluster=row["prompt_cluster"],
+            status=row["status"],
+            params=json.loads(row["params_json"]),
+            metrics=json.loads(row["metrics_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
+
+    def list_strategy_profiles(self, status: str | None = None) -> list[StrategyProfile]:
+        query = """
+            SELECT strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
+            FROM strategy_profiles
+        """
+        params: list[Any] = []
+        if status is not None:
+            query += " WHERE status = ?"
+            params.append(status)
+        query += " ORDER BY created_at ASC"
+        with self._connect() as connection:
+            rows = connection.execute(query, tuple(params)).fetchall()
+        return [
+            StrategyProfile(
+                strategy_id=row["strategy_id"],
+                scope=row["scope"],
+                prompt_cluster=row["prompt_cluster"],
+                status=row["status"],
+                params=json.loads(row["params_json"]),
+                metrics=json.loads(row["metrics_json"]),
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=datetime.fromisoformat(row["updated_at"]),
+            )
+            for row in rows
+        ]
+
+    def record_strategy_eval_run(
+        self,
+        strategy_id: str,
+        *,
+        baseline_summary: dict[str, Any],
+        challenger_summary: dict[str, Any],
+        promotion_recommended: bool,
+    ) -> StrategyProfile:
+        profile = self.get_strategy_profile(strategy_id)
+        if profile is None:
+            raise ValueError(f"Unknown strategy profile: {strategy_id}")
+
+        profile.metrics = {
+            **profile.metrics,
+            "last_eval_run": {
+                "baseline_run_id": baseline_summary["run_id"],
+                "challenger_run_id": challenger_summary["run_id"],
+                "baseline_success_rate": baseline_summary.get("report", {}).get("success_rate", 0.0),
+                "challenger_success_rate": challenger_summary.get("report", {}).get("success_rate", 0.0),
+                "baseline_accepted_quality_rate": baseline_summary.get("report", {}).get("quality", {}).get("pass_rate", 0.0),
+                "challenger_accepted_quality_rate": challenger_summary.get("report", {}).get("quality", {}).get("pass_rate", 0.0),
+                "promotion_recommended": promotion_recommended,
+            },
+        }
+        return self.create_strategy_profile(profile)
 
     def record_validation(self, task_id: str, report: ValidationReport) -> None:
         with self._connect() as connection:

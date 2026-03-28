@@ -45,6 +45,13 @@ class VideoTask(BaseModel):
     best_result_artifact_id: Optional[str] = None
     display_title: Optional[str] = None
     title_source: Optional[str] = None
+    risk_level: Optional[str] = None
+    generation_mode: Optional[str] = None
+    strategy_profile_id: Optional[str] = None
+    scene_spec_id: Optional[str] = None
+    quality_gate_status: Optional[str] = None
+    accepted_as_best: bool = False
+    accepted_version_rank: Optional[int] = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
 
@@ -85,4 +92,9 @@ class VideoTask(BaseModel):
             best_result_artifact_id=parent.best_result_artifact_id if preserve_working_parts else None,
             display_title=parent.display_title,
             title_source=parent.title_source,
+            risk_level=parent.risk_level,
+            generation_mode=parent.generation_mode,
+            strategy_profile_id=parent.strategy_profile_id,
+            scene_spec_id=parent.scene_spec_id,
+            quality_gate_status=parent.quality_gate_status,
         )

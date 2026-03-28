@@ -237,6 +237,45 @@ def apply_task_display_title_fields(connection: sqlite3.Connection) -> None:
     ensure_column(connection, "video_tasks", "title_source", "TEXT")
 
 
+def apply_task_reliability_fields(connection: sqlite3.Connection) -> None:
+    ensure_column(connection, "video_tasks", "risk_level", "TEXT")
+    ensure_column(connection, "video_tasks", "generation_mode", "TEXT")
+    ensure_column(connection, "video_tasks", "strategy_profile_id", "TEXT")
+    ensure_column(connection, "video_tasks", "scene_spec_id", "TEXT")
+    ensure_column(connection, "video_tasks", "quality_gate_status", "TEXT")
+    ensure_column(connection, "video_tasks", "accepted_as_best", "INTEGER NOT NULL DEFAULT 0")
+    ensure_column(connection, "video_tasks", "accepted_version_rank", "INTEGER")
+
+
+def apply_task_quality_scorecards(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS task_quality_scores (
+            task_id TEXT PRIMARY KEY,
+            scorecard_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+
+
+def apply_strategy_profiles(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS strategy_profiles (
+            strategy_id TEXT PRIMARY KEY,
+            scope TEXT NOT NULL,
+            prompt_cluster TEXT,
+            status TEXT NOT NULL,
+            params_json TEXT NOT NULL,
+            metrics_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+
+
 SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
     SQLiteMigration(
         migration_id="001_initial_schema",
@@ -262,5 +301,20 @@ SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
         migration_id="005_task_display_title_fields",
         description="persist display titles and sources for tasks",
         apply=apply_task_display_title_fields,
+    ),
+    SQLiteMigration(
+        migration_id="006_task_reliability_fields",
+        description="persist reliability metadata for tasks",
+        apply=apply_task_reliability_fields,
+    ),
+    SQLiteMigration(
+        migration_id="007_task_quality_scorecards",
+        description="create a table for task quality scorecards",
+        apply=apply_task_quality_scorecards,
+    ),
+    SQLiteMigration(
+        migration_id="008_strategy_profiles",
+        description="create a table for strategy profiles",
+        apply=apply_strategy_profiles,
     ),
 )

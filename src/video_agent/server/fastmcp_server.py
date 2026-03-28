@@ -12,6 +12,7 @@ from video_agent.config import Settings
 from video_agent.server.app import AppContext, create_app_context
 from video_agent.server.mcp_resources import authorize_resource_access, read_resource, read_resource_for_agent
 from video_agent.server.mcp_tools import (
+    accept_best_version_tool,
     apply_review_decision_tool,
     authenticate_agent_tool,
     cancel_video_task_tool,
@@ -21,8 +22,11 @@ from video_agent.server.mcp_tools import (
     get_failure_contract_tool,
     get_agent_memory_tool,
     get_metrics_snapshot_tool,
+    get_quality_score_tool,
+    get_recovery_plan_tool,
     get_review_bundle_tool,
     get_runtime_status_tool,
+    get_scene_spec_tool,
     get_session_memory_tool,
     get_task_events_tool,
     get_video_result_tool,
@@ -118,6 +122,30 @@ def create_mcp_server(
     @mcp.tool(name="get_failure_contract")
     def get_failure_contract(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
         return get_failure_contract_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="get_scene_spec")
+    def get_scene_spec(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_scene_spec_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="get_recovery_plan")
+    def get_recovery_plan(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_recovery_plan_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="get_quality_score")
+    def get_quality_score(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_quality_score_tool(
             context,
             {"task_id": task_id},
             agent_principal=current_principal(ctx),
@@ -272,6 +300,14 @@ def create_mcp_server(
     @mcp.tool(name="cancel_video_task")
     def cancel_video_task(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
         return cancel_video_task_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="accept_best_version")
+    def accept_best_version(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return accept_best_version_tool(
             context,
             {"task_id": task_id},
             agent_principal=current_principal(ctx),
