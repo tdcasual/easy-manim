@@ -17,13 +17,17 @@ from video_agent.server.http_auth import (
 )
 from video_agent.server.mcp_resources import guess_mime_type, resolve_resource_path
 from video_agent.server.mcp_tools import (
+    accept_best_version_tool,
     cancel_video_task_tool,
     clear_session_memory_tool,
     create_video_task_tool,
     disable_agent_memory_tool,
     apply_review_decision_tool,
     get_agent_memory_tool,
+    get_quality_score_tool,
+    get_recovery_plan_tool,
     get_review_bundle_tool,
+    get_scene_spec_tool,
     get_session_memory_tool,
     get_video_result_tool,
     get_video_task_tool,
@@ -104,8 +108,16 @@ def _tool_payload_or_http_error(payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=code)
     if code in {"agent_access_denied", "agent_memory_forbidden", "agent_scope_denied"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=code)
-    if code in {"agent_memory_not_found", "task_not_found"}:
+    if code in {
+        "agent_memory_not_found",
+        "task_not_found",
+        "scene_spec_not_found",
+        "recovery_plan_not_found",
+        "quality_score_not_found",
+    }:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=code)
+    if code == "invalid_task_state":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=code)
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=code)
 
 
@@ -671,6 +683,39 @@ def create_http_api(settings: Settings) -> FastAPI:
             )
         )
 
+    @app.get("/api/tasks/{task_id}/scene-spec")
+    def get_task_scene_spec(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        payload = _tool_payload_or_http_error(
+            get_scene_spec_tool(
+                context,
+                {"task_id": task_id},
+                agent_principal=resolved.agent_principal,
+            )
+        )
+        return payload["scene_spec"]
+
+    @app.get("/api/tasks/{task_id}/recovery-plan")
+    def get_task_recovery_plan(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        payload = _tool_payload_or_http_error(
+            get_recovery_plan_tool(
+                context,
+                {"task_id": task_id},
+                agent_principal=resolved.agent_principal,
+            )
+        )
+        return payload["recovery_plan"]
+
+    @app.get("/api/tasks/{task_id}/quality-score")
+    def get_task_quality_score(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        payload = _tool_payload_or_http_error(
+            get_quality_score_tool(
+                context,
+                {"task_id": task_id},
+                agent_principal=resolved.agent_principal,
+            )
+        )
+        return payload["quality_score"]
+
     @app.get("/api/tasks/{task_id}/result")
     def get_task_result(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
         try:
@@ -865,6 +910,16 @@ def create_http_api(settings: Settings) -> FastAPI:
     def cancel_task(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
         return _tool_payload_or_http_error(
             cancel_video_task_tool(
+                context,
+                {"task_id": task_id},
+                agent_principal=resolved.agent_principal,
+            )
+        )
+
+    @app.post("/api/tasks/{task_id}/accept-best")
+    def accept_task_as_best(task_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        return _tool_payload_or_http_error(
+            accept_best_version_tool(
                 context,
                 {"task_id": task_id},
                 agent_principal=resolved.agent_principal,

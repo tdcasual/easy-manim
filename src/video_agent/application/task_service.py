@@ -62,6 +62,11 @@ class VideoTaskSnapshot(BaseModel):
     agent_id: Optional[str] = None
     display_title: Optional[str] = None
     title_source: Optional[str] = None
+    risk_level: Optional[str] = None
+    generation_mode: Optional[str] = None
+    quality_gate_status: Optional[str] = None
+    accepted_as_best: bool = False
+    accepted_version_rank: Optional[int] = None
     status: TaskStatus
     phase: TaskPhase
     attempt_count: int
@@ -196,6 +201,65 @@ class TaskService:
         self.require_task_access(task_id, agent_id)
         return self.artifact_store.read_failure_contract(task_id)
 
+    def get_scene_spec(self, task_id: str) -> dict[str, Any] | None:
+        self._require_task(task_id)
+        return self.artifact_store.read_scene_spec(task_id)
+
+    def get_scene_spec_for_agent(self, task_id: str, agent_id: str) -> dict[str, Any] | None:
+        self.require_task_access(task_id, agent_id)
+        return self.artifact_store.read_scene_spec(task_id)
+
+    def get_recovery_plan(self, task_id: str) -> dict[str, Any] | None:
+        self._require_task(task_id)
+        return self.artifact_store.read_recovery_plan(task_id)
+
+    def get_recovery_plan_for_agent(self, task_id: str, agent_id: str) -> dict[str, Any] | None:
+        self.require_task_access(task_id, agent_id)
+        return self.artifact_store.read_recovery_plan(task_id)
+
+    def get_quality_score(self, task_id: str) -> dict[str, Any] | None:
+        self._require_task(task_id)
+        scorecard = self.store.get_task_quality_score(task_id)
+        if scorecard is not None:
+            return scorecard.model_dump(mode="json")
+        return self.artifact_store.read_quality_score(task_id)
+
+    def get_quality_score_for_agent(self, task_id: str, agent_id: str) -> dict[str, Any] | None:
+        self.require_task_access(task_id, agent_id)
+        return self.get_quality_score(task_id)
+
+    def accept_best_version(
+        self,
+        task_id: str,
+        agent_principal: AgentPrincipal | None = None,
+    ) -> VideoTaskSnapshot:
+        principal = self._resolve_agent_principal(agent_principal)
+        self._authorize_action(principal, "task:mutate")
+        accepted_task = self._require_authorized_task(task_id, principal)
+        if accepted_task.status is not TaskStatus.COMPLETED:
+            raise ValueError("accept_best_requires_completed_task")
+
+        lineage = self.store.list_lineage_tasks(accepted_task.root_task_id or accepted_task.task_id)
+        accepted_rank = 1
+        for index, candidate in enumerate(lineage, start=1):
+            is_selected = candidate.task_id == accepted_task.task_id
+            candidate.accepted_as_best = is_selected
+            candidate.accepted_version_rank = index if is_selected else None
+            if is_selected:
+                accepted_rank = index
+            self.store.update_task(candidate)
+            self.artifact_store.write_task_snapshot(candidate)
+
+        self.store.append_event(
+            task_id,
+            "task_accepted_as_best",
+            {
+                "root_task_id": accepted_task.root_task_id or accepted_task.task_id,
+                "accepted_version_rank": accepted_rank,
+            },
+        )
+        return self.get_video_task(task_id)
+
     def require_task_access(self, task_id: str, agent_id: str) -> VideoTask:
         task = self._require_task(task_id)
         if task.agent_id != agent_id:
@@ -222,6 +286,11 @@ class TaskService:
             agent_id=task.agent_id,
             display_title=task.display_title,
             title_source=task.title_source,
+            risk_level=task.risk_level,
+            generation_mode=task.generation_mode,
+            quality_gate_status=task.quality_gate_status,
+            accepted_as_best=task.accepted_as_best,
+            accepted_version_rank=task.accepted_version_rank,
             status=task.status,
             phase=task.phase,
             attempt_count=task.attempt_count,

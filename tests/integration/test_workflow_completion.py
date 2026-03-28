@@ -301,11 +301,15 @@ def test_workflow_persists_scene_plan_artifact(tmp_path: Path) -> None:
     app_context.worker.run_once()
 
     scene_plan_path = app_context.artifact_store.task_dir(created.task_id) / "artifacts" / "scene_plan.json"
+    scene_spec_path = app_context.artifact_store.task_dir(created.task_id) / "artifacts" / "scene_spec.json"
     assert scene_plan_path.exists()
+    assert scene_spec_path.exists()
     payload = json.loads(scene_plan_path.read_text())
+    scene_spec = json.loads(scene_spec_path.read_text())
     assert payload["scene_class"] == "MovingCameraScene"
     assert payload["camera_strategy"] == "auto_zoom"
     assert payload["pacing_strategy"] == "measured"
+    assert scene_spec["camera_strategy"] == "auto_zoom"
     assert "avoid_blank_opening_frame" in payload["quality_directives"]
 
 

@@ -64,6 +64,11 @@ class Settings(BaseModel):
     multi_agent_workflow_enabled: bool = False
     multi_agent_workflow_max_child_attempts: int = 3
     multi_agent_workflow_require_completed_for_accept: bool = True
+    preview_gate_enabled: bool = True
+    preview_gate_frame_limit: int = 12
+    quality_gate_min_score: float = 0.75
+    risk_routing_enabled: bool = True
+    strategy_promotion_enabled: bool = False
 
     @model_validator(mode="after")
     def derive_paths(self) -> "Settings":

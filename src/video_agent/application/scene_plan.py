@@ -9,6 +9,7 @@ class ScenePlanSection(BaseModel):
 
 
 class ScenePlan(BaseModel):
+    scene_goal: str = ""
     scene_class: str = "Scene"
     formula_strategy: str = "none"
     transition_style: str = "succession"
@@ -27,7 +28,7 @@ def build_scene_plan(
     text = prompt.lower()
     output_profile = output_profile or {}
     style_hints = style_hints or {}
-    plan = ScenePlan(sections=[ScenePlanSection(name="main", goal=prompt)])
+    plan = ScenePlan(scene_goal=prompt, sections=[ScenePlanSection(name="main", goal=prompt)])
     quality_preset = _as_text(output_profile.get("quality_preset")) or "development"
     pace_hint = _as_text(style_hints.get("pace"))
     tone_hint = _as_text(style_hints.get("tone"))

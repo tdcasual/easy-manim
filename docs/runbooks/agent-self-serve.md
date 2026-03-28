@@ -258,6 +258,55 @@ SESSION_TOKEN=$(
 )
 ```
 
+### 2. Create a task and inspect reliability metadata
+
+For routine prompts, the backend now records a risk profile, a scene spec, and a quality scorecard. For guarded failures, it also records a recovery plan.
+
+```bash
+TASK_ID=$(
+  curl -fsS http://127.0.0.1:8001/api/tasks \
+    -H 'content-type: application/json' \
+    -H "Authorization: Bearer ${SESSION_TOKEN}" \
+    -d '{"prompt":"draw a blue circle and label the radius"}' | jq -r '.task_id'
+)
+
+curl -fsS http://127.0.0.1:8001/api/tasks/${TASK_ID} \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -fsS http://127.0.0.1:8001/api/tasks/${TASK_ID}/scene-spec \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -fsS http://127.0.0.1:8001/api/tasks/${TASK_ID}/quality-score \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+```
+
+Notes:
+
+- `risk_level`, `generation_mode`, and `quality_gate_status` are included on the main task snapshot.
+- `scene-spec`, `quality-score`, and `recovery-plan` stay on separate read endpoints so clients can fetch them lazily.
+- Formula-heavy prompts may be downgraded or blocked by capability checks when LaTeX is unavailable.
+
+### 3. Accept the best completed version
+
+Once a review loop settles on the preferred result, mark that lineage node explicitly:
+
+```bash
+curl -fsS -X POST http://127.0.0.1:8001/api/tasks/${TASK_ID}/accept-best \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+```
+
+This sets `accepted_as_best=true` on the chosen task snapshot and clears that flag from sibling attempts in the same lineage.
+
+### 4. Use challenger evals before promoting a strategy
+
+Strategy promotion is not automatic. The backend keeps lightweight strategy profiles and stores the latest challenger-vs-baseline eval result in `metrics.last_eval_run`.
+
+Operational guidance:
+
+- create or update a strategy profile before running a challenger comparison
+- run evals against a representative suite, not ad hoc production traffic
+- only promote when success rate does not regress and accepted quality rate improves
+
 ### 2. Verify identity
 ```bash
 curl -fsS http://127.0.0.1:8001/api/whoami \

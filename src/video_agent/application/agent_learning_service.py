@@ -6,6 +6,7 @@ from typing import Callable
 
 from video_agent.agent_policy import QUALITY_ISSUE_CODES
 from video_agent.domain.agent_learning_models import AgentLearningEvent
+from video_agent.domain.quality_models import QualityScorecard
 
 
 _QUALITY_ISSUE_CODE_SET = set(QUALITY_ISSUE_CODES)
@@ -21,6 +22,10 @@ def compute_quality_score(status: str, issue_codes: list[str]) -> float:
         score -= 0.4
     score -= 0.2 * len(select_quality_issue_codes(issue_codes))
     return max(0.0, round(score, 4))
+
+
+def quality_score_from_scorecard(scorecard: QualityScorecard) -> float:
+    return float(scorecard.total_score or 0.0)
 
 
 class AgentLearningService:

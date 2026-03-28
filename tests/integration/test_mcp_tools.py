@@ -8,6 +8,7 @@ from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.quality_models import QualityScorecard
 from tests.support import bootstrapped_settings
 
 
@@ -89,6 +90,33 @@ def get_failure_contract_tool(app_context, payload, agent_principal=None):
 def list_video_tasks_tool(app_context, payload, agent_principal=None):
     def _load():
         from video_agent.server.mcp_tools import list_video_tasks_tool as tool
+
+        return tool(app_context, payload, agent_principal=agent_principal)
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def get_scene_spec_tool(app_context, payload, agent_principal=None):
+    def _load():
+        from video_agent.server.mcp_tools import get_scene_spec_tool as tool
+
+        return tool(app_context, payload, agent_principal=agent_principal)
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def get_quality_score_tool(app_context, payload, agent_principal=None):
+    def _load():
+        from video_agent.server.mcp_tools import get_quality_score_tool as tool
+
+        return tool(app_context, payload, agent_principal=agent_principal)
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def accept_best_version_tool(app_context, payload, agent_principal=None):
+    def _load():
+        from video_agent.server.mcp_tools import accept_best_version_tool as tool
 
         return tool(app_context, payload, agent_principal=agent_principal)
 
@@ -304,3 +332,46 @@ def test_list_video_tasks_only_returns_authenticated_agents_tasks(tmp_path: Path
     payload = list_video_tasks_tool(app_context, {"limit": 10}, agent_principal=agent_a)
 
     assert [item["task_id"] for item in payload["items"]] == [agent_a_task["task_id"]]
+
+
+def test_reliability_tools_only_return_authenticated_agents_task_data(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_required_auth_settings(tmp_path))
+    _seed_required_agent(app_context, "agent-a", "agent-a-secret")
+    _seed_required_agent(app_context, "agent-b", "agent-b-secret")
+    agent_a = app_context.agent_identity_service.authenticate("agent-a-secret")
+    agent_b = app_context.agent_identity_service.authenticate("agent-b-secret")
+
+    created = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle"},
+        agent_principal=agent_a,
+    )
+    task_id = created["task_id"]
+    app_context.artifact_store.write_scene_spec(
+        task_id,
+        {"task_id": task_id, "summary": "draw a circle", "scene_count": 1, "scenes": []},
+    )
+    app_context.store.upsert_task_quality_score(
+        task_id,
+        QualityScorecard(task_id=task_id, total_score=0.9, accepted=True),
+    )
+
+    forbidden_scene_spec = get_scene_spec_tool(
+        app_context,
+        {"task_id": task_id},
+        agent_principal=agent_b,
+    )
+    forbidden_quality = get_quality_score_tool(
+        app_context,
+        {"task_id": task_id},
+        agent_principal=agent_b,
+    )
+    forbidden_accept = accept_best_version_tool(
+        app_context,
+        {"task_id": task_id},
+        agent_principal=agent_b,
+    )
+
+    assert forbidden_scene_spec["error"]["code"] == "agent_access_denied"
+    assert forbidden_quality["error"]["code"] == "agent_access_denied"
+    assert forbidden_accept["error"]["code"] == "agent_access_denied"

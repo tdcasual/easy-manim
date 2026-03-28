@@ -139,6 +139,11 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
             "EASY_MANIM_MULTI_AGENT_WORKFLOW_REQUIRE_COMPLETED_FOR_ACCEPT",
             True,
         ),
+        preview_gate_enabled=_env_bool("EASY_MANIM_PREVIEW_GATE_ENABLED", True),
+        preview_gate_frame_limit=_env_int("EASY_MANIM_PREVIEW_GATE_FRAME_LIMIT", 12),
+        quality_gate_min_score=_env_float("EASY_MANIM_QUALITY_GATE_MIN_SCORE", 0.75),
+        risk_routing_enabled=_env_bool("EASY_MANIM_RISK_ROUTING_ENABLED", True),
+        strategy_promotion_enabled=_env_bool("EASY_MANIM_STRATEGY_PROMOTION_ENABLED", False),
     )
 
 

@@ -41,6 +41,10 @@ class ReviewBundle(BaseModel):
     phase: str
     latest_validation_summary: dict[str, Any] = Field(default_factory=dict)
     failure_contract: dict[str, Any] | None = None
+    scene_spec: dict[str, Any] | None = None
+    recovery_plan: dict[str, Any] | None = None
+    quality_scorecard: dict[str, Any] | None = None
+    quality_gate_status: str | None = None
     task_events: list[dict[str, Any]] = Field(default_factory=list)
     session_memory_summary: str = ""
     video_resource: str | None = None

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.errors import AdmissionControlError
+from video_agent.application.recovery_policy_service import RecoveryPolicyService
 from video_agent.application.repair_prompt_builder import build_targeted_repair_feedback
 from video_agent.application.task_service import TaskService
 from video_agent.config import Settings
@@ -30,11 +31,13 @@ class AutoRepairService:
         artifact_store: ArtifactStore,
         settings: Settings,
         task_service: TaskService | None = None,
+        recovery_policy_service: RecoveryPolicyService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
         self.settings = settings
         self.task_service = task_service or TaskService(store=store, artifact_store=artifact_store, settings=settings)
+        self.recovery_policy_service = recovery_policy_service
 
     def maybe_schedule_repair(self, task: VideoTask) -> AutoRepairDecision:
         if not self.settings.auto_repair_enabled:
@@ -89,11 +92,21 @@ class AutoRepairService:
             summary = self.task_service.session_memory_service.summarize_session_memory(task.session_id)
             memory_context_summary = summary.summary_text or None
 
-        return build_targeted_repair_feedback(
+        feedback = build_targeted_repair_feedback(
             issue_code=issue_code,
             failure_context=failure_context,
             memory_context_summary=memory_context_summary,
         )
+        if self.recovery_policy_service is None:
+            return feedback
+
+        plan = self.recovery_policy_service.build(
+            issue_code=issue_code,
+            failure_contract=self.artifact_store.read_failure_contract(task.task_id),
+        )
+        if plan.selected_action:
+            return f"Recovery policy: {plan.selected_action}\n\n{feedback}"
+        return feedback
 
     def _load_failure_context(self, task_id: str) -> dict[str, Any]:
         path = self.artifact_store.failure_context_path(task_id)

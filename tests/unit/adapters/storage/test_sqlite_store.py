@@ -9,6 +9,7 @@ from video_agent.domain.agent_profile_revision_models import AgentProfileRevisio
 from video_agent.domain.agent_profile_suggestion_models import AgentProfileSuggestion
 from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.models import VideoTask
+from video_agent.domain.quality_models import QualityScorecard
 
 
 def _build_store(tmp_path) -> SQLiteTaskStore:
@@ -70,6 +71,30 @@ def test_sqlite_bootstrapper_adds_task_title_columns(tmp_path) -> None:
 
     assert "display_title" in columns
     assert "title_source" in columns
+
+
+def test_sqlite_bootstrapper_adds_reliability_columns_and_tables(tmp_path) -> None:
+    database_path = tmp_path / "agent.db"
+    SQLiteBootstrapper(database_path).bootstrap()
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(video_tasks)").fetchall()
+        }
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        }
+
+    assert "risk_level" in columns
+    assert "generation_mode" in columns
+    assert "strategy_profile_id" in columns
+    assert "scene_spec_id" in columns
+    assert "quality_gate_status" in columns
+    assert "accepted_as_best" in columns
+    assert "accepted_version_rank" in columns
+    assert "task_quality_scores" in tables
 
 
 def test_idempotency_key_returns_existing_task(tmp_path) -> None:
@@ -171,6 +196,32 @@ def test_store_persists_task_session_id_and_memory_context(tmp_path) -> None:
     assert loaded.memory_context_digest == "digest-1"
 
 
+def test_sqlite_store_persists_reliability_task_fields(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    task = VideoTask(
+        prompt="draw a circle",
+        risk_level="high",
+        generation_mode="template_first",
+    )
+
+    store.create_task(task)
+    loaded = store.get_task(task.task_id)
+
+    assert loaded is not None
+    assert loaded.risk_level == "high"
+    assert loaded.generation_mode == "template_first"
+
+    with sqlite3.connect(store.database_path) as connection:
+        row = connection.execute(
+            "SELECT risk_level, generation_mode FROM video_tasks WHERE task_id = ?",
+            (task.task_id,),
+        ).fetchone()
+
+    assert row is not None
+    assert row[0] == "high"
+    assert row[1] == "template_first"
+
+
 def test_store_round_trips_agent_memory_record(tmp_path) -> None:
     store = _build_store(tmp_path)
     record = AgentMemoryRecord(
@@ -219,6 +270,7 @@ def test_store_round_trips_agent_session(tmp_path) -> None:
         session_id="sess-1",
         session_hash="hash-1",
         agent_id="agent-a",
+        token_hash="token-hash-1",
     )
 
     store.create_agent_session(session)
@@ -235,6 +287,7 @@ def test_store_touches_and_revokes_agent_session(tmp_path) -> None:
         session_id="sess-1",
         session_hash="hash-1",
         agent_id="agent-a",
+        token_hash="token-hash-1",
     )
     store.create_agent_session(session)
 
@@ -248,6 +301,24 @@ def test_store_touches_and_revokes_agent_session(tmp_path) -> None:
     assert revoked is not None
     assert revoked.status == "revoked"
     assert revoked.revoked_at is not None
+
+
+def test_store_round_trips_task_quality_score(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    scorecard = QualityScorecard(
+        task_id="task-1",
+        total_score=0.72,
+        dimension_scores={"motion_smoothness": 0.4, "prompt_alignment": 0.8},
+        must_fix_issues=["static_previews"],
+        accepted=False,
+    )
+
+    store.upsert_task_quality_score("task-1", scorecard)
+    loaded = store.get_task_quality_score("task-1")
+
+    assert loaded is not None
+    assert loaded.total_score == 0.72
+    assert loaded.dimension_scores["motion_smoothness"] == 0.4
 
 
 def test_store_round_trips_agent_profile_revision(tmp_path) -> None:
