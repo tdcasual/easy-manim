@@ -3,8 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, BarChart3, Clock, AlertCircle, ClipboardList } from "lucide-react";
 import { useSession } from "../auth/useSession";
 import { EvalRunSummary, getEval } from "../../lib/evalsApi";
+import { useI18n } from "../../app/locale";
 import { SkeletonCard } from "../../components/Skeleton";
 import { getStatusLabel } from "../../app/ui";
+import { AuthModal, useAuthGuard } from "../../components/AuthModal";
 import "./EvalDetailPageV2.css";
 
 function formatPercent(value: number | null): string {
@@ -20,6 +22,8 @@ export function EvalDetailPageV2() {
   const { runId } = useParams();
   const navigate = useNavigate();
   const { sessionToken } = useSession();
+  const { locale, t } = useI18n();
+  const { showAuthModal, closeAuthModal } = useAuthGuard();
   const [run, setRun] = useState<EvalRunSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,25 +31,25 @@ export function EvalDetailPageV2() {
     if (!runId || !sessionToken) return;
     getEval(runId, sessionToken)
       .then(setRun)
-      .catch((err) => setError(err instanceof Error ? err.message : "加载失败"));
-  }, [runId, sessionToken]);
-  
+      .catch((err) => setError(err instanceof Error ? err.message : t("common.loadingFailed")));
+  }, [runId, sessionToken, t]);
+
   if (!runId) {
     return (
       <div className="page-v2">
-        <div className="empty-state-v2">缺少运行 ID</div>
+        <div className="empty-state-v2">{t("evalDetail.missingRunId")}</div>
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="page-v2">
-        <div className="empty-state-v2">加载失败: {error}</div>
+        <div className="empty-state-v2">{t("evalDetail.loadFailed", { error })}</div>
       </div>
     );
   }
-  
+
   if (!run) {
     return (
       <div className="page-v2">
@@ -61,59 +65,66 @@ export function EvalDetailPageV2() {
       </div>
     );
   }
-  
+
   const cases = Array.isArray(run.items) ? run.items : [];
   const successRate = readSuccessRate(run.report);
-  
+
   return (
     <div className="page-v2">
       <div className="page-header-v2">
         <div className="page-header-content-v2">
           <button onClick={() => navigate(-1)} className="back-link">
             <ArrowLeft size={18} />
-            返回
+            {t("evalDetail.back")}
           </button>
-          <h1 className="page-title-v2">评测详情</h1>
+          <h1 className="page-title-v2">{t("evalDetail.title")}</h1>
           <p className="page-description-v2">{run.run_id}</p>
         </div>
       </div>
-      
+
       <div className="eval-detail-header">
         <div className="eval-detail-stats">
           <div className="eval-stat">
-            <span className="stat-label">套件</span>
+            <span className="stat-label">{t("evalDetail.suite")}</span>
             <span className="stat-value">{run.suite_id}</span>
           </div>
           <div className="eval-stat">
-            <span className="stat-label">用例数</span>
+            <span className="stat-label">{t("evalDetail.cases")}</span>
             <span className="stat-value">{run.total_cases}</span>
           </div>
           <div className="eval-stat">
-            <span className="stat-label">通过率</span>
-            <span className={`stat-value ${successRate && successRate >= 0.8 ? 'success' : successRate && successRate >= 0.5 ? 'warning' : 'error'}`}>
+            <span className="stat-label">{t("evalDetail.passRate")}</span>
+            <span
+              className={`stat-value ${successRate && successRate >= 0.8 ? "success" : successRate && successRate >= 0.5 ? "warning" : "error"}`}
+            >
               {formatPercent(successRate)}
             </span>
           </div>
         </div>
       </div>
-      
+
       <div className="section-card-v2">
         <div className="section-header-v2">
           <h3 className="section-title-v2">
             <BarChart3 size={20} />
-            用例结果
+            {t("evalDetail.caseResults")}
           </h3>
         </div>
-        
+
         <div className="case-list">
           {cases.length > 0 ? (
             cases.map((item) => {
-              const quality = typeof item.quality_score === "number" ? item.quality_score.toFixed(2) : "—";
-              const duration = typeof item.duration_seconds === "number" ? `${item.duration_seconds.toFixed(1)} 秒` : "—";
-              const issueCodes = Array.isArray(item.issue_codes) && item.issue_codes.length 
-                ? item.issue_codes.join(", ") 
-                : "无";
-              
+              const quality =
+                typeof item.quality_score === "number" ? item.quality_score.toFixed(2) : "—";
+              const duration =
+                typeof item.duration_seconds === "number"
+                  ? t("evalDetail.durationSeconds", { count: item.duration_seconds.toFixed(1) })
+                  : "—";
+              const issueCodes =
+                Array.isArray(item.issue_codes) && item.issue_codes.length
+                  ? item.issue_codes.join(", ")
+                  : t("evalDetail.none");
+
               return (
                 <div key={`${item.task_id}:${item.root_task_id}`} className="case-item">
                   <div className="case-header">
@@ -122,11 +133,11 @@ export function EvalDetailPageV2() {
                       {item.manual_review_required && (
                         <span className="case-badge review">
                           <AlertCircle size={12} />
-                          待复核
+                          {t("evalDetail.review")}
                         </span>
                       )}
                       <span className={`case-badge ${item.status.toLowerCase()}`}>
-                        {getStatusLabel(item.status)}
+                        {getStatusLabel(item.status, locale)}
                       </span>
                     </div>
                   </div>
@@ -136,10 +147,10 @@ export function EvalDetailPageV2() {
                       {duration}
                     </div>
                     <div className="case-stat">
-                      质量分: {quality}
+                      {t("evalDetail.qualityScore", { value: quality })}
                     </div>
                     <div className="case-issues">
-                      问题: {issueCodes}
+                      {t("evalDetail.issues", { value: issueCodes })}
                     </div>
                   </div>
                 </div>
@@ -148,12 +159,15 @@ export function EvalDetailPageV2() {
           ) : (
             <div className="empty-state-v2 case-empty">
               <ClipboardList size={48} />
-              <p>暂无用例数据</p>
-              <span>该评测运行尚未生成详细结果</span>
+              <p>{t("evalDetail.noCases")}</p>
+              <span>{t("evalDetail.noCasesHint")}</span>
             </div>
           )}
         </div>
       </div>
+
+      {/* 🔐 认证弹窗 */}
+      {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );
 }

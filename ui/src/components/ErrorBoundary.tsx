@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { readLocale, translate } from "../app/locale";
 import "./ErrorBoundary.css";
 
 interface Props {
@@ -46,21 +47,19 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="error-boundary__icon">
             <AlertCircle size={48} />
           </div>
-          <h2 className="error-boundary__title">出错了</h2>
+          <h2 className="error-boundary__title">
+            {translate(readLocale(), "errorBoundary.title")}
+          </h2>
           <p className="error-boundary__message">
-            {this.state.error?.message || "发生了意外错误"}
+            {this.state.error?.message ?? translate(readLocale(), "errorBoundary.message")}
           </p>
-          <button
-            className="error-boundary__button"
-            onClick={this.handleReset}
-            type="button"
-          >
+          <button className="error-boundary__button" onClick={this.handleReset} type="button">
             <RefreshCw size={18} />
-            重试
+            {translate(readLocale(), "errorBoundary.retry")}
           </button>
           {import.meta.env.DEV && this.state.errorInfo && (
             <details className="error-boundary__details">
-              <summary>错误详情</summary>
+              <summary>{translate(readLocale(), "errorBoundary.details")}</summary>
               <pre>{this.state.errorInfo.componentStack}</pre>
             </details>
           )}
@@ -73,20 +72,14 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 // 简单的错误 fallback 组件
-export function ErrorFallback({
-  error,
-  resetError,
-}: {
-  error: Error;
-  resetError: () => void;
-}) {
+export function ErrorFallback({ error, resetError }: { error: Error; resetError: () => void }) {
   return (
     <div className="error-fallback" role="alert">
       <AlertCircle size={32} />
-      <h3>加载失败</h3>
+      <h3>{translate(readLocale(), "errorFallback.title")}</h3>
       <p>{error.message}</p>
       <button onClick={resetError} type="button">
-        重试
+        {translate(readLocale(), "errorBoundary.retry")}
       </button>
     </div>
   );

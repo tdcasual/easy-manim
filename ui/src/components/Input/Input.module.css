@@ -1,0 +1,451 @@
+/**
+ * Input - Kawaii 风格输入组件样式
+ * 二次元表单组件设计系统
+ * 圆润、柔和、可爱
+ */
+
+/* 输入框包装器 */
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* 标签 */
+.label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-cloud-700);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 输入框容器 */
+.inputContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: var(--color-cloud-100);
+  transition: all 0.3s var(--ease-kawaii, cubic-bezier(0.34, 1.8, 0.64, 1));
+  position: relative;
+}
+
+.inputContainer:focus-within {
+  background: white;
+  border-color: var(--color-pink-300);
+  box-shadow: 
+    0 0 0 4px rgba(255, 183, 197, 0.15),
+    0 4px 12px rgba(255, 183, 197, 0.2);
+}
+
+/* 尺寸 */
+.inputContainer.sm {
+  padding: 8px 12px;
+  min-height: 36px;
+  border-radius: 12px;
+}
+
+.inputContainer.md {
+  padding: 12px 16px;
+  min-height: 44px;
+  border-radius: 16px;
+}
+
+.inputContainer.lg {
+  padding: 16px 20px;
+  min-height: 52px;
+  border-radius: 20px;
+}
+
+/* 🌸 Kawaii 变体 */
+.inputContainer.default {
+  background: var(--color-cloud-100);
+}
+
+.inputContainer.filled {
+  background: var(--color-cloud-200);
+  border-color: transparent;
+}
+
+.inputContainer.outline {
+  background: transparent;
+  border: 2px dashed var(--color-cloud-400);
+}
+
+.inputContainer.outline:focus-within {
+  border-style: solid;
+  border-color: var(--color-pink-300);
+}
+
+.inputContainer.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.inputContainer.ghost:focus-within {
+  background: var(--color-cloud-100);
+}
+
+/* 粉彩边框变体 */
+.inputContainer.pink:focus-within {
+  border-color: var(--color-pink-300);
+  box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.15), 0 4px 12px rgba(255, 183, 197, 0.2);
+}
+
+.inputContainer.mint:focus-within {
+  border-color: var(--color-mint-300);
+  box-shadow: 0 0 0 4px rgba(168, 230, 207, 0.15), 0 4px 12px rgba(168, 230, 207, 0.2);
+}
+
+.inputContainer.sky:focus-within {
+  border-color: var(--color-sky-300);
+  box-shadow: 0 0 0 4px rgba(168, 216, 234, 0.15), 0 4px 12px rgba(168, 216, 234, 0.2);
+}
+
+.inputContainer.lavender:focus-within {
+  border-color: var(--color-lavender-300);
+  box-shadow: 0 0 0 4px rgba(221, 160, 221, 0.15), 0 4px 12px rgba(221, 160, 221, 0.2);
+}
+
+/* 图标 */
+.leftIcon,
+.rightIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-cloud-600);
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.inputContainer:focus-within .leftIcon,
+.inputContainer:focus-within .rightIcon {
+  color: var(--color-pink-400);
+}
+
+/* 输入框 */
+.input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-cloud-800);
+}
+
+.input::placeholder {
+  color: var(--color-cloud-600);
+}
+
+/* 错误状态 */
+.inputContainer.error {
+  border-color: var(--color-error-400);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.inputContainer.error:focus-within {
+  border-color: var(--color-error-500);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.errorText {
+  font-size: 0.8125rem;
+  color: var(--color-error-500);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.errorText::before {
+  content: '⚠️';
+}
+
+/* 帮助文本 */
+.helperText {
+  font-size: 0.8125rem;
+  color: var(--color-cloud-600);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.helperText::before {
+  content: '💡';
+}
+
+/* 胶囊形（搜索框样式） */
+.rounded {
+  border-radius: 9999px;
+}
+
+/* Textarea */
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  background: var(--color-cloud-100);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--color-cloud-800);
+  resize: vertical;
+  transition: all 0.3s var(--ease-kawaii);
+  outline: none;
+}
+
+.textarea:focus {
+  background: white;
+  border-color: var(--color-pink-300);
+  box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.15), 0 4px 12px rgba(255, 183, 197, 0.2);
+}
+
+.textarea::placeholder {
+  color: var(--color-cloud-600);
+}
+
+.textarea.error {
+  border-color: var(--color-error-400);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.textarea.error:focus {
+  border-color: var(--color-error-500);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+/* Select */
+.selectContainer {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: var(--color-cloud-100);
+  transition: all 0.3s var(--ease-kawaii);
+}
+
+.selectContainer:focus-within {
+  background: white;
+  border-color: var(--color-pink-300);
+  box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.15), 0 4px 12px rgba(255, 183, 197, 0.2);
+}
+
+.selectContainer.sm {
+  min-height: 36px;
+  border-radius: 12px;
+}
+
+.selectContainer.md {
+  min-height: 44px;
+  border-radius: 16px;
+}
+
+.selectContainer.lg {
+  min-height: 52px;
+  border-radius: 20px;
+}
+
+.select {
+  width: 100%;
+  height: 100%;
+  padding: 12px 44px 12px 16px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--color-cloud-800);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23FF6B8A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+
+.select option {
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* Checkbox */
+.checkboxWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border: 2px solid var(--color-cloud-400);
+  border-radius: 6px;
+  background: var(--color-cloud-100);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-kawaii);
+  accent-color: var(--color-pink-500);
+  flex-shrink: 0;
+}
+
+.checkbox:checked {
+  background: var(--color-pink-400);
+  border-color: var(--color-pink-400);
+}
+
+.checkbox:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 183, 197, 0.3);
+}
+
+.checkbox.error {
+  border-color: var(--color-error-400);
+}
+
+.checkboxText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkboxTitle {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-cloud-800);
+}
+
+.checkboxHelper {
+  font-size: 0.8125rem;
+  color: var(--color-cloud-600);
+}
+
+/* Radio */
+.radioWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.radio {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border: 2px solid var(--color-cloud-400);
+  border-radius: 50%;
+  background: var(--color-cloud-100);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-kawaii);
+  accent-color: var(--color-pink-500);
+  flex-shrink: 0;
+}
+
+.radio:checked {
+  border-color: var(--color-pink-400);
+}
+
+.radio:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 183, 197, 0.3);
+}
+
+.radio.error {
+  border-color: var(--color-error-400);
+}
+
+.radioText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radioTitle {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-cloud-800);
+}
+
+.radioHelper {
+  font-size: 0.8125rem;
+  color: var(--color-cloud-600);
+}
+
+/* 🌙 深色主题适配 */
+[data-theme="night"] .label {
+  color: var(--color-cloud-400);
+}
+
+[data-theme="night"] .input,
+[data-theme="night"] .textarea,
+[data-theme="night"] .select {
+  color: var(--color-cloud-200);
+}
+
+[data-theme="night"] .input::placeholder,
+[data-theme="night"] .textarea::placeholder {
+  color: var(--color-cloud-600);
+}
+
+[data-theme="night"] .inputContainer,
+[data-theme="night"] .textarea,
+[data-theme="night"] .selectContainer {
+  background: var(--color-cloud-300);
+}
+
+[data-theme="night"] .inputContainer:focus-within,
+[data-theme="night"] .textarea:focus,
+[data-theme="night"] .selectContainer:focus-within {
+  background: var(--color-cloud-200);
+}
+
+[data-theme="night"] .checkboxTitle,
+[data-theme="night"] .radioTitle {
+  color: var(--color-cloud-200);
+}
+
+/* 禁用状态 */
+.input:disabled,
+.textarea:disabled,
+.select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 只读状态 */
+.input:read-only,
+.textarea:read-only {
+  background: var(--color-cloud-200);
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .inputContainer.lg {
+    padding: 14px 16px;
+    min-height: 48px;
+  }
+
+  .textarea {
+    min-height: 100px;
+    padding: 14px;
+  }
+}

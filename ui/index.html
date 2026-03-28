@@ -1,10 +1,40 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="day">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light" />
-    <title>easy-manim 控制台</title>
+    <title>easy-manim AI 动画创作室</title>
+    
+    <!-- Google Fonts: Nunito -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 初始化主题，防止闪烁 -->
+    <script>
+      (function() {
+        const theme = localStorage.getItem('easy_manim_theme') || 'day';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+    
+    <style>
+      /* 初始加载样式 */
+      html {
+        background: linear-gradient(180deg, #E8F4F8 0%, #F0F7FA 50%, #FFF8F0 100%);
+        min-height: 100%;
+      }
+      
+      html[data-theme="night"] {
+        background: linear-gradient(180deg, #1A237E 0%, #283593 50%, #3F51B5 100%);
+      }
+      
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -1,0 +1,289 @@
+/**
+ * KawaiiIcon - 二次元风格图标样式
+ * 彩色圆形容器 + 弹性动画
+ */
+
+/* 基础图标容器 */
+.kawaiiIcon,
+.emojiIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s var(--ease-kawaii, cubic-bezier(0.34, 1.8, 0.64, 1));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.kawaiiIcon {
+  color: white;
+}
+
+.emojiIcon {
+  line-height: 1;
+}
+
+/* 尺寸变体 */
+.xs {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+}
+
+.sm {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+}
+
+.md {
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+}
+
+.lg {
+  width: 52px;
+  height: 52px;
+  font-size: 28px;
+}
+
+.xl {
+  width: 64px;
+  height: 64px;
+  font-size: 36px;
+}
+
+/* 🌸 粉彩色系 */
+.pink {
+  background: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-pink-500) 100%);
+  box-shadow: 0 4px 12px rgba(255, 107, 138, 0.3);
+}
+
+.mint {
+  background: linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-mint-500) 100%);
+  box-shadow: 0 4px 12px rgba(77, 179, 144, 0.3);
+}
+
+.sky {
+  background: linear-gradient(135deg, var(--color-sky-400) 0%, var(--color-sky-500) 100%);
+  box-shadow: 0 4px 12px rgba(74, 163, 193, 0.3);
+}
+
+.lavender {
+  background: linear-gradient(135deg, var(--color-lavender-400) 0%, var(--color-lavender-500) 100%);
+  box-shadow: 0 4px 12px rgba(168, 85, 168, 0.3);
+}
+
+.peach {
+  background: linear-gradient(135deg, var(--color-peach-400) 0%, var(--color-peach-500) 100%);
+  box-shadow: 0 4px 12px rgba(244, 140, 75, 0.3);
+}
+
+.lemon {
+  background: linear-gradient(135deg, var(--color-lemon-400) 0%, var(--color-lemon-500) 100%);
+  box-shadow: 0 4px 12px rgba(245, 227, 66, 0.3);
+}
+
+.white {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  color: var(--color-cloud-700);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gradient {
+  background: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-mint-400) 50%, var(--color-sky-400) 100%);
+  box-shadow: 0 4px 16px rgba(255, 183, 197, 0.4);
+}
+
+/* 悬停效果 */
+.kawaiiIcon:hover,
+.emojiIcon:hover {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.pink:hover {
+  box-shadow: 0 6px 20px rgba(255, 107, 138, 0.5);
+}
+
+.mint:hover {
+  box-shadow: 0 6px 20px rgba(77, 179, 144, 0.5);
+}
+
+.sky:hover {
+  box-shadow: 0 6px 20px rgba(74, 163, 193, 0.5);
+}
+
+.lavender:hover {
+  box-shadow: 0 6px 20px rgba(168, 85, 168, 0.5);
+}
+
+.peach:hover {
+  box-shadow: 0 6px 20px rgba(244, 140, 75, 0.5);
+}
+
+/* 可点击 */
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  transform: scale(1.2);
+}
+
+.clickable:active {
+  transform: scale(0.95);
+}
+
+/* 动画效果 */
+.pulse {
+  animation: icon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.bounce {
+  animation: icon-bounce 2s ease-in-out infinite;
+}
+
+@keyframes icon-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.rotate {
+  animation: icon-rotate 4s linear infinite;
+}
+
+@keyframes icon-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 图标按钮 */
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-kawaii);
+  color: white;
+}
+
+.iconButton.xs {
+  width: 28px;
+  height: 28px;
+}
+
+.iconButton.sm {
+  width: 36px;
+  height: 36px;
+}
+
+.iconButton.md {
+  width: 44px;
+  height: 44px;
+}
+
+.iconButton.lg {
+  width: 56px;
+  height: 56px;
+}
+
+.iconButton.xl {
+  width: 68px;
+  height: 68px;
+}
+
+.iconButton:hover {
+  transform: scale(1.15) rotate(10deg);
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+/* 图标组 */
+.iconGroup {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 浮动图标 */
+.floatingIcon {
+  display: inline-block;
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-10px) rotate(5deg);
+  }
+  66% {
+    transform: translateY(-5px) rotate(-3deg);
+  }
+}
+
+/* 🌙 深色主题 */
+[data-theme="night"] .white {
+  background: linear-gradient(135deg, var(--color-cloud-300) 0%, var(--color-cloud-400) 100%);
+  color: var(--color-cloud-100);
+}
+
+[data-theme="night"] .kawaiiIcon:not(.white),
+[data-theme="night"] .emojiIcon:not(.white) {
+  opacity: 0.95;
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .kawaiiIcon,
+  .emojiIcon,
+  .iconButton {
+    transition: none;
+  }
+
+  .pulse,
+  .bounce,
+  .rotate,
+  .floatingIcon {
+    animation: none;
+  }
+}
+
+/* 移动端触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  .kawaiiIcon:hover,
+  .emojiIcon:hover,
+  .iconButton:hover {
+    transform: none;
+  }
+
+  .kawaiiIcon:active,
+  .emojiIcon:active,
+  .iconButton:active {
+    transform: scale(0.95);
+  }
+}

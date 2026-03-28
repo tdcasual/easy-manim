@@ -7,7 +7,7 @@ test("renders the operator console shell", () => {
   render(
     <MemoryRouter>
       <App />
-    </MemoryRouter>,
+    </MemoryRouter>
   );
 
   expect(screen.getByRole("heading", { name: /easy-manim/i })).toBeInTheDocument();

@@ -1,0 +1,90 @@
+/**
+ * GradientBackground - 渐变背景样式
+ * 柔和动画 + 噪点纹理
+ */
+
+.gradient-background {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: -1;
+}
+
+/* 渐变球体 */
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+
+.gradient-orb.animated {
+  animation: float-orb ease-in-out infinite;
+}
+
+/* 浮动画 - 有机自然的移动 */
+@keyframes float-orb {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  25% {
+    transform: translate(-30%, -60%) scale(1.1);
+  }
+  50% {
+    transform: translate(-70%, -40%) scale(0.9);
+  }
+  75% {
+    transform: translate(-40%, -30%) scale(1.05);
+  }
+}
+
+/* 静态渐变背景（减少动画模式） */
+.gradient-background-static {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 噪点纹理叠加 - 增加质感 */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* 主题适配 */
+[data-theme="night"] .gradient-orb {
+  filter: blur(100px) saturate(1.2);
+}
+
+[data-theme="night"] .noise-overlay {
+  opacity: 0.05;
+}
+
+[data-theme="day"] .gradient-orb {
+  filter: blur(80px) brightness(1.1);
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .gradient-orb {
+    filter: blur(60px);
+  }
+
+  .gradient-orb.animated {
+    animation-duration: 20s !important;
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-orb.animated {
+    animation: none;
+  }
+}

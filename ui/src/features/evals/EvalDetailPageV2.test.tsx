@@ -26,9 +26,9 @@ test("renders translated eval case statuses", async () => {
               status: "completed",
               duration_seconds: 1.25,
               issue_codes: [],
-              manual_review_required: false
-            }
-          ]
+              manual_review_required: false,
+            },
+          ],
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );

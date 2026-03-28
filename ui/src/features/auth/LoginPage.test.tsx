@@ -17,7 +17,7 @@ test("stores session token after successful login", async () => {
           session_token: "sess-token-1",
           agent_id: "agent-a",
           name: "Agent A",
-          expires_at: "2030-01-01T00:00:00Z"
+          expires_at: "2030-01-01T00:00:00Z",
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );

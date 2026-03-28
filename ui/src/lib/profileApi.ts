@@ -1,24 +1,8 @@
-import { clearSessionToken } from "./session";
-
-function apiBaseUrl(): string {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL;
-  return typeof base === "string" ? base.replace(/\/+$/, "") : "";
-}
-
-async function requestJson<T>(path: string, init: RequestInit, token: string): Promise<T> {
-  const headers = new Headers(init.headers);
-  headers.set("accept", "application/json");
-  headers.set("authorization", `Bearer ${token}`);
-  if (init.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers });
-  const text = await response.text().catch(() => "");
-  if (!response.ok) {
-    if (response.status === 401) clearSessionToken();
-    throw new Error(`http_${response.status}:${text || response.statusText}`);
-  }
-  return (text ? JSON.parse(text) : {}) as T;
-}
+/**
+ * 用户资料相关 API
+ * 使用通用 requestJson 函数
+ */
+import { requestJson } from "./api";
 
 export type AgentProfile = {
   agent_id: string;
@@ -41,17 +25,19 @@ export type ProfileScorecard = {
 };
 
 export async function getProfile(token: string): Promise<AgentProfile> {
-  return requestJson<AgentProfile>("/api/profile", { method: "GET" }, token);
+  return requestJson<AgentProfile>("/api/profile", token, { method: "GET" });
 }
 
 export async function getProfileScorecard(token: string): Promise<ProfileScorecard> {
-  return requestJson<ProfileScorecard>("/api/profile/scorecard", { method: "GET" }, token);
+  return requestJson<ProfileScorecard>("/api/profile/scorecard", token, { method: "GET" });
 }
 
-export async function applyProfilePatch(patch: Record<string, unknown>, token: string): Promise<Record<string, unknown>> {
-  return requestJson<Record<string, unknown>>(
-    "/api/profile/apply",
-    { method: "POST", body: JSON.stringify({ patch }) },
-    token
-  );
+export async function applyProfilePatch(
+  patch: Record<string, unknown>,
+  token: string
+): Promise<Record<string, unknown>> {
+  return requestJson<Record<string, unknown>>("/api/profile/apply", token, {
+    method: "POST",
+    body: { patch },
+  });
 }

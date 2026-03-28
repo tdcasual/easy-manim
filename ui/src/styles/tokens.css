@@ -1,0 +1,850 @@
+/**
+ * Design Tokens - 设计令牌 V2.0
+ * 二次元/Kawaii 风格设计系统
+ * 柔和、梦幻、可爱、自然、轻盈
+ */
+
+:root {
+  /* ================================
+     二次元色彩系统 (Kawaii Color System)
+     ================================ */
+
+  /* 🌸 樱花粉系列 - 主色调 */
+  --color-pink-50: #FFF5F7;
+  --color-pink-100: #FFE4E9;
+  --color-pink-200: #FFC9D4;
+  --color-pink-300: #FFA0B5;
+  --color-pink-400: #FF7A9A;
+  --color-pink-500: #FF6B8A;
+  --color-pink-600: #FF4D73;
+  --color-pink-700: #E63950;
+  --color-pink-800: #C92A40;
+  --color-pink-900: #A61E32;
+
+  /* 🌿 薄荷绿系列 */
+  --color-mint-50: #F0FDF7;
+  --color-mint-100: #D4F5E9;
+  --color-mint-200: #A8E6CF;
+  --color-mint-300: #7FD4B6;
+  --color-mint-400: #5FC9A3;
+  --color-mint-500: #4DB390;
+  --color-mint-600: #3D997A;
+  --color-mint-700: #2E7D64;
+  --color-mint-800: #20634D;
+  --color-mint-900: #154A38;
+
+  /* ☁️ 天空蓝系列 */
+  --color-sky-50: #F0F9FF;
+  --color-sky-100: #D4F1F9;
+  --color-sky-200: #A8D8EA;
+  --color-sky-300: #7FC4DB;
+  --color-sky-400: #5AB4D1;
+  --color-sky-500: #4AA3C1;
+  --color-sky-600: #3A8BA6;
+  --color-sky-700: #2E7088;
+  --color-sky-800: #205669;
+  --color-sky-900: #153F4D;
+
+  /* 🪻 薰衣草紫系列 */
+  --color-lavender-50: #FAF5FF;
+  --color-lavender-100: #F0D4F0;
+  --color-lavender-200: #DDA0DD;
+  --color-lavender-300: #C97EC9;
+  --color-lavender-400: #B56CB5;
+  --color-lavender-500: #A855A8;
+  --color-lavender-600: #8F448F;
+  --color-lavender-700: #743674;
+  --color-lavender-800: #5A285A;
+  --color-lavender-900: #421C42;
+
+  /* 🍑 蜜桃橙系列 */
+  --color-peach-50: #FFF8F0;
+  --color-peach-100: #FFE5D4;
+  --color-peach-200: #FFCBA4;
+  --color-peach-300: #FFB080;
+  --color-peach-400: #FF9A5C;
+  --color-peach-500: #F48C4B;
+  --color-peach-600: #D9773A;
+  --color-peach-700: #B5612C;
+  --color-peach-800: #8F4A20;
+  --color-peach-900: #6B3515;
+
+  /* 🍋 柠檬黄系列 */
+  --color-lemon-50: #FFFEF5;
+  --color-lemon-100: #FFFDE7;
+  --color-lemon-200: #FFFACD;
+  --color-lemon-300: #FFF7A8;
+  --color-lemon-400: #FFF380;
+  --color-lemon-500: #FFEF5C;
+  --color-lemon-600: #F5E342;
+  --color-lemon-700: #D4C236;
+  --color-lemon-800: #A89828;
+  --color-lemon-900: #7A6F1C;
+
+  /* ☁️ 云朵白/中性色 */
+  --color-cloud-50: #FFFFFF;
+  --color-cloud-100: #FFFCFC;
+  --color-cloud-200: #FFFAF5;
+  --color-cloud-300: #F5F5F5;
+  --color-cloud-400: #EBEBEB;
+  --color-cloud-500: #DEDEDE;
+  --color-cloud-600: #C2C2C2;
+  --color-cloud-700: #9E9E9E;
+  --color-cloud-800: #7A7A7A;
+  --color-cloud-900: #4A4A4A;
+
+  /* 保留原有命名兼容性 */
+  --color-gray-50: var(--color-cloud-50);
+  --color-gray-100: var(--color-cloud-100);
+  --color-gray-200: var(--color-cloud-200);
+  --color-gray-300: var(--color-cloud-300);
+  --color-gray-400: var(--color-cloud-400);
+  --color-gray-500: var(--color-cloud-500);
+  --color-gray-600: var(--color-cloud-600);
+  --color-gray-700: var(--color-cloud-700);
+  --color-gray-800: var(--color-cloud-800);
+  --color-gray-900: var(--color-cloud-900);
+
+  /* 🌈 功能色 - Kawaii 版本 */
+  --color-success-50: #F0FDF4;
+  --color-success-100: #DCFCE7;
+  --color-success-200: #BBF7D0;
+  --color-success-300: #86EFAC;
+  --color-success-400: #4ADE80;
+  --color-success-500: #22C55E;
+  --color-success-600: #16A34A;
+  --color-success-700: #15803D;
+
+  --color-warning-50: #FFFBEB;
+  --color-warning-100: #FEF3C7;
+  --color-warning-200: #FDE68A;
+  --color-warning-300: #FCD34D;
+  --color-warning-400: #FBBF24;
+  --color-warning-500: #F59E0B;
+  --color-warning-600: #D97706;
+  --color-warning-700: #B45309;
+
+  --color-error-50: #FEF2F2;
+  --color-error-100: #FEE2E2;
+  --color-error-200: #FECACA;
+  --color-error-300: #FCA5A5;
+  --color-error-400: #F87171;
+  --color-error-500: #EF4444;
+  --color-error-600: #DC2626;
+  --color-error-700: #B91C1C;
+
+  --color-info-50: #EFF6FF;
+  --color-info-100: #DBEAFE;
+  --color-info-200: #BFDBFE;
+  --color-info-300: #93C5FD;
+  --color-info-400: #60A5FA;
+  --color-info-500: #3B82F6;
+  --color-info-600: #2563EB;
+  --color-info-700: #1D4ED8;
+
+  /* 兼容旧命名 */
+  --color-primary-50: var(--color-mint-50);
+  --color-primary-100: var(--color-mint-100);
+  --color-primary-200: var(--color-mint-200);
+  --color-primary-300: var(--color-mint-300);
+  --color-primary-400: var(--color-mint-400);
+  --color-primary-500: var(--color-mint-500);
+  --color-primary-600: var(--color-mint-600);
+  --color-primary-700: var(--color-mint-700);
+  --color-primary-800: var(--color-mint-800);
+  --color-primary-900: var(--color-mint-900);
+
+  /* 保留旧二次元特色色 */
+  --color-kawaii-pink: var(--color-pink-500);
+  --color-kawaii-purple: var(--color-lavender-500);
+  --color-kawaii-cyan: var(--color-sky-400);
+  --color-kawaii-orange: var(--color-peach-500);
+  --color-kawaii-yellow: var(--color-lemon-500);
+
+  /* 🎨 渐变色定义 */
+  --gradient-pink-peach: linear-gradient(135deg, var(--color-pink-300) 0%, var(--color-peach-300) 100%);
+  --gradient-mint-sky: linear-gradient(135deg, var(--color-mint-300) 0%, var(--color-sky-300) 100%);
+  --gradient-lavender-pink: linear-gradient(135deg, var(--color-lavender-300) 0%, var(--color-pink-300) 100%);
+  --gradient-day: linear-gradient(180deg, var(--color-pink-50) 0%, var(--color-mint-50) 50%, var(--color-sky-50) 100%);
+  --gradient-button: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-peach-400) 100%);
+
+  /* 🪟 玻璃态效果 */
+  --glass-white: rgba(255, 255, 255, 0.85);
+  --glass-pink: rgba(255, 228, 233, 0.7);
+  --glass-mint: rgba(212, 245, 233, 0.7);
+  --glass-sky: rgba(212, 241, 249, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-backdrop: blur(20px) saturate(180%);
+
+  /* ================================
+     间距系统 (Spacing System)
+     基于 4px 的 8 点网格
+     ================================ */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ================================
+     字体系统 (Typography)
+     ================================ */
+  --font-family-base: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family-mono: "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New",
+    monospace;
+  --font-family-display: "Fraunces", Georgia, "Times New Roman", serif;
+
+  /* 字体大小 */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+  --font-size-4xl: 30px;
+  --font-size-5xl: 36px;
+
+  /* 字重 */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 行高 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* 字间距 */
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+
+  /* ================================
+     圆角系统 (Border Radius) - Kawaii 圆润风格
+     ================================ */
+  --radius-none: 0;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-3xl: 48px;
+  --radius-full: 9999px;
+  
+  /* 有机形状 - 用于装饰元素 */
+  --radius-blob-1: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  --radius-blob-2: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  --radius-blob-3: 50% 50% 35% 65% / 50% 45% 55% 50%;
+
+  /* ================================
+     阴影系统 (Shadows) - Kawaii 柔和阴影
+     ================================ */
+  /* 柔和阴影 - 使用粉彩色 */
+  --shadow-xs: 0 1px 2px rgba(255, 183, 197, 0.1);
+  --shadow-sm: 0 2px 8px rgba(255, 183, 197, 0.12), 0 1px 3px rgba(168, 230, 207, 0.08);
+  --shadow-md: 0 4px 20px rgba(255, 183, 197, 0.15), 0 2px 8px rgba(168, 216, 234, 0.1);
+  --shadow-lg: 0 8px 32px rgba(255, 183, 197, 0.2), 0 4px 12px rgba(168, 230, 207, 0.12);
+  --shadow-xl: 0 16px 48px rgba(255, 183, 197, 0.25), 0 8px 20px rgba(168, 216, 234, 0.15);
+  --shadow-2xl: 0 25px 60px rgba(255, 183, 197, 0.3), 0 12px 30px rgba(168, 230, 207, 0.2);
+  --shadow-inner: inset 0 2px 8px rgba(255, 183, 197, 0.1);
+
+  /* 彩色发光阴影 */
+  --shadow-glow-pink: 0 0 20px rgba(255, 107, 138, 0.4);
+  --shadow-glow-mint: 0 0 20px rgba(168, 230, 207, 0.5);
+  --shadow-glow-sky: 0 0 20px rgba(168, 216, 234, 0.5);
+  --shadow-glow-lavender: 0 0 20px rgba(221, 160, 221, 0.5);
+  --shadow-glow-peach: 0 0 20px rgba(255, 203, 164, 0.5);
+
+  /* 兼容旧命名 */
+  --shadow-glow-primary: var(--shadow-glow-mint);
+  --shadow-glow-success: 0 0 20px rgba(74, 222, 128, 0.5);
+  --shadow-glow-warning: 0 0 20px rgba(251, 191, 36, 0.5);
+  --shadow-glow-error: 0 0 20px rgba(248, 113, 113, 0.5);
+
+  /* ================================
+     动画系统 (Animation) - Kawaii 弹性动画
+     ================================ */
+  --duration-instant: 0ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 500ms;
+  --duration-bounce: 600ms;
+
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-kawaii: cubic-bezier(0.34, 1.8, 0.64, 1);
+
+  /* ================================
+     Z-Index 层级
+     ================================ */
+  --z-hide: -1;
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 410;
+  --z-popover: 500;
+  --z-tooltip: 600;
+  --z-toast: 700;
+
+  /* ================================
+     断点 (Breakpoints)
+     ================================ */
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* ================================
+   深色主题变量 - Kawaii Night Mode
+   ================================ */
+[data-theme="night"] {
+  /* 深色主题使用柔和的深色，而非纯黑 */
+  --color-pink-50: #3D2229;
+  --color-pink-100: #4F2D36;
+  --color-pink-200: #6B3E4A;
+  --color-pink-300: #8F5868;
+  --color-pink-400: #B57386;
+  --color-pink-500: #FF8FA3;
+  --color-pink-600: #FFB7C5;
+
+  --color-mint-50: #1C332A;
+  --color-mint-100: #254536;
+  --color-mint-200: #365A4A;
+  --color-mint-300: #4A7862;
+  --color-mint-400: #5E967A;
+  --color-mint-500: #7FD4B6;
+  --color-mint-600: #A8E6CF;
+
+  --color-sky-50: #1C2F36;
+  --color-sky-100: #25404A;
+  --color-sky-200: #365A68;
+  --color-sky-300: #4A7A8F;
+  --color-sky-400: #5E9AB5;
+  --color-sky-500: #7FC4DB;
+  --color-sky-600: #A8D8EA;
+
+  --color-lavender-50: #3D2A3D;
+  --color-lavender-100: #4F364F;
+  --color-lavender-200: #6B4A6B;
+  --color-lavender-300: #8F688F;
+  --color-lavender-400: #B586B5;
+  --color-lavender-500: #DDA0DD;
+  --color-lavender-600: #F0D4F0;
+
+  --color-peach-50: #3D2A22;
+  --color-peach-100: #4F3630;
+  --color-peach-200: #6B4A40;
+  --color-peach-300: #8F6858;
+  --color-peach-400: #B58670;
+  --color-peach-500: #FFCBA4;
+  --color-peach-600: #FFE5D4;
+
+  --color-cloud-50: #2A2A2A;
+  --color-cloud-100: #333333;
+  --color-cloud-200: #3D3D3D;
+  --color-cloud-300: #4A4A4A;
+  --color-cloud-400: #5C5C5C;
+  --color-cloud-500: #757575;
+  --color-cloud-600: #9E9E9E;
+  --color-cloud-700: #C2C2C2;
+  --color-cloud-800: #EBEBEB;
+  --color-cloud-900: #FFFFFF;
+
+  /* 深色主题阴影 */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+
+  /* 玻璃效果调整 */
+  --glass-white: rgba(50, 50, 50, 0.85);
+  --glass-pink: rgba(63, 35, 42, 0.7);
+  --glass-mint: rgba(28, 51, 42, 0.7);
+  --glass-sky: rgba(28, 47, 54, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* ================================
+   Kawaii 工具类
+   ================================ */
+
+/* 🌸 粉彩文字色 */
+.text-pink { color: var(--color-pink-500); }
+.text-mint { color: var(--color-mint-500); }
+.text-sky { color: var(--color-sky-500); }
+.text-lavender { color: var(--color-lavender-500); }
+.text-peach { color: var(--color-peach-500); }
+.text-lemon { color: var(--color-lemon-500); }
+
+/* 兼容旧命名 */
+.text-primary { color: var(--color-primary-500); }
+.text-success { color: var(--color-success-500); }
+.text-warning { color: var(--color-warning-500); }
+.text-error { color: var(--color-error-500); }
+.text-info { color: var(--color-info-500); }
+
+/* 🌸 粉彩背景色 */
+.bg-pink { background-color: var(--color-pink-500); }
+.bg-mint { background-color: var(--color-mint-500); }
+.bg-sky { background-color: var(--color-sky-500); }
+.bg-lavender { background-color: var(--color-lavender-500); }
+.bg-peach { background-color: var(--color-peach-500); }
+.bg-lemon { background-color: var(--color-lemon-500); }
+
+.bg-pink-light { background-color: var(--color-pink-100); }
+.bg-mint-light { background-color: var(--color-mint-100); }
+.bg-sky-light { background-color: var(--color-sky-100); }
+.bg-lavender-light { background-color: var(--color-lavender-100); }
+.bg-peach-light { background-color: var(--color-peach-100); }
+
+/* 兼容旧命名 */
+.bg-primary { background-color: var(--color-primary-500); }
+.bg-success { background-color: var(--color-success-500); }
+.bg-warning { background-color: var(--color-warning-500); }
+.bg-error { background-color: var(--color-error-500); }
+
+/* 🪟 玻璃态效果 */
+.glass {
+  background: var(--glass-white);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-pink {
+  background: var(--glass-pink);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-mint {
+  background: var(--glass-mint);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+}
+
+/* ✨ 发光效果 */
+.glow-pink { box-shadow: var(--shadow-glow-pink); }
+.glow-mint { box-shadow: var(--shadow-glow-mint); }
+.glow-sky { box-shadow: var(--shadow-glow-sky); }
+.glow-lavender { box-shadow: var(--shadow-glow-lavender); }
+.glow-peach { box-shadow: var(--shadow-glow-peach); }
+
+/* 间距工具类 */
+.m-0 {
+  margin: var(--space-0);
+}
+.m-1 {
+  margin: var(--space-1);
+}
+.m-2 {
+  margin: var(--space-2);
+}
+.m-3 {
+  margin: var(--space-3);
+}
+.m-4 {
+  margin: var(--space-4);
+}
+
+.p-0 {
+  padding: var(--space-0);
+}
+.p-1 {
+  padding: var(--space-1);
+}
+.p-2 {
+  padding: var(--space-2);
+}
+.p-3 {
+  padding: var(--space-3);
+}
+.p-4 {
+  padding: var(--space-4);
+}
+
+/* 隐藏但可访问 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 焦点样式 - 使用 focus-visible 只在键盘导航时显示 */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-pink-300);
+  border-radius: var(--radius-md);
+}
+
+/* 触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 移动端触摸反馈 */
+  .touch-feedback {
+    -webkit-tap-highlight-color: rgba(255, 183, 197, 0.3);
+  }
+  
+  /* 增大触摸目标 */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 容器查询 - 现代响应式 */
+.container-query {
+  container-type: inline-size;
+}
+
+.container-query-all {
+  container-type: size;
+}
+
+/* 减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  :root {
+    --glass-backdrop: none;
+    --shadow-glow-pink: none;
+    --shadow-glow-mint: none;
+    --shadow-glow-sky: none;
+  }
+  
+  .glass {
+    border-width: 2px;
+  }
+}
+
+/* 暗色/浅色模式颜色方案 */
+@media (prefers-color-scheme: dark) {
+  /* 系统级暗色模式检测，由 JS 处理主题切换 */
+}
+
+/* 打印样式优化 */
+@media print {
+  .no-print,
+  .toolbar,
+  .sidebar,
+  .fab {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+
+/* ================================
+   响应式工具类
+   ================================ */
+
+/* 隐藏/显示工具类 */
+@media (max-width: 480px) {
+  .hide-xs { display: none !important; }
+  .show-xs { display: block !important; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .hide-sm { display: none !important; }
+  .show-sm { display: block !important; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hide-md { display: none !important; }
+  .show-md { display: block !important; }
+}
+
+@media (min-width: 1025px) {
+  .hide-lg { display: none !important; }
+  .show-lg { display: block !important; }
+}
+
+/* 容器查询工具类 */
+@container (max-width: 480px) {
+  .cq-hide-xs { display: none !important; }
+  .cq-stack { flex-direction: column !important; }
+}
+
+@container (min-width: 481px) and (max-width: 768px) {
+  .cq-hide-sm { display: none !important; }
+}
+
+/* 滚动优化 */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+.scroll-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* 文本截断 */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 弹性布局工具 */
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap;
+}
+
+/* 网格布局工具 */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+/* ================================
+   Kawaii 动画关键帧
+   ================================ */
+
+/* 🎈 弹性弹入 */
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ☁️ 浮入 */
+@keyframes floatIn {
+  0% { transform: translateY(30px) rotate(-2deg); opacity: 0; }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+/* 🌸 滑入 */
+@keyframes slideUp {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+  0% { transform: translateY(-20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  0% { transform: translateX(-20px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  0% { transform: translateX(20px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* ✨ 淡入 */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* 🎀 摇摆 */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* 🌊 浮动 */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ☁️ 云朵飘动 */
+@keyframes cloudFloat {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(10px) translateY(-5px); }
+  50% { transform: translateX(20px) translateY(0); }
+  75% { transform: translateX(10px) translateY(5px); }
+}
+
+/* ⭐ 闪烁 */
+@keyframes twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* 🌸 花瓣飘落 */
+@keyframes petalFall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+/* 💫 脉冲发光 */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 183, 197, 0.4); }
+  50% { box-shadow: 0 0 40px rgba(255, 183, 197, 0.8); }
+}
+
+/* 🎵 弹跳 */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* 🌀 旋转 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 🎪 摇晃 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* 💖 心跳 */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.1); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.1); }
+  70% { transform: scale(1); }
+}
+
+/* 🎨 渐变色流动 */
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 🌈 彩虹闪烁 */
+@keyframes rainbow {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* ================================
+   动画工具类
+   ================================ */
+
+.animate-pop-in { animation: popIn 0.5s var(--ease-kawaii) forwards; }
+.animate-float-in { animation: floatIn 0.6s var(--ease-out) forwards; }
+.animate-slide-up { animation: slideUp 0.4s var(--ease-out) forwards; }
+.animate-slide-down { animation: slideDown 0.4s var(--ease-out) forwards; }
+.animate-slide-left { animation: slideInLeft 0.4s var(--ease-out) forwards; }
+.animate-slide-right { animation: slideInRight 0.4s var(--ease-out) forwards; }
+.animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+.animate-wiggle { animation: wiggle 0.5s var(--ease-kawaii); }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-cloud { animation: cloudFloat 8s ease-in-out infinite; }
+.animate-twinkle { animation: twinkle 2s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+.animate-bounce { animation: bounce 1s ease-in-out infinite; }
+.animate-spin { animation: spin 1s linear infinite; }
+.animate-shake { animation: shake 0.5s ease-in-out; }
+.animate-heartbeat { animation: heartbeat 1.5s ease-in-out infinite; }
+
+/* 悬停动画 */
+.hover-lift {
+  transition: transform 0.3s var(--ease-kawaii), box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hover-scale {
+  transition: transform 0.3s var(--ease-kawaii);
+}
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-rotate {
+  transition: transform 0.3s var(--ease-kawaii);
+}
+.hover-rotate:hover {
+  transform: rotate(5deg);
+}
+
+.hover-glow-pink:hover {
+  box-shadow: var(--shadow-glow-pink);
+}
+
+.hover-glow-mint:hover {
+  box-shadow: var(--shadow-glow-mint);
+}
+
+/* 交错动画延迟 */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }

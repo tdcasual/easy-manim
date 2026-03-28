@@ -1,0 +1,327 @@
+/**
+ * KawaiiTag - 二次元风格标签样式
+ * 圆润、可爱、有弹性
+ */
+
+/* 基础标签 */
+.kawaii-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: default;
+  user-select: none;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.kawaii-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+.kawaii-tag:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 尺寸变体 */
+.kawaii-tag.sm {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.kawaii-tag.md {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.kawaii-tag.lg {
+  padding: 10px 20px;
+  font-size: 15px;
+}
+
+/* 颜色变体 - Kawaii 粉彩渐变 */
+.kawaii-tag.default {
+  background: linear-gradient(135deg, var(--color-cloud-200) 0%, var(--color-cloud-300) 100%);
+  border-color: var(--color-cloud-400);
+  color: var(--color-cloud-700);
+}
+
+.kawaii-tag.primary {
+  background: linear-gradient(135deg, var(--color-mint-200) 0%, var(--color-mint-300) 100%);
+  border-color: var(--color-mint-400);
+  color: var(--color-mint-700);
+}
+
+.kawaii-tag.secondary {
+  background: linear-gradient(135deg, var(--color-sky-200) 0%, var(--color-sky-300) 100%);
+  border-color: var(--color-sky-400);
+  color: var(--color-sky-700);
+}
+
+.kawaii-tag.success {
+  background: linear-gradient(135deg, var(--color-success-200) 0%, var(--color-success-300) 100%);
+  border-color: var(--color-success-400);
+  color: var(--color-success-700);
+}
+
+.kawaii-tag.warning {
+  background: linear-gradient(135deg, var(--color-warning-200) 0%, var(--color-warning-300) 100%);
+  border-color: var(--color-warning-400);
+  color: var(--color-warning-700);
+}
+
+.kawaii-tag.error {
+  background: linear-gradient(135deg, var(--color-error-200) 0%, var(--color-error-300) 100%);
+  border-color: var(--color-error-400);
+  color: var(--color-error-700);
+}
+
+.kawaii-tag.info {
+  background: linear-gradient(135deg, var(--color-info-200) 0%, var(--color-info-300) 100%);
+  border-color: var(--color-info-400);
+  color: var(--color-info-700);
+}
+
+/* 🌸 Kawaii 粉彩色系 */
+.kawaii-tag.pink {
+  background: linear-gradient(135deg, var(--color-pink-100) 0%, var(--color-pink-200) 100%);
+  border-color: var(--color-pink-400);
+  color: var(--color-pink-700);
+}
+
+.kawaii-tag.mint {
+  background: linear-gradient(135deg, var(--color-mint-100) 0%, var(--color-mint-200) 100%);
+  border-color: var(--color-mint-400);
+  color: var(--color-mint-700);
+}
+
+.kawaii-tag.sky {
+  background: linear-gradient(135deg, var(--color-sky-100) 0%, var(--color-sky-200) 100%);
+  border-color: var(--color-sky-400);
+  color: var(--color-sky-700);
+}
+
+.kawaii-tag.lavender {
+  background: linear-gradient(135deg, var(--color-lavender-100) 0%, var(--color-lavender-200) 100%);
+  border-color: var(--color-lavender-400);
+  color: var(--color-lavender-700);
+}
+
+.kawaii-tag.peach {
+  background: linear-gradient(135deg, var(--color-peach-100) 0%, var(--color-peach-200) 100%);
+  border-color: var(--color-peach-400);
+  color: var(--color-peach-700);
+}
+
+/* 兼容旧命名 */
+.kawaii-tag.purple {
+  background: linear-gradient(135deg, var(--color-lavender-100) 0%, var(--color-lavender-200) 100%);
+  border-color: var(--color-lavender-400);
+  color: var(--color-lavender-700);
+}
+
+.kawaii-tag.cyan {
+  background: linear-gradient(135deg, var(--color-sky-100) 0%, var(--color-sky-200) 100%);
+  border-color: var(--color-sky-400);
+  color: var(--color-sky-700);
+}
+
+.kawaii-tag.orange {
+  background: linear-gradient(135deg, var(--color-peach-100) 0%, var(--color-peach-200) 100%);
+  border-color: var(--color-peach-400);
+  color: var(--color-peach-700);
+}
+
+/* 深色主题适配 */
+[data-theme="night"] .kawaii-tag.default {
+  background: linear-gradient(135deg, var(--color-cloud-300) 0%, var(--color-cloud-400) 100%);
+  border-color: var(--color-cloud-500);
+  color: var(--color-cloud-800);
+}
+
+[data-theme="night"] .kawaii-tag.primary {
+  background: linear-gradient(135deg, var(--color-mint-300) 0%, var(--color-mint-400) 100%);
+  border-color: var(--color-mint-500);
+  color: var(--color-mint-100);
+}
+
+[data-theme="night"] .kawaii-tag.pink {
+  background: linear-gradient(135deg, var(--color-pink-300) 0%, var(--color-pink-400) 100%);
+  border-color: var(--color-pink-500);
+  color: var(--color-pink-100);
+}
+
+[data-theme="night"] .kawaii-tag.mint {
+  background: linear-gradient(135deg, var(--color-mint-300) 0%, var(--color-mint-400) 100%);
+  border-color: var(--color-mint-500);
+  color: var(--color-mint-100);
+}
+
+[data-theme="night"] .kawaii-tag.sky {
+  background: linear-gradient(135deg, var(--color-sky-300) 0%, var(--color-sky-400) 100%);
+  border-color: var(--color-sky-500);
+  color: var(--color-sky-100);
+}
+
+[data-theme="night"] .kawaii-tag.lavender {
+  background: linear-gradient(135deg, var(--color-lavender-300) 0%, var(--color-lavender-400) 100%);
+  border-color: var(--color-lavender-500);
+  color: var(--color-lavender-100);
+}
+
+[data-theme="night"] .kawaii-tag.peach {
+  background: linear-gradient(135deg, var(--color-peach-300) 0%, var(--color-peach-400) 100%);
+  border-color: var(--color-peach-500);
+  color: var(--color-peach-100);
+}
+
+[data-theme="night"] .kawaii-tag.purple {
+  background: linear-gradient(135deg, var(--color-lavender-300) 0%, var(--color-lavender-400) 100%);
+  border-color: var(--color-lavender-500);
+  color: var(--color-lavender-100);
+}
+
+[data-theme="night"] .kawaii-tag.cyan {
+  background: linear-gradient(135deg, var(--color-sky-300) 0%, var(--color-sky-400) 100%);
+  border-color: var(--color-sky-500);
+  color: var(--color-sky-100);
+}
+
+/* 图标 */
+.tag-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+}
+
+.status-icon-symbol {
+  font-size: 0.9em;
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 脉动动画 */
+.kawaii-tag.pulse {
+  animation: tag-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tag-pulse {
+  0%,
+  100% {
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1), 0 0 20px currentColor;
+  }
+}
+
+/* 可关闭标签 */
+.kawaii-tag.closable {
+  padding-right: 8px;
+}
+
+.kawaii-tag.closable .tag-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-left: 2px;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.kawaii-tag.closable .tag-close:hover {
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(1.1);
+}
+
+/* 计数标签 */
+.kawaii-count-tag {
+  position: relative;
+  display: inline-block;
+}
+
+.count-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
+  border: 2px solid var(--surface-primary, #fff);
+  border-radius: 9px;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 标签组 */
+.kawaii-tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .kawaii-tag.sm {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .kawaii-tag.md {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .kawaii-tag.lg {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .kawaii-tag {
+    transition: none;
+  }
+
+  .kawaii-tag:hover {
+    transform: none;
+  }
+
+  .kawaii-tag.pulse {
+    animation: none;
+  }
+
+  .status-icon-symbol {
+    animation: none;
+  }
+}

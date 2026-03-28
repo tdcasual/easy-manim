@@ -21,7 +21,7 @@ test("renders translated task status and phase labels", async () => {
           phase: "rendering",
           attempt_count: 1,
           latest_validation_summary: { summary: "" },
-          artifact_summary: {}
+          artifact_summary: {},
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -34,7 +34,7 @@ test("renders translated task status and phase labels", async () => {
           ready: false,
           summary: null,
           video_resource: null,
-          video_download_url: null
+          video_download_url: null,
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );

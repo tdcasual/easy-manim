@@ -1,5 +1,312 @@
-/* Profile Page V2 */
+/* Profile Page V2 - Kawaii 二次元风格 */
 
+/* ================================
+   页面整体 Kawaii 风格
+   ================================ */
+.page-kawaii {
+  position: relative;
+  min-height: 100vh;
+  background: var(--gradient-day, linear-gradient(180deg, #FFF5F7 0%, #F0F9F6 50%, #E8F4F8 100%));
+  overflow-x: hidden;
+}
+
+/* 装饰性背景云朵 */
+.floating-clouds {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.cloud {
+  position: absolute;
+  font-size: 2rem;
+  opacity: 0.4;
+  animation: cloudFloat 8s ease-in-out infinite;
+}
+
+.cloud-1 {
+  top: 10%;
+  left: 5%;
+  animation-delay: 0s;
+}
+
+.cloud-2 {
+  top: 20%;
+  right: 10%;
+  animation-delay: 2s;
+}
+
+.cloud-3 {
+  top: 60%;
+  left: 8%;
+  animation-delay: 4s;
+  font-size: 1.5rem;
+}
+
+.cloud-4 {
+  top: 70%;
+  right: 5%;
+  animation-delay: 6s;
+  font-size: 1.5rem;
+}
+
+@keyframes cloudFloat {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(10px) translateY(-5px); }
+  50% { transform: translateX(20px) translateY(0); }
+  75% { transform: translateX(10px) translateY(5px); }
+}
+
+/* ================================
+   Kawaii 按钮样式
+   ================================ */
+.kawaii-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-lg, 16px);
+  cursor: pointer;
+  transition: all 0.3s var(--ease-kawaii, cubic-bezier(0.34, 1.8, 0.64, 1));
+  box-shadow: var(--shadow-md);
+}
+
+.kawaii-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.kawaii-btn:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.kawaii-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 粉色按钮 */
+.kawaii-btn-pink {
+  background: linear-gradient(135deg, var(--color-pink-400, #FF7A9A) 0%, var(--color-peach-400, #FF9A5C) 100%);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.kawaii-btn-pink:hover:not(:disabled) {
+  box-shadow: var(--shadow-glow-pink, 0 0 20px rgba(255, 107, 138, 0.4));
+}
+
+/* 薄荷绿按钮 */
+.kawaii-btn-mint {
+  background: linear-gradient(135deg, var(--color-mint-400, #5FC9A3) 0%, var(--color-sky-400, #5AB4D1) 100%);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.kawaii-btn-mint:hover:not(:disabled) {
+  box-shadow: var(--shadow-glow-mint, 0 0 20px rgba(168, 230, 207, 0.5));
+}
+
+/* ================================
+   页面头部 Kawaii 风格
+   ================================ */
+.page-header-v2 {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background: var(--glass-white, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--radius-xl, 24px);
+  box-shadow: var(--shadow-md);
+}
+
+.page-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-pink-500, #FF6B8A);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+
+.page-title-v2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-3xl, 24px);
+  font-weight: 700;
+  color: var(--color-cloud-900, #4A4A4A);
+  margin: 0 0 var(--space-2);
+}
+
+.title-emoji {
+  font-size: 1.5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.page-description-v2 {
+  font-size: var(--font-size-md, 14px);
+  color: var(--color-cloud-700, #7A7A7A);
+  margin: 0;
+}
+
+/* ================================
+   指标卡片 Kawaii 风格
+   ================================ */
+.metrics-grid-v2 {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+}
+
+.metric-card-v2 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--glass-white, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--radius-xl, 24px);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s var(--ease-kawaii);
+  overflow: hidden;
+}
+
+.metric-card-v2:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.metric-decoration {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  font-size: 1.25rem;
+  opacity: 0.5;
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.metric-card-mint {
+  border-top: 4px solid var(--color-mint-400, #5FC9A3);
+}
+
+.metric-card-pink {
+  border-top: 4px solid var(--color-pink-400, #FF7A9A);
+}
+
+.metric-card-lavender {
+  border-top: 4px solid var(--color-lavender-400, #B56CB5);
+}
+
+.metric-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg, 16px);
+  background: linear-gradient(135deg, var(--color-pink-100, #FFE4E9) 0%, var(--color-mint-100, #D4F5E9) 100%);
+  color: var(--color-pink-500, #FF6B8A);
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-label-v2 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-cloud-700, #7A7A7A);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--space-1);
+}
+
+.metric-value-v2 {
+  font-size: var(--font-size-3xl, 24px);
+  font-weight: 700;
+  color: var(--color-cloud-900, #4A4A4A);
+  margin: 0 0 var(--space-1);
+}
+
+/* ================================
+   玻璃态卡片样式
+   ================================ */
+.section-card-glass {
+  position: relative;
+  z-index: 1;
+  background: var(--glass-white, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.5));
+  border-radius: var(--radius-xl, 24px);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.section-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-3);
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.5));
+}
+
+.section-title-v2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg, 16px);
+  font-weight: 700;
+  color: var(--color-cloud-900, #4A4A4A);
+  margin: 0;
+}
+
+.title-icon {
+  font-size: 1.25rem;
+}
+
+.section-decoration {
+  font-size: 1.5rem;
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ================================
+   个人资料内容
+   ================================ */
 .profile-content {
   padding: var(--space-5);
 }
@@ -10,76 +317,98 @@
   gap: var(--space-4);
   margin-bottom: var(--space-6);
   padding-bottom: var(--space-5);
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px dashed var(--color-pink-200, #FFC9D4);
 }
 
 .profile-avatar {
-  width: 64px;
-  height: 64px;
+  position: relative;
+  width: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-aurora);
-  border-radius: var(--radius-lg);
-  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--color-pink-300, #FFA0B5) 0%, var(--color-lavender-300, #C97EC9) 100%);
+  border-radius: 50%;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--text-inverse);
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-glow-pink, 0 0 20px rgba(255, 107, 138, 0.4));
+}
+
+.avatar-emoji {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 1.25rem;
+  animation: float 2s ease-in-out infinite;
 }
 
 .profile-info h4 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: var(--font-size-xl, 18px);
+  font-weight: 700;
+  color: var(--color-cloud-900, #4A4A4A);
   margin: 0 0 var(--space-2);
 }
 
 .profile-meta {
   display: flex;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .profile-badge {
   font-size: 0.75rem;
-  padding: var(--space-1) var(--space-2);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-mint-100, #D4F5E9);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--color-mint-700, #2E7D64);
+  font-weight: 600;
 }
 
 .profile-status {
   font-size: 0.75rem;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full, 9999px);
+  font-weight: 600;
   text-transform: capitalize;
 }
 
 .profile-status.active {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--success);
+  background: var(--color-pink-100, #FFE4E9);
+  color: var(--color-pink-600, #FF4D73);
 }
 
 .profile-json label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  color: var(--color-cloud-700, #7A7A7A);
   margin-bottom: var(--space-3);
+}
+
+.label-icon {
+  font-size: 1rem;
 }
 
 .profile-json pre {
   padding: var(--space-4);
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  background: var(--color-cloud-100, #FFFCFC);
+  border: 2px solid var(--color-pink-100, #FFE4E9);
+  border-radius: var(--radius-lg, 16px);
   font-size: 0.8125rem;
-  color: var(--text-secondary);
+  color: var(--color-cloud-800, #7A7A7A);
   overflow: auto;
   max-height: 400px;
 }
 
+/* ================================
+   Patch 表单样式
+   ================================ */
 .patch-form {
   padding: var(--space-5);
   display: flex;
@@ -87,21 +416,318 @@
   gap: var(--space-4);
 }
 
+/* ================================
+   表单元素 Kawaii 风格
+   ================================ */
+.visual-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-cloud-800, #7A7A7A);
+}
+
+.label-emoji {
+  font-size: 1.25rem;
+}
+
+/* 颜色选择器 */
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.color-option {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-kawaii);
+  box-shadow: var(--shadow-sm);
+}
+
+.color-option:hover {
+  transform: scale(1.15);
+  box-shadow: var(--shadow-md);
+}
+
+.color-option.active {
+  border-color: white;
+  box-shadow: 0 0 0 3px var(--color-pink-300, #FFA0B5), var(--shadow-glow-pink);
+}
+
+.color-emoji {
+  font-size: 1.25rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.color-check {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  color: var(--color-success-500, #22C55E);
+}
+
+/* 选项卡片 */
+.option-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-cloud-100, #FFFCFC);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg, 16px);
+  cursor: pointer;
+  transition: all 0.3s var(--ease-kawaii);
+  text-align: center;
+}
+
+.option-card:hover {
+  background: white;
+  border-color: var(--color-pink-200, #FFC9D4);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.option-card.active {
+  background: linear-gradient(135deg, var(--color-pink-50, #FFF5F7) 0%, var(--color-mint-50, #F0FDF7) 100%);
+  border-color: var(--color-pink-400, #FF7A9A);
+  box-shadow: var(--shadow-glow-pink);
+}
+
+.option-emoji {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-1);
+}
+
+.option-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-cloud-900, #4A4A4A);
+}
+
+.option-desc {
+  font-size: 0.75rem;
+  color: var(--color-cloud-600, #9E9E9E);
+}
+
+/* 下拉选择框 */
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--color-pink-500, #FF6B8A);
+  pointer-events: none;
+}
+
+.form-select {
+  width: 100%;
+  padding: var(--space-3) var(--space-10) var(--space-3) var(--space-4);
+  background: var(--color-cloud-100, #FFFCFC);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg, 16px);
+  color: var(--color-cloud-900, #4A4A4A);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-kawaii);
+  appearance: none;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-pink-300, #FFA0B5);
+  box-shadow: var(--shadow-glow-pink);
+}
+
+/* 复选框组 */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg, 16px);
+  transition: background 0.2s;
+}
+
+.checkbox-label:hover {
+  background: var(--color-pink-50, #FFF5F7);
+}
+
+.checkbox-wrapper {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.checkbox-custom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  background: var(--color-cloud-100, #FFFCFC);
+  border: 2px solid var(--color-pink-200, #FFC9D4);
+  border-radius: var(--radius-sm, 8px);
+  transition: all 0.2s var(--ease-kawaii);
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkbox-custom {
+  background: var(--color-pink-500, #FF6B8A);
+  border-color: var(--color-pink-500, #FF6B8A);
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkbox-custom::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkbox-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-cloud-900, #4A4A4A);
+}
+
+.checkbox-desc {
+  font-size: 0.75rem;
+  color: var(--color-cloud-600, #9E9E9E);
+}
+
+/* 文本域 */
+.form-textarea {
+  width: 100%;
+  padding: var(--space-4);
+  background: var(--color-cloud-100, #FFFCFC);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg, 16px);
+  color: var(--color-cloud-900, #4A4A4A);
+  font-size: 0.875rem;
+  resize: vertical;
+  transition: all 0.3s var(--ease-kawaii);
+  font-family: inherit;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-pink-300, #FFA0B5);
+  box-shadow: var(--shadow-glow-pink);
+}
+
+.form-textarea::placeholder {
+  color: var(--color-cloud-600, #9E9E9E);
+}
+
+/* JSON 编辑器 */
+.textarea-wrapper {
+  position: relative;
+}
+
+.textarea-decoration {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  font-size: 1rem;
+  opacity: 0.5;
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.form-textarea-v2 {
+  width: 100%;
+  padding: var(--space-4);
+  background: var(--color-cloud-100, #FFFCFC);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg, 16px);
+  color: var(--color-cloud-900, #4A4A4A);
+  font-size: 0.875rem;
+  resize: vertical;
+  transition: all 0.3s var(--ease-kawaii);
+}
+
 .form-textarea-v2.code {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 0.8125rem;
 }
 
+.form-textarea-v2:focus {
+  outline: none;
+  border-color: var(--color-pink-300, #FFA0B5);
+  box-shadow: var(--shadow-glow-pink);
+}
+
 .form-textarea-v2.code.error {
-  border-color: var(--error);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--color-error-400, #F87171);
+  box-shadow: var(--shadow-glow-error, 0 0 20px rgba(248, 113, 113, 0.3));
 }
 
 /* JSON 示例面板 */
 .json-example-panel {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  background: var(--color-mint-50, #F0FDF7);
+  border: 2px solid var(--color-mint-200, #A8E6CF);
+  border-radius: var(--radius-lg, 16px);
   overflow: hidden;
 }
 
@@ -110,20 +736,24 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
+  font-size: 0.875rem;
+  color: var(--color-mint-700, #2E7D64);
   cursor: pointer;
   user-select: none;
   transition: all 0.2s;
+  font-weight: 600;
 }
 
 .json-example-summary:hover {
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text-primary);
+  background: var(--color-mint-100, #D4F5E9);
+}
+
+.summary-emoji {
+  font-size: 1.25rem;
 }
 
 .json-example-icon {
-  transition: transform 0.2s;
+  transition: transform 0.3s var(--ease-kawaii);
 }
 
 .json-example-icon.open {
@@ -133,46 +763,199 @@
 .json-example-code {
   padding: var(--space-4);
   margin: 0;
-  background: rgba(0, 0, 0, 0.3);
-  border-top: 1px solid var(--glass-border);
-  font-family: var(--font-mono);
+  background: white;
+  border-top: 1px solid var(--color-mint-200, #A8E6CF);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--color-cloud-700, #7A7A7A);
   overflow: auto;
   max-height: 200px;
 }
 
+/* 编辑器模式切换 */
+.editor-mode-toggle {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-cloud-100, #FFFCFC);
+  border: 2px solid var(--color-pink-100, #FFE4E9);
+  border-radius: var(--radius-full, 9999px);
+  padding: 4px;
+}
+
+.editor-mode-toggle button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  color: var(--color-cloud-600, #9E9E9E);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-kawaii);
+}
+
+.editor-mode-toggle button:hover {
+  color: var(--color-pink-500, #FF6B8A);
+}
+
+.editor-mode-toggle button.active {
+  background: linear-gradient(135deg, var(--color-pink-400, #FF7A9A) 0%, var(--color-peach-400, #FF9A5C) 100%);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 提交按钮 */
+.submit-btn-v2 {
+  width: 100%;
+  justify-content: center;
+  padding: var(--space-4);
+  font-size: 1rem;
+  margin-top: var(--space-2);
+}
+
+/* 错误提示 */
+.form-error-v2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-error-50, #FEF2F2);
+  border: 2px solid var(--color-error-200, #FECACA);
+  border-radius: var(--radius-lg, 16px);
+  color: var(--color-error-600, #DC2626);
+  font-size: 0.875rem;
+}
+
+/* 趋势指示器 */
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.trend.up {
+  color: var(--color-mint-500, #4DB390);
+}
+
+.trend.down {
+  color: var(--color-error-500, #EF4444);
+}
+
+.trend-neutral {
+  color: var(--color-cloud-600, #9E9E9E);
+}
+
+/* 质量徽章 */
+.quality-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-full, 9999px);
+  margin-top: var(--space-1);
+}
+
+.quality-badge.excellent {
+  background: var(--color-mint-100, #D4F5E9);
+  color: var(--color-mint-700, #2E7D64);
+}
+
+.quality-badge.good {
+  background: var(--color-lemon-100, #FFFDE7);
+  color: var(--color-lemon-800, #A89828);
+}
+
+.quality-badge.needs-improvement {
+  background: var(--color-peach-100, #FFE5D4);
+  color: var(--color-peach-700, #B5612C);
+}
+
 /* 空状态 */
-.profile-empty {
+.empty-state-v2 {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  padding: var(--space-10);
+  padding: var(--space-16);
   text-align: center;
 }
 
-.profile-empty svg {
-  color: var(--text-muted);
-  opacity: 0.5;
+.empty-emoji {
+  font-size: 4rem;
+  animation: float 3s ease-in-out infinite;
 }
 
-.profile-empty p {
+.empty-state-v2 p {
   font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--color-cloud-700, #7A7A7A);
   margin: 0;
 }
 
-/* 响应式 */
+/* 旋转动画 */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ================================
+   响应式设计
+   ================================ */
+@media (max-width: 768px) {
+  .page-header-v2 {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .option-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-mode-toggle {
+    order: -1;
+    width: 100%;
+  }
+
+  .editor-mode-toggle button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .section-header-v2 {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .metrics-grid-v2 {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .profile-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .json-example-code {
     max-height: 150px;
+  }
+
+  .color-picker {
+    justify-content: center;
+  }
+
+  .page-title-v2 {
+    font-size: var(--font-size-2xl, 20px);
   }
 }

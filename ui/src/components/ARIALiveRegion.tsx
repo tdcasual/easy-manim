@@ -1,3 +1,7 @@
+/**
+ * ARIA Live Region Component
+ * 无障碍实时消息宣布组件
+ */
 import { useEffect, useRef } from "react";
 
 interface ARIALiveRegionProps {
@@ -27,54 +31,10 @@ export function ARIALiveRegion({
   }, [message, clearAfter]);
 
   return (
-    <div
-      ref={ref}
-      aria-live={level}
-      aria-atomic="true"
-      className="sr-only"
-      role="status"
-    >
+    <div ref={ref} aria-live={level} aria-atomic="true" className="sr-only" role="status">
       {message}
     </div>
   );
 }
 
-// 使用自定义 hook 管理 ARIA 消息
-import { useState, useCallback } from "react";
-
-export function useARIAMessage() {
-  const [message, setMessage] = useState<string | null>(null);
-  const [level, setLevel] = useState<"polite" | "assertive">("polite");
-
-  const announce = useCallback((
-    msg: string,
-    options?: { level?: "polite" | "assertive"; duration?: number }
-  ) => {
-    setLevel(options?.level || "polite");
-    setMessage(msg);
-    
-    // 自动清除
-    setTimeout(() => {
-      setMessage(null);
-    }, options?.duration || 3000);
-  }, []);
-
-  const announcePolite = useCallback((msg: string, duration?: number) => {
-    announce(msg, { level: "polite", duration });
-  }, [announce]);
-
-  const announceAssertive = useCallback((msg: string, duration?: number) => {
-    announce(msg, { level: "assertive", duration });
-  }, [announce]);
-
-  return {
-    message,
-    level,
-    announce,
-    announcePolite,
-    announceAssertive,
-    ARIALiveRegion: () => (
-      <ARIALiveRegion message={message} level={level} />
-    ),
-  };
-}
+export default ARIALiveRegion;

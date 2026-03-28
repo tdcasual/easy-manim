@@ -1,0 +1,97 @@
+- generic [ref=e31]:
+  - status
+  - generic [ref=e32]:
+    - generic [ref=e33]:
+      - generic [ref=e34]: 创作台
+      - heading "任务管理" [level=1] [ref=e35]
+      - paragraph [ref=e36]: 用中文描述创作意图，查看最近任务队列，并直接回看最新生成的视频结果
+    - button "刷新列表" [ref=e37] [cursor=pointer]:
+      - img [ref=e38]
+      - text: 刷新列表
+  - generic [ref=e43]:
+    - generic [ref=e44]:
+      - img [ref=e46]
+      - generic [ref=e49]:
+        - paragraph [ref=e50]: 进行中
+        - heading "1" [level=3] [ref=e51]
+    - generic [ref=e52]:
+      - img [ref=e54]
+      - generic [ref=e57]:
+        - paragraph [ref=e58]: 已完成
+        - heading "1" [level=3] [ref=e59]
+    - generic [ref=e60]:
+      - img [ref=e62]
+      - generic [ref=e66]:
+        - paragraph [ref=e67]: 失败
+        - heading "1" [level=3] [ref=e68]
+    - generic [ref=e69]:
+      - img [ref=e71]
+      - generic [ref=e73]:
+        - paragraph [ref=e74]: 总任务
+        - heading "3" [level=3] [ref=e75]
+  - generic [ref=e76]:
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - heading "新建任务" [level=3] [ref=e80]:
+          - img [ref=e81]
+          - text: 新建任务
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: 任务描述
+            - textbox "任务描述" [ref=e85]:
+              - /placeholder: 例如："做一个简洁的蓝色圆形动画"或"生成一个带中文标题的柱状图视频"
+          - generic [ref=e86]:
+            - generic [ref=e87]: 快速提示：
+            - generic [ref=e88]:
+              - button "画一个蓝色圆形，并保持画面干净简洁" [ref=e89] [cursor=pointer]
+              - button "制作一个带中文标签的正弦波动画" [ref=e90] [cursor=pointer]
+              - button "做一个对比季度营收的柱状图，适合中文演示" [ref=e91] [cursor=pointer]
+          - button "创建任务" [disabled] [ref=e93]:
+            - img [ref=e94]
+            - text: 创建任务
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - heading "最近任务队列" [level=3] [ref=e98]:
+            - img [ref=e99]
+            - text: 最近任务队列
+          - link "查看全部" [ref=e102] [cursor=pointer]:
+            - /url: /tasks
+        - generic [ref=e103]:
+          - link "圆与切线的动态引入 task-geometry-intro 执行中" [ref=e104] [cursor=pointer]:
+            - /url: /tasks/task-geometry-intro
+            - generic [ref=e105]:
+              - generic [ref=e106]: 圆与切线的动态引入
+              - generic [ref=e108]: task-geometry-intro
+            - generic [ref=e109]: 执行中
+            - img [ref=e111]
+          - link "带中文标签的正弦波动画 task-sine-wave 已完成" [ref=e113] [cursor=pointer]:
+            - /url: /tasks/task-sine-wave
+            - generic [ref=e114]:
+              - generic [ref=e115]: 带中文标签的正弦波动画
+              - generic [ref=e117]: task-sine-wave
+            - generic [ref=e118]: 已完成
+            - img [ref=e120]
+          - link "季度营收柱状图讲解 task-quarterly-bars 失败" [ref=e122] [cursor=pointer]:
+            - /url: /tasks/task-quarterly-bars
+            - generic [ref=e123]:
+              - generic [ref=e124]: 季度营收柱状图讲解
+              - generic [ref=e126]: task-quarterly-bars
+            - generic [ref=e127]: 失败
+            - img [ref=e129]
+    - generic [ref=e132]:
+      - generic [ref=e133]:
+        - heading "最近视频" [level=3] [ref=e134]:
+          - img [ref=e135]
+          - text: 最近视频
+        - link "查看全部" [ref=e137] [cursor=pointer]:
+          - /url: /videos
+      - generic [ref=e139]:
+        - generic [ref=e140]:
+          - img "带中文标签的正弦波动画" [ref=e141]
+          - generic [ref=e142]: 已完成
+        - generic [ref=e143]:
+          - heading "带中文标签的正弦波动画" [level=4] [ref=e144]
+          - paragraph [ref=e145]: task-sine-wave
+          - paragraph [ref=e146]: 镜头已生成，节奏清晰，适合课堂演示。
+          - link "查看详情" [ref=e148] [cursor=pointer]:
+            - /url: /tasks/task-sine-wave

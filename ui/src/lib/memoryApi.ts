@@ -1,24 +1,8 @@
-import { clearSessionToken } from "./session";
-
-function apiBaseUrl(): string {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL;
-  return typeof base === "string" ? base.replace(/\/+$/, "") : "";
-}
-
-async function requestJson<T>(path: string, init: RequestInit, token: string): Promise<T> {
-  const headers = new Headers(init.headers);
-  headers.set("accept", "application/json");
-  headers.set("authorization", `Bearer ${token}`);
-  if (init.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers });
-  const text = await response.text().catch(() => "");
-  if (!response.ok) {
-    if (response.status === 401) clearSessionToken();
-    throw new Error(`http_${response.status}:${text || response.statusText}`);
-  }
-  return (text ? JSON.parse(text) : {}) as T;
-}
+/**
+ * 记忆相关 API
+ * 使用通用 requestJson 函数
+ */
+import { requestJson } from "./api";
 
 export type SessionMemorySummary = {
   session_id: string;
@@ -43,30 +27,39 @@ export type AgentMemoryRecord = {
 };
 
 export async function getSessionMemorySummary(token: string): Promise<SessionMemorySummary> {
-  return requestJson<SessionMemorySummary>("/api/memory/session/summary", { method: "GET" }, token);
+  return requestJson<SessionMemorySummary>("/api/memory/session/summary", token, {
+    method: "GET",
+  });
 }
 
-export async function listMemories(token: string, includeDisabled = false): Promise<{ items: AgentMemoryRecord[] }> {
-  const q = includeDisabled ? "?include_disabled=true" : "";
-  return requestJson<{ items: AgentMemoryRecord[] }>(`/api/memories${q}`, { method: "GET" }, token);
+export async function listMemories(
+  token: string,
+  includeDisabled = false
+): Promise<{ items: AgentMemoryRecord[] }> {
+  const query = includeDisabled ? "?include_disabled=true" : "";
+  return requestJson<{ items: AgentMemoryRecord[] }>(`/api/memories${query}`, token, {
+    method: "GET",
+  });
 }
 
-export async function clearSessionMemory(token: string): Promise<{ cleared: boolean; entry_count: number }> {
-  return requestJson<{ cleared: boolean; entry_count: number }>(
-    "/api/memory/session",
-    { method: "DELETE" },
-    token
-  );
+export async function clearSessionMemory(
+  token: string
+): Promise<{ cleared: boolean; entry_count: number }> {
+  return requestJson<{ cleared: boolean; entry_count: number }>("/api/memory/session", token, {
+    method: "DELETE",
+  });
 }
 
 export async function promoteSessionMemory(token: string): Promise<AgentMemoryRecord> {
-  return requestJson<AgentMemoryRecord>("/api/memories/promote", { method: "POST" }, token);
+  return requestJson<AgentMemoryRecord>("/api/memories/promote", token, {
+    method: "POST",
+  });
 }
 
 export async function disableMemory(memoryId: string, token: string): Promise<AgentMemoryRecord> {
   return requestJson<AgentMemoryRecord>(
     `/api/memories/${encodeURIComponent(memoryId)}/disable`,
-    { method: "POST" },
-    token
+    token,
+    { method: "POST" }
   );
 }

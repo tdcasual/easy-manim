@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { useConfirm } from "./ConfirmDialog";
+import { useConfirm } from "./useConfirm";
 
 function ConfirmDialogHarness() {
   const { confirm, ConfirmDialog } = useConfirm();

@@ -1,0 +1,38 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - status [ref=e4]
+    - heading "任务管理" [level=1] [ref=e5]
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - img [ref=e10]
+        - generic [ref=e13]:
+          - generic [ref=e14]: "0"
+          - generic [ref=e15]: 进行中
+      - generic [ref=e16]:
+        - img [ref=e18]
+        - generic [ref=e21]:
+          - generic [ref=e22]: "0"
+          - generic [ref=e23]: 已完成
+      - generic [ref=e24]:
+        - img [ref=e26]
+        - generic [ref=e28]:
+          - generic [ref=e29]: "0"
+          - generic [ref=e30]: 总计
+      - button "刷新" [disabled] [ref=e31]:
+        - img [ref=e32]
+    - generic [ref=e40]:
+      - img [ref=e41]
+      - textbox "tasks.quickPlaceholder" [ref=e43]
+      - button "创建任务" [disabled] [ref=e44]:
+        - img [ref=e45]
+    - generic [ref=e47]:
+      - button "🌸 \udf38 全部" [ref=e48] [cursor=pointer]:
+        - generic [ref=e49]: 🌸
+        - generic [ref=e50]: � 全部
+      - button "🎬 \udfac 进行中" [ref=e51] [cursor=pointer]:
+        - generic [ref=e52]: 🎬
+        - generic [ref=e53]: � 进行中
+      - button "✨ 已完成" [ref=e54] [cursor=pointer]:
+        - generic [ref=e55]: ✨
+        - generic [ref=e56]: 已完成
+  - region "通知"

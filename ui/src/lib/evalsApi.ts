@@ -1,24 +1,8 @@
-import { clearSessionToken } from "./session";
-
-function apiBaseUrl(): string {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL;
-  return typeof base === "string" ? base.replace(/\/+$/, "") : "";
-}
-
-async function requestJson<T>(path: string, init: RequestInit, token: string): Promise<T> {
-  const headers = new Headers(init.headers);
-  headers.set("accept", "application/json");
-  headers.set("authorization", `Bearer ${token}`);
-  if (init.body) headers.set("content-type", "application/json");
-
-  const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers });
-  const text = await response.text().catch(() => "");
-  if (!response.ok) {
-    if (response.status === 401) clearSessionToken();
-    throw new Error(`http_${response.status}:${text || response.statusText}`);
-  }
-  return (text ? JSON.parse(text) : {}) as T;
-}
+/**
+ * 评估相关 API
+ * 使用通用 requestJson 函数
+ */
+import { requestJson } from "./api";
 
 export type EvalCaseResult = {
   task_id: string;
@@ -47,9 +31,13 @@ export type EvalRunSummary = {
 };
 
 export async function listEvals(token: string): Promise<{ items: EvalRunSummary[] }> {
-  return requestJson<{ items: EvalRunSummary[] }>("/api/profile/evals", { method: "GET" }, token);
+  return requestJson<{ items: EvalRunSummary[] }>("/api/profile/evals", token, {
+    method: "GET",
+  });
 }
 
 export async function getEval(runId: string, token: string): Promise<EvalRunSummary> {
-  return requestJson<EvalRunSummary>(`/api/profile/evals/${encodeURIComponent(runId)}`, { method: "GET" }, token);
+  return requestJson<EvalRunSummary>(`/api/profile/evals/${encodeURIComponent(runId)}`, token, {
+    method: "GET",
+  });
 }

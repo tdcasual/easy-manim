@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import { writeSessionToken } from "../../lib/session";
+import { ToastProvider } from "../../components/Toast";
 import { ProfilePageV2 } from "./ProfilePageV2";
 
 test("renders translated profile status", async () => {
@@ -21,7 +22,7 @@ test("renders translated profile status", async () => {
           profile_json: { style_hints: { text_language: "zh" } },
           policy_json: {},
           created_at: "2030-01-01T00:00:00Z",
-          updated_at: "2030-01-01T00:00:00Z"
+          updated_at: "2030-01-01T00:00:00Z",
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -34,7 +35,7 @@ test("renders translated profile status", async () => {
           failed_count_recent: 1,
           median_quality_score: 0.91,
           top_issue_codes: [],
-          recent_profile_digests: []
+          recent_profile_digests: [],
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -44,10 +45,13 @@ test("renders translated profile status", async () => {
 
   render(
     <MemoryRouter>
-      <ProfilePageV2 />
+      <ToastProvider>
+        <ProfilePageV2 />
+      </ToastProvider>
     </MemoryRouter>
   );
 
   expect(await screen.findByText(/agent a/i)).toBeInTheDocument();
-  expect(screen.getByText("启用中")).toBeInTheDocument();
+  // 使用更灵活的文本匹配，因为 emoji 和文本可能在不同元素中
+  expect(screen.getByText((content) => content.includes("启用中"))).toBeInTheDocument();
 });

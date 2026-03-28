@@ -1,30 +1,32 @@
 // TaskDetailPage V2 - 占位符实现
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  RefreshCw, 
-  RotateCcw, 
+import {
+  ArrowLeft,
+  RefreshCw,
+  RotateCcw,
   XCircle,
   CheckCircle2,
   Clock,
   Loader2,
 } from "lucide-react";
 import { useSession } from "../auth/useSession";
-import { 
-  getTask, 
-  getTaskResult, 
-  reviseTask, 
-  retryTask, 
+import {
+  getTask,
+  getTaskResult,
+  reviseTask,
+  retryTask,
   cancelTask,
   TaskSnapshot,
-  TaskResult 
+  TaskResult,
 } from "../../lib/tasksApi";
 import { resolveApiUrl } from "../../lib/api";
+import { useI18n } from "../../app/locale";
 import { SkeletonCard } from "../../components/Skeleton";
-import { useARIAMessage } from "../../components/ARIALiveRegion";
-import { useConfirm } from "../../components/ConfirmDialog";
+import { useARIAMessage } from "../../components/useARIAMessage";
+import { useConfirm } from "../../components/useConfirm";
 import { getStatusLabel } from "../../app/ui";
+import { AuthModal, useAuthGuard } from "../../components/AuthModal";
 import "./TaskDetailPageV2.css";
 
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
@@ -32,7 +34,9 @@ const TERMINAL = new Set(["completed", "failed", "cancelled"]);
 export function TaskDetailPageV2() {
   const { taskId } = useParams();
   const navigate = useNavigate();
+  const { showAuthModal, closeAuthModal } = useAuthGuard();
   const { sessionToken } = useSession();
+  const { locale, t } = useI18n();
   const [snapshot, setSnapshot] = useState<TaskSnapshot | null>(null);
   const [result, setResult] = useState<TaskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +45,7 @@ export function TaskDetailPageV2() {
   const [actionState, setActionState] = useState<"idle" | "revise" | "retry" | "cancel">("idle");
   const { ARIALiveRegion, announcePolite } = useARIAMessage();
   const { confirm, ConfirmDialog } = useConfirm();
-  
+
   useEffect(() => {
     if (!taskId || !sessionToken) return;
     const currentTaskId = taskId;
@@ -49,18 +53,18 @@ export function TaskDetailPageV2() {
     let cancelled = false;
     let timer: number | null = null;
     let attempt = 0;
-    
+
     async function loadOnce() {
       try {
         setError(null);
         const nextSnapshot = await getTask(currentTaskId, token);
         if (cancelled) return;
         setSnapshot(nextSnapshot);
-        
+
         const nextResult = await getTaskResult(currentTaskId, token);
         if (cancelled) return;
         setResult(nextResult);
-        
+
         if (!TERMINAL.has(String(nextSnapshot.status))) {
           const delay = Math.min(250 * 2 ** attempt, 5000);
           attempt += 1;
@@ -68,98 +72,98 @@ export function TaskDetailPageV2() {
         }
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "加载失败");
+        setError(err instanceof Error ? err.message : t("common.loadingFailed"));
       }
     }
-    
+
     loadOnce();
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [taskId, sessionToken, reloadTick]);
-  
+  }, [taskId, sessionToken, reloadTick, t]);
+
   async function onRevise() {
     if (!taskId || !sessionToken) return;
     const trimmed = feedback.trim();
     if (!trimmed) return;
-    
+
     setError(null);
     setActionState("revise");
     try {
       await reviseTask(taskId, trimmed, sessionToken);
       setFeedback("");
-      setReloadTick(t => t + 1);
-      announcePolite("修订请求已提交");
+      setReloadTick((t) => t + 1);
+      announcePolite(t("taskDetail.revisionSubmitted"));
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "修订失败";
+      const errorMsg = err instanceof Error ? err.message : t("taskDetail.submitRevision");
       setError(errorMsg);
-      announcePolite(`修订失败: ${errorMsg}`);
+      announcePolite(t("taskDetail.revisionFailed", { error: errorMsg }));
     } finally {
       setActionState("idle");
     }
   }
-  
+
   async function onRetry() {
     if (!taskId || !sessionToken) return;
-    
+
     const confirmed = await confirm({
-      title: "重试任务",
-      message: "重新执行任务将丢弃之前的进度，是否继续？",
-      confirmText: "确认重试",
-      cancelText: "取消",
+      title: t("taskDetail.retryConfirmTitle"),
+      message: t("taskDetail.retryConfirmMessage"),
+      confirmText: t("taskDetail.retryConfirmAction"),
+      cancelText: t("common.cancel"),
       danger: false,
     });
-    
+
     if (!confirmed) return;
-    
+
     setError(null);
     setActionState("retry");
     try {
       await retryTask(taskId, sessionToken);
-      setReloadTick(t => t + 1);
-      announcePolite("任务已重试");
+      setReloadTick((t) => t + 1);
+      announcePolite(t("taskDetail.retried"));
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "重试失败";
+      const errorMsg = err instanceof Error ? err.message : t("taskDetail.retry");
       setError(errorMsg);
-      announcePolite(`重试失败: ${errorMsg}`);
+      announcePolite(t("taskDetail.retryFailed", { error: errorMsg }));
     } finally {
       setActionState("idle");
     }
   }
-  
+
   async function onCancel() {
     if (!taskId || !sessionToken) return;
-    
+
     const confirmed = await confirm({
-      title: "取消任务",
-      message: "取消后任务将停止执行，不可恢复。是否继续？",
-      confirmText: "确认取消",
-      cancelText: "继续执行",
+      title: t("taskDetail.cancelConfirmTitle"),
+      message: t("taskDetail.cancelConfirmMessage"),
+      confirmText: t("taskDetail.cancelConfirmAction"),
+      cancelText: t("taskDetail.cancelKeepRunning"),
       danger: true,
     });
-    
+
     if (!confirmed) return;
-    
+
     setError(null);
     setActionState("cancel");
     try {
       await cancelTask(taskId, sessionToken);
-      setReloadTick(t => t + 1);
-      announcePolite("任务已取消");
+      setReloadTick((t) => t + 1);
+      announcePolite(t("taskDetail.cancelled"));
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "取消失败";
+      const errorMsg = err instanceof Error ? err.message : t("taskDetail.cancelTask");
       setError(errorMsg);
-      announcePolite(`取消失败: ${errorMsg}`);
+      announcePolite(t("taskDetail.cancelFailed", { error: errorMsg }));
     } finally {
       setActionState("idle");
     }
   }
-  
+
   if (!taskId) {
     return (
       <div className="page-v2">
-        <div className="empty-state-v2">缺少任务 ID</div>
+        <div className="empty-state-v2">{t("taskDetail.missingTaskId")}</div>
       </div>
     );
   }
@@ -173,19 +177,19 @@ export function TaskDetailPageV2() {
           <div className="page-header-content-v2">
             <button onClick={() => navigate(-1)} className="back-link">
               <ArrowLeft size={18} />
-              返回
+              {t("taskDetail.back")}
             </button>
-            <h1 className="page-title-v2">任务详情</h1>
+            <h1 className="page-title-v2">{t("taskDetail.title")}</h1>
             <p className="page-description-v2">{taskId}</p>
           </div>
         </div>
         <div className="task-detail-error" role="alert">
-          加载失败: {error}
+          {t("taskDetail.loadFailed", { error })}
         </div>
       </div>
     );
   }
-  
+
   if (!snapshot) {
     return (
       <div className="page-v2">
@@ -206,102 +210,123 @@ export function TaskDetailPageV2() {
       </div>
     );
   }
-  
+
   const status = String(snapshot.status);
   const terminal = TERMINAL.has(status);
   const videoUrl = resolveApiUrl(result?.video_download_url);
-  const displayTitle = snapshot.display_title || taskId;
-  
-  const statusConfig: Record<string, { icon: React.ElementType; colorVar: string; label: string }> = {
-    completed: { icon: CheckCircle2, colorVar: 'var(--success)', label: getStatusLabel("completed") },
-    rendering: { icon: Loader2, colorVar: 'var(--accent-blue)', label: getStatusLabel("rendering") },
-    running: { icon: Clock, colorVar: 'var(--accent-cyan)', label: getStatusLabel("running") },
-    queued: { icon: Clock, colorVar: 'var(--warning)', label: getStatusLabel("queued") },
-    failed: { icon: XCircle, colorVar: 'var(--error)', label: getStatusLabel("failed") },
-    cancelled: { icon: XCircle, colorVar: 'var(--text-muted)', label: getStatusLabel("cancelled") },
-  };
-  
-  const currentStatus = statusConfig[status.toLowerCase()] || { 
-    icon: Clock, 
-    colorVar: 'var(--text-muted)', 
-    label: getStatusLabel(status) 
+  const displayTitle = snapshot.display_title ?? taskId;
+
+  const statusConfig: Record<string, { icon: React.ElementType; colorVar: string; label: string }> =
+    {
+      completed: {
+        icon: CheckCircle2,
+        colorVar: "var(--success)",
+        label: getStatusLabel("completed", locale),
+      },
+      rendering: {
+        icon: Loader2,
+        colorVar: "var(--accent-blue)",
+        label: getStatusLabel("rendering", locale),
+      },
+      running: {
+        icon: Clock,
+        colorVar: "var(--accent-cyan)",
+        label: getStatusLabel("running", locale),
+      },
+      queued: { icon: Clock, colorVar: "var(--warning)", label: getStatusLabel("queued", locale) },
+      failed: { icon: XCircle, colorVar: "var(--error)", label: getStatusLabel("failed", locale) },
+      cancelled: {
+        icon: XCircle,
+        colorVar: "var(--text-muted)",
+        label: getStatusLabel("cancelled", locale),
+      },
+    };
+
+  const currentStatus = statusConfig[status.toLowerCase()] || {
+    icon: Clock,
+    colorVar: "var(--text-muted)",
+    label: getStatusLabel(status, locale),
   };
   const StatusIcon = currentStatus.icon;
-  const phaseLabel = getStatusLabel(String(snapshot.phase));
-  
+  const phaseLabel = getStatusLabel(String(snapshot.phase), locale);
+
   return (
     <div className="page-v2">
       {/* ARIA Live 区域 */}
       <ARIALiveRegion />
-      
+
       {/* 确认对话框 */}
       <ConfirmDialog />
-      
+
       {/* 头部 */}
       <div className="page-header-v2">
         <div className="page-header-content-v2">
           <button onClick={() => navigate(-1)} className="back-link">
             <ArrowLeft size={18} />
-            返回
+            {t("taskDetail.back")}
           </button>
           <h1 className="page-title-v2">{displayTitle}</h1>
           <p className="page-description-v2">{taskId}</p>
         </div>
-        <button 
-          className="refresh-btn"
-          onClick={() => setReloadTick(t => t + 1)}
-        >
+        <button className="refresh-btn" onClick={() => setReloadTick((t) => t + 1)}>
           <RefreshCw size={18} />
-          刷新
+          {t("taskDetail.refresh")}
         </button>
       </div>
 
       {error && (
         <div className="task-detail-error" role="alert">
-          操作失败: {error}
+          {t("taskDetail.actionFailed", { error })}
         </div>
       )}
-      
+
       {/* 状态栏 */}
-      <div className="task-status-bar" style={{ '--status-color': currentStatus.colorVar } as React.CSSProperties}>
+      <div
+        className="task-status-bar"
+        style={{ "--status-color": currentStatus.colorVar } as React.CSSProperties}
+      >
         <div className="status-icon-wrapper" style={{ background: `${currentStatus.colorVar}20` }}>
-          <StatusIcon size={24} style={{ color: currentStatus.colorVar }} className={status === 'running' ? 'spin' : ''} />
+          <StatusIcon
+            size={24}
+            style={{ color: currentStatus.colorVar }}
+            className={status === "running" ? "spin" : ""}
+          />
         </div>
         <div className="status-info">
           <span className="status-label">{currentStatus.label}</span>
           <span className="status-phase">{phaseLabel}</span>
         </div>
         <div className="status-attempts">
-          尝试次数: {snapshot.attempt_count || 0}
+          {t("taskDetail.attemptCount", { count: snapshot.attempt_count ?? 0 })}
         </div>
       </div>
-      
+
       {/* 主内容 */}
       <div className="content-grid-v2">
         <div className="main-column">
           {/* 视频播放器 */}
           {videoUrl && (
             <div className="section-card-v2 video-player-card">
-              <video 
-                className="main-video-player" 
-                src={videoUrl} 
-                controls 
+              <video
+                className="main-video-player"
+                src={videoUrl}
+                controls
                 poster={result?.preview_download_urls?.[0]}
               />
             </div>
           )}
-          
+
           {/* 操作面板 */}
           <div className="section-card-v2">
-            <h3 className="section-title-v2">操作</h3>
-            
+            <h3 className="section-title-v2">{t("taskDetail.actions")}</h3>
+
             <div className="action-group">
-              <label className="form-label-v2">修订说明</label>
+              <label className="form-label-v2">{t("taskDetail.feedbackLabel")}</label>
               <textarea
                 className="form-textarea-v2"
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="描述需要修改的内容..."
+                placeholder={t("taskDetail.feedbackPlaceholder")}
                 rows={4}
                 disabled={actionState !== "idle"}
               />
@@ -313,13 +338,17 @@ export function TaskDetailPageV2() {
                 aria-busy={actionState === "revise"}
               >
                 {actionState === "revise" ? (
-                  <><Loader2 size={18} className="spin" /> 提交中...</>
+                  <>
+                    <Loader2 size={18} className="spin" /> {t("taskDetail.submitting")}
+                  </>
                 ) : (
-                  <><RotateCcw size={18} /> 提交修订</>
+                  <>
+                    <RotateCcw size={18} /> {t("taskDetail.submitRevision")}
+                  </>
                 )}
               </button>
             </div>
-            
+
             <div className="quick-actions">
               {status.toLowerCase() === "failed" && (
                 <button
@@ -330,7 +359,7 @@ export function TaskDetailPageV2() {
                   aria-busy={actionState === "retry"}
                 >
                   <RotateCcw size={16} />
-                  {actionState === "retry" ? "重试中..." : "重试"}
+                  {actionState === "retry" ? t("taskDetail.retrying") : t("taskDetail.retry")}
                 </button>
               )}
               {!terminal && (
@@ -342,35 +371,37 @@ export function TaskDetailPageV2() {
                   aria-busy={actionState === "cancel"}
                 >
                   <XCircle size={16} />
-                  {actionState === "cancel" ? "取消中..." : "取消任务"}
+                  {actionState === "cancel"
+                    ? t("taskDetail.cancelling")
+                    : t("taskDetail.cancelTask")}
                 </button>
               )}
             </div>
           </div>
         </div>
-        
+
         <div className="side-column">
           {/* 结果信息 */}
           <div className="section-card-v2">
-            <h3 className="section-title-v2">结果</h3>
+            <h3 className="section-title-v2">{t("taskDetail.results")}</h3>
             <div className="info-list">
               <div className="info-item">
-                <span className="info-label">状态</span>
+                <span className="info-label">{t("taskDetail.status")}</span>
                 <span className="info-value" style={{ color: currentStatus.colorVar }}>
                   {currentStatus.label}
                 </span>
               </div>
               <div className="info-item">
-                <span className="info-label">阶段</span>
+                <span className="info-label">{t("taskDetail.phase")}</span>
                 <span className="info-value">{phaseLabel}</span>
               </div>
               <div className="info-item">
-                <span className="info-label">尝试次数</span>
-                <span className="info-value">{snapshot.attempt_count || 0}</span>
+                <span className="info-label">{t("taskDetail.attempts")}</span>
+                <span className="info-value">{snapshot.attempt_count ?? 0}</span>
               </div>
               {result?.summary && (
                 <div className="info-item full-width">
-                  <span className="info-label">摘要</span>
+                  <span className="info-label">{t("taskDetail.summary")}</span>
                   <p className="info-summary">{result.summary}</p>
                 </div>
               )}
@@ -378,6 +409,9 @@ export function TaskDetailPageV2() {
           </div>
         </div>
       </div>
+
+      {/* 🔐 认证弹窗 */}
+      {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );
 }

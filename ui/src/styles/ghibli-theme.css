@@ -1,0 +1,592 @@
+/* ========================================
+   Ghibli Studio Theme - 宫崎骏风格主题
+   白天/夜间模式切换
+   ======================================== */
+
+/* ===== 基础变量 ===== */
+:root {
+  /* 动画时长 */
+  --duration-instant: 0.1s;
+  --duration-fast: 0.2s;
+  --duration-normal: 0.4s;
+  --duration-slow: 0.8s;
+  --duration-ambient: 20s;
+  
+  /* 缓动函数 */
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-dramatic: cubic-bezier(0.87, 0, 0.13, 1);
+  --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* 圆角 - 有机形状 */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --radius-xl: 48px;
+  --radius-full: 9999px;
+  --radius-organic: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  
+  /* 阴影 - 柔和散射 */
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-heavy: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.3);
+  
+  /* 间距 */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+}
+
+/* ===== 白天模式（默认）===== */
+[data-theme="day"] {
+  /* 天空渐变 */
+  --sky-top: #E8F4F8;
+  --sky-mid: #F0F7FA;
+  --sky-bottom: #FFF8F0;
+  
+  /* 自然色彩 */
+  --grass-light: #C8E6C9;
+  --grass-mid: #A5D6A7;
+  --grass-dark: #81C784;
+  --earth: #D7CCC8;
+  --wood: #8D6E63;
+  
+  /* 云朵 */
+  --cloud: #FFFFFF;
+  --cloud-shadow: rgba(200, 220, 230, 0.5);
+  
+  /* 花朵/点缀 */
+  --flower-pink: #F8BBD9;
+  --flower-yellow: #FFF59D;
+  --flower-blue: #B3E5FC;
+  
+  /* 功能色 */
+  --accent-primary: #7CB342;
+  --accent-secondary: #5C6BC0;
+  --accent-warm: #FF8A65;
+  
+  /* 文字 */
+  --text-primary: #4E342E;
+  --text-secondary: #6D4C41;
+  --text-muted: #9E8B7D;
+  --text-inverse: #FFF8F0;
+  
+  /* 表面 */
+  --surface-primary: rgba(255, 255, 255, 0.85);
+  --surface-secondary: rgba(255, 255, 255, 0.6);
+  --surface-tertiary: rgba(255, 255, 255, 0.35);
+  --border-subtle: rgba(141, 110, 99, 0.15);
+  
+  /* 状态 */
+  --status-success: #66BB6A;
+  --status-warning: #FFB74D;
+  --status-error: #E57373;
+  --status-info: #64B5F6;
+  
+  /* 兼容性别名 */
+  --success: #66BB6A;
+  --warning: #FFB74D;
+  --error: #E57373;
+  --info: #64B5F6;
+  
+  /* 玻璃态效果 */
+  --glass-border: rgba(141, 110, 99, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  
+  /* 深海主题兼容性别名 */
+  --primary-950: #030712;
+  --primary-900: #0a0f1a;
+  --primary-800: #E8F4F8;
+  --accent-cyan: #64B5F6;
+  --gradient-aurora: linear-gradient(135deg, #7CB342 0%, #5C6BC0 100%);
+}
+
+/* ===== 夜间模式（修复版）===== */
+[data-theme="night"] {
+  /* 天空渐变 - 深邃的夜晚天空 */
+  --sky-top: #0a0e1a;
+  --sky-mid: #121829;
+  --sky-bottom: #1a2332;
+  
+  /* 自然色彩 - 深夜中的自然色调 */
+  --grass-light: #1e3a1e;
+  --grass-mid: #2d5a2d;
+  --grass-dark: #3d7a3d;
+  --earth: #2d241f;
+  --wood: #3d3028;
+  
+  /* 星星/月亮 - 柔和的黄白色 */
+  --star: #fff8e7;
+  --moon: #fff5d6;
+  --moon-glow: rgba(255, 245, 214, 0.25);
+  
+  /* 云朵 - 深夜中微亮的云 */
+  --cloud: rgba(200, 210, 230, 0.15);
+  --cloud-shadow: rgba(0, 0, 0, 0.3);
+  
+  /* 花朵/点缀 - 降低饱和度 */
+  --flower-pink: rgba(244, 143, 177, 0.8);
+  --flower-yellow: rgba(255, 241, 118, 0.8);
+  --flower-blue: rgba(129, 212, 250, 0.8);
+  
+  /* 功能色 - 保持可读性 */
+  --accent-primary: #8bc34a;
+  --accent-secondary: #7986cb;
+  --accent-warm: #ffab91;
+  
+  /* 文字 - 高对比度确保可读性 */
+  --text-primary: #ffffff;
+  --text-secondary: #c8d0e0;
+  --text-muted: #8890a0;
+  --text-inverse: #0a0e1a;
+  
+  /* 表面 - 提高不透明度确保可读性 */
+  --surface-primary: rgba(20, 28, 40, 0.95);
+  --surface-secondary: rgba(30, 40, 55, 0.85);
+  --surface-tertiary: rgba(40, 52, 70, 0.7);
+  --border-subtle: rgba(100, 116, 139, 0.25);
+  
+  /* 状态色 - 夜间模式下提高亮度 */
+  --status-success: #81c784;
+  --status-warning: #ffb74d;
+  --status-error: #ef5350;
+  --status-info: #4fc3f7;
+  
+  /* 兼容性别名 - 用于其他组件 */
+  --success: #81c784;
+  --warning: #ffb74d;
+  --error: #ef5350;
+  --info: #4fc3f7;
+  
+  /* 玻璃态效果别名 */
+  --glass-border: rgba(100, 116, 139, 0.25);
+  --glass-bg: rgba(20, 28, 40, 0.8);
+  
+  /* 深海主题兼容性别名 */
+  --primary-950: #030712;
+  --primary-900: #0a0e1a;
+  --primary-800: #121829;
+  --accent-cyan: #4fc3f7;
+  --gradient-aurora: linear-gradient(135deg, #8bc34a 0%, #7986cb 100%);
+}
+
+/* ===== 基础样式 ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-bottom) 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  transition: background var(--duration-slow) var(--ease-smooth);
+  overflow-x: hidden;
+}
+
+/* ===== 有机形状工具类 ===== */
+.organic-shape {
+  border-radius: var(--radius-organic);
+}
+
+.organic-blob {
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+}
+
+/* ===== 玻璃态（柔和版）===== */
+.glass-soft {
+  background: var(--surface-primary);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+}
+
+.glass-medium {
+  background: var(--surface-secondary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ===== 按钮样式 ===== */
+.btn-ghibli {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-bounce);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ghibli::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform var(--duration-normal);
+}
+
+.btn-ghibli:hover::before {
+  transform: translateX(100%);
+}
+
+.btn-ghibli:active {
+  transform: scale(0.96);
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 16px rgba(124, 179, 66, 0.3);
+}
+
+.btn-secondary {
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+}
+
+/* ===== 输入框样式 ===== */
+.input-ghibli {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: var(--surface-primary);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  outline: none;
+  transition: all var(--duration-fast);
+  font-family: inherit;
+}
+
+.input-ghibli::placeholder {
+  color: var(--text-muted);
+}
+
+.input-ghibli:hover {
+  border-color: var(--accent-primary);
+}
+
+.input-ghibli:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(124, 179, 66, 0.15);
+}
+
+/* ===== 标签/芯片 ===== */
+.chip-ghibli {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.875rem;
+  background: var(--surface-secondary);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  border: 1px solid transparent;
+}
+
+.chip-ghibli:hover {
+  background: var(--surface-primary);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+/* ===== 卡片 ===== */
+.card-ghibli {
+  background: var(--surface-primary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-organic);
+}
+
+.card-ghibli:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-medium);
+}
+
+/* ===== 动画关键帧 ===== */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
+@keyframes drift {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100vw);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes sway {
+  0%, 100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes petal-fall {
+  0% {
+    transform: translateY(-10px) rotate(0deg) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg) translateX(50px);
+    opacity: 0;
+  }
+}
+
+@keyframes seed-fly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(50px, -30px) scale(1.1);
+  }
+  100% {
+    transform: translate(100px, 0) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes grow {
+  0% {
+    transform: scale(0) rotate(-10deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes bloom {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== 动画工具类 ===== */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-drift {
+  animation: drift var(--duration-ambient) linear infinite;
+}
+
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+.animate-sway {
+  animation: sway 4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* ===== Dialog 动画 ===== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ===== GPU 加速优化 ===== */
+.cloud, .star, .grass, .moon, .sun {
+  will-change: transform;
+  transform: translateZ(0); /* 强制 GPU 加速 */
+  backface-visibility: hidden;
+}
+
+/* ===== 移动端动画优化 ===== */
+@media (max-width: 768px) {
+  /* 减少云朵数量（只保留前3个） */
+  .cloud:nth-child(n+4) {
+    display: none !important;
+  }
+  
+  /* 减少星星数量（只保留前10个） */
+  .star:nth-child(n+11) {
+    display: none !important;
+  }
+  
+  /* 降低动画复杂度 */
+  .cloud {
+    animation-duration: 40s !important; /* 减慢动画 */
+  }
+  
+  .star {
+    animation-duration: 4s !important;
+  }
+}
+
+/* 小屏幕手机进一步优化 */
+@media (max-width: 480px) {
+  /* 只保留最少的装饰元素 */
+  .cloud:nth-child(n+3),
+  .star:nth-child(n+6),
+  .grass {
+    display: none !important;
+  }
+}
+
+/* ===== 减少动画支持 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .cloud, .star, .grass, .moon, .sun {
+    animation: none !important;
+  }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  :root {
+    --space-lg: 1.25rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+  }
+  
+  html {
+    font-size: 14px;
+  }
+}
+
+/* ===== 滚动条美化 ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}

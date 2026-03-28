@@ -26,7 +26,7 @@ test("authenticated access to protected routes renders the requested page", asyn
     if (path === "/api/tasks" && (!init?.method || init.method === "GET")) {
       return new Response(JSON.stringify({ items: [] }), {
         status: 200,
-        headers: { "content-type": "application/json" }
+        headers: { "content-type": "application/json" },
       });
     }
     return new Response("not found", { status: 404 });
@@ -38,7 +38,21 @@ test("authenticated access to protected routes renders the requested page", asyn
     </MemoryRouter>
   );
 
+  // 检查 TasksPageV2 的内容
   expect(await screen.findByRole("heading", { name: /任务管理/i })).toBeInTheDocument();
-  expect(await screen.findByText(/智能视频工作台/i)).toBeInTheDocument();
   expect(await screen.findByText(/还没有任务/i)).toBeInTheDocument();
+});
+
+test("authenticated access to root path renders Studio", async () => {
+  writeSessionToken("sess-token-1");
+
+  render(
+    <MemoryRouter initialEntries={["/"]}>
+      <App />
+    </MemoryRouter>
+  );
+
+  // 检查 Studio 的内容
+  expect(await screen.findByText(/AI 动画创作室/i)).toBeInTheDocument();
+  expect(await screen.findByPlaceholderText(/描述你想要的动画/i)).toBeInTheDocument();
 });

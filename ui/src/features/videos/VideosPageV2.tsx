@@ -1,87 +1,205 @@
-import { useEffect, useState, useCallback, memo, useRef } from "react";
+import { useEffect, useState, useCallback, memo, useRef, useMemo } from "react";
+import { useAsyncStatus } from "../../hooks/useAsyncStatus";
 import { Link } from "react-router-dom";
-import { 
-  Play, 
-  Grid3X3, 
+import {
+  Play,
+  Grid3X3,
   List,
   RefreshCw,
   Loader2,
   ArrowRight,
-  AlertCircle
+  AlertCircle,
+  Search,
+  Filter,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { useSession } from "../auth/useSession";
 import { listRecentVideos, RecentVideoItem } from "../../lib/videosApi";
 import { resolveApiUrl } from "../../lib/api";
+import { useI18n } from "../../app/locale";
+import { getStatusLabel } from "../../app/ui";
 import { SkeletonCard } from "../../components/Skeleton";
-import { useARIAMessage } from "../../components/ARIALiveRegion";
+import { useARIAMessage } from "../../components/useARIAMessage";
+import { useToast } from "../../components/useToast";
+import { AuthModal, useAuthGuard } from "../../components/AuthModal";
 import "./VideosPageV2.css";
 
+// 视频状态过滤器
+type StatusFilter = "all" | "completed" | "running" | "queued" | "failed";
+
+// 列表视图卡片
+const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVideoItem }) {
+  const previewUrl = resolveApiUrl(video.latest_preview_url);
+  const displayTitle = video.display_title ?? video.task_id;
+  const { locale, t } = useI18n();
+
+  const statusConfig: Record<
+    string,
+    { colorVar: string; icon: React.ReactNode; label: string; emoji: string }
+  > = {
+    completed: {
+      colorVar: "var(--color-mint-500)",
+      icon: <CheckCircle2 size={14} />,
+      label: getStatusLabel("completed", locale),
+      emoji: "✨",
+    },
+    rendering: {
+      colorVar: "var(--color-sky-500)",
+      icon: <Loader2 size={14} className="spin" />,
+      label: getStatusLabel("rendering", locale),
+      emoji: "🎨",
+    },
+    running: {
+      colorVar: "var(--color-sky-500)",
+      icon: <Loader2 size={14} className="spin" />,
+      label: getStatusLabel("running", locale),
+      emoji: "🎬",
+    },
+    queued: {
+      colorVar: "var(--color-lemon-600)",
+      icon: <Clock size={14} />,
+      label: getStatusLabel("queued", locale),
+      emoji: "⏳",
+    },
+    failed: {
+      colorVar: "var(--color-pink-500)",
+      icon: <XCircle size={14} />,
+      label: getStatusLabel("failed", locale),
+      emoji: "💦",
+    },
+  };
+
+  const status = statusConfig[video.status.toLowerCase()] ?? {
+    colorVar: "var(--color-cloud-600)",
+    icon: null,
+    label: video.status,
+    emoji: "📹",
+  };
+
+  return (
+    <div className="video-list-item-v2 hover-lift">
+      <div className="video-list-thumb">
+        {previewUrl ? (
+          <img src={previewUrl} alt={displayTitle} loading="lazy" />
+        ) : (
+          <div className="video-list-placeholder">
+            <Play size={24} />
+          </div>
+        )}
+        <div
+          className="video-list-status"
+          style={{ background: `${status.colorVar}20`, color: status.colorVar }}
+        >
+          <span className="status-emoji">{status.emoji}</span>
+          <span>{status.label}</span>
+        </div>
+      </div>
+
+      <div className="video-list-content">
+        <h4 className="video-list-title">{displayTitle}</h4>
+        <div className="video-list-meta">
+          <span className="video-list-id">{video.task_id}</span>
+          <span className="video-list-date">
+            {new Date(video.updated_at ?? Date.now()).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+
+      <div className="video-list-actions">
+        <Link to={`/tasks/${encodeURIComponent(video.task_id)}`} className="video-list-link">
+          <span>{t("videos.viewDetails")}</span>
+          <ArrowRight size={14} />
+        </Link>
+      </div>
+    </div>
+  );
+});
+
+// 网格视图卡片
 const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVideoItem }) {
   const videoUrl = resolveApiUrl(video.latest_video_url);
   const previewUrl = resolveApiUrl(video.latest_preview_url);
-  const displayTitle = video.display_title || video.task_id;
+  const displayTitle = video.display_title ?? video.task_id;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // 使用 CSS 变量获取状态颜色
-  const statusConfig: Record<string, { colorVar: string; label: string }> = {
-    completed: { colorVar: 'var(--success)', label: '已完成' },
-    rendering: { colorVar: 'var(--accent-blue)', label: '渲染中' },
-    running: { colorVar: 'var(--accent-cyan)', label: '执行中' },
-    queued: { colorVar: 'var(--warning)', label: '排队中' },
-    failed: { colorVar: 'var(--error)', label: '失败' },
+  const { locale, t } = useI18n();
+
+  const statusConfig: Record<string, { colorVar: string; label: string; emoji: string }> = {
+    completed: {
+      colorVar: "var(--color-mint-500)",
+      label: getStatusLabel("completed", locale),
+      emoji: "✨",
+    },
+    rendering: {
+      colorVar: "var(--color-sky-500)",
+      label: getStatusLabel("rendering", locale),
+      emoji: "🎨",
+    },
+    running: {
+      colorVar: "var(--color-sky-500)",
+      label: getStatusLabel("running", locale),
+      emoji: "🎬",
+    },
+    queued: {
+      colorVar: "var(--color-lemon-600)",
+      label: getStatusLabel("queued", locale),
+      emoji: "⏳",
+    },
+    failed: {
+      colorVar: "var(--color-pink-500)",
+      label: getStatusLabel("failed", locale),
+      emoji: "💦",
+    },
   };
-  
-  const status = statusConfig[video.status.toLowerCase()] || { colorVar: 'var(--text-muted)', label: video.status };
-  
+
+  const status = statusConfig[video.status.toLowerCase()] ?? {
+    colorVar: "var(--color-cloud-600)",
+    label: video.status,
+    emoji: "📹",
+  };
+
   const togglePlay = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    if (video.paused) {
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    if (videoEl.paused) {
+      videoEl
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
     } else {
-      video.pause();
+      videoEl.pause();
       setIsPlaying(false);
     }
   }, []);
-  
-  const handleMouseEnter = useCallback(() => {
-    // 不再自动播放，需要用户主动点击
-  }, []);
-  
-  const handleMouseLeave = useCallback(() => {
-    // 不再自动暂停
-  }, []);
-  
+
   const handleVideoEnded = useCallback(() => {
     setIsPlaying(false);
   }, []);
-  
+
   return (
-    <div className="video-grid-card">
+    <div className="video-grid-card hover-lift">
       <div className="video-grid-preview">
         {videoUrl ? (
           <>
             <video
               ref={videoRef}
-              poster={previewUrl || undefined}
+              poster={previewUrl ?? undefined}
               preload="metadata"
               muted
               loop
-              aria-label={`视频: ${displayTitle}`}
+              aria-label={t("videos.videoLabel", { title: displayTitle })}
               onEnded={handleVideoEnded}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
             >
               <source src={videoUrl} />
             </video>
-            {/* 播放/暂停控制按钮 */}
             <button
               type="button"
-              className={`video-play-control ${isPlaying ? 'playing' : ''}`}
+              className={`video-play-control ${isPlaying ? "playing" : ""}`}
               onClick={togglePlay}
-              aria-label={isPlaying ? '暂停视频' : '播放视频'}
+              aria-label={isPlaying ? t("videos.pauseVideo") : t("videos.playVideo")}
               aria-pressed={isPlaying}
             >
               {isPlaying ? (
@@ -95,111 +213,238 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
             </button>
           </>
         ) : previewUrl ? (
-          <img src={previewUrl} alt={displayTitle} />
+          <img src={previewUrl} alt={displayTitle} loading="lazy" />
         ) : (
           <div className="video-grid-placeholder">
             <Play size={40} />
           </div>
         )}
         <div className="video-grid-overlay">
-          <Link 
-            to={`/tasks/${encodeURIComponent(video.task_id)}`} 
+          <Link
+            to={`/tasks/${encodeURIComponent(video.task_id)}`}
             className="video-grid-play"
-            aria-label={`打开视频详情: ${displayTitle}`}
+            aria-label={t("videos.openDetails", { title: displayTitle })}
           >
             <Play size={24} fill="currentColor" />
           </Link>
         </div>
-        <div 
-          className="video-grid-status" 
+        <div
+          className="video-grid-status"
           style={{ background: `${status.colorVar}20`, color: status.colorVar }}
         >
-          {status.label}
+          <span className="status-emoji">{status.emoji}</span>
+          <span>{status.label}</span>
         </div>
       </div>
       <div className="video-grid-info">
         <h4>{displayTitle}</h4>
         <p>{video.task_id}</p>
         <Link to={`/tasks/${encodeURIComponent(video.task_id)}`} className="video-grid-link">
-          查看详情 <ArrowRight size={14} />
+          <span>{t("videos.viewDetails")}</span>
+          <ArrowRight size={14} />
         </Link>
       </div>
     </div>
   );
 });
 
+// 搜索筛选栏组件
+function FilterBar({
+  searchQuery,
+  onSearchChange,
+  statusFilter,
+  onStatusChange,
+  resultCount,
+}: {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  statusFilter: StatusFilter;
+  onStatusChange: (status: StatusFilter) => void;
+  resultCount: number;
+}) {
+  const { t } = useI18n();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const statusOptions: { value: StatusFilter; label: string; color: string; emoji: string }[] = [
+    { value: "all", label: "全部", color: "var(--color-cloud-600)", emoji: "🌈" },
+    { value: "completed", label: "已完成", color: "var(--color-mint-500)", emoji: "✨" },
+    { value: "running", label: "处理中", color: "var(--color-sky-500)", emoji: "🎬" },
+    { value: "queued", label: "队列中", color: "var(--color-lemon-600)", emoji: "⏳" },
+    { value: "failed", label: "失败", color: "var(--color-pink-500)", emoji: "💦" },
+  ];
+
+  return (
+    <div className="video-filter-bar glass">
+      <div className="filter-search">
+        <Search size={16} className="search-icon" />
+        <input
+          type="text"
+          placeholder={t("videos.searchPlaceholder")}
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="search-input"
+        />
+        {searchQuery && (
+          <button className="search-clear" onClick={() => onSearchChange("")} aria-label="清除搜索">
+            <span>×</span>
+          </button>
+        )}
+      </div>
+
+      <button
+        className={`filter-toggle ${isExpanded ? "active" : ""}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+        aria-label="筛选"
+      >
+        <Filter size={16} />
+        <span>{t("videos.filter")}</span>
+      </button>
+
+      <div className="filter-result-count">
+        <span className="result-emoji">📹</span>
+        <span>{t("videos.resultCount", { count: resultCount })}</span>
+      </div>
+
+      {isExpanded && (
+        <div className="filter-options">
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              className={`filter-chip ${statusFilter === option.value ? "active" : ""}`}
+              onClick={() => onStatusChange(option.value)}
+              style={
+                statusFilter === option.value
+                  ? {
+                      background: `${option.color}20`,
+                      color: option.color,
+                      borderColor: option.color,
+                    }
+                  : undefined
+              }
+            >
+              <span className="chip-emoji">{option.emoji}</span>
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 装饰云朵组件
+function CloudDecoration() {
+  return (
+    <>
+      <div className="cloud cloud-1">☁️</div>
+      <div className="cloud cloud-2">☁️</div>
+      <div className="cloud cloud-3">☁️</div>
+      <div className="sparkle sparkle-1">✨</div>
+      <div className="sparkle sparkle-2">✨</div>
+      <div className="sparkle sparkle-3">🌸</div>
+    </>
+  );
+}
+
+// 主组件
 export function VideosPageV2() {
   const { sessionToken } = useSession();
+  const { t } = useI18n();
+  const { error: showError } = useToast();
   const [items, setItems] = useState<RecentVideoItem[]>([]);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const { status, error, startLoading, setErrorState, succeed } = useAsyncStatus();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const { ARIALiveRegion, announcePolite } = useARIAMessage();
-  
+  const { showAuthModal, closeAuthModal } = useAuthGuard();
+
   const refresh = useCallback(async () => {
     if (!sessionToken) return;
-    setStatus("loading");
-    setError(null);
+    startLoading();
     try {
-      const response = await listRecentVideos(sessionToken, 24);
+      const response = await listRecentVideos(sessionToken, 50);
       setItems(Array.isArray(response.items) ? response.items : []);
-      setStatus("idle");
-      announcePolite(`已加载 ${response.items?.length || 0} 个视频`);
+      succeed();
+      announcePolite(t("videos.loaded", { count: response.items?.length ?? 0 }));
     } catch (err) {
-      setStatus("error");
-      const errorMsg = err instanceof Error ? err.message : "加载失败";
-      setError(errorMsg);
-      announcePolite(`加载失败: ${errorMsg}`);
+      const errorMsg = err instanceof Error ? err.message : t("common.loadingFailed");
+      setErrorState(errorMsg);
+      showError(errorMsg);
+      announcePolite(t("videos.loadFailed", { error: errorMsg }));
     }
-  }, [sessionToken, announcePolite]);
-  
+  }, [sessionToken, announcePolite, t, showError, startLoading, succeed, setErrorState]);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
-  
-  if (!sessionToken) {
-    return (
-      <div className="page-v2">
-        <div className="empty-state-v2">当前未登录</div>
-      </div>
-    );
-  }
-  
+
+  // 筛选逻辑
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      // 状态筛选
+      if (statusFilter !== "all") {
+        const itemStatus = item.status.toLowerCase();
+        if (statusFilter === "running" && !["running", "rendering"].includes(itemStatus)) {
+          return false;
+        }
+        if (statusFilter !== "running" && itemStatus !== statusFilter) {
+          return false;
+        }
+      }
+
+      // 搜索筛选
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const title = (item.display_title ?? "").toLowerCase();
+        const taskId = item.task_id.toLowerCase();
+        return title.includes(query) ?? taskId.includes(query);
+      }
+
+      return true;
+    });
+  }, [items, statusFilter, searchQuery]);
+
   return (
-    <div className="page-v2">
-      {/* ARIA Live 区域 */}
+    <div className="page-v2 kawaii-page">
+      <CloudDecoration />
       <ARIALiveRegion />
-      
+
       <div className="page-header-v2">
         <div className="page-header-content-v2">
-          <div className="page-eyebrow">视频库</div>
-          <h1 className="page-title-v2">视频</h1>
-          <p className="page-description-v2">
-            集中回看最近可直接播放的生成结果，用展示标题快速定位内容
-          </p>
+          <div className="page-eyebrow">
+            <span className="eyebrow-emoji">🎬</span>
+            <span>{t("videos.page.eyebrow")}</span>
+          </div>
+          <h1 className="page-title-v2">
+            {t("videos.page.title")}
+            <span className="title-emoji">✨</span>
+          </h1>
+          <p className="page-description-v2">{t("videos.page.description")}</p>
         </div>
         <div className="page-header-actions">
-          <div className="view-toggle" role="group" aria-label="视图切换">
-            <button 
+          <div className="view-toggle glass" role="group" aria-label={t("videos.viewToggle")}>
+            <button
               type="button"
-              className={viewMode === 'grid' ? 'active' : ''}
-              onClick={() => setViewMode('grid')}
-              aria-label="网格视图"
-              aria-pressed={viewMode === 'grid'}
+              className={viewMode === "grid" ? "active" : ""}
+              onClick={() => setViewMode("grid")}
+              aria-label={t("videos.gridView")}
+              aria-pressed={viewMode === "grid"}
             >
               <Grid3X3 size={18} />
             </button>
-            <button 
+            <button
               type="button"
-              className={viewMode === 'list' ? 'active' : ''}
-              onClick={() => setViewMode('list')}
-              aria-label="列表视图"
-              aria-pressed={viewMode === 'list'}
+              className={viewMode === "list" ? "active" : ""}
+              onClick={() => setViewMode("list")}
+              aria-label={t("videos.listView")}
+              aria-pressed={viewMode === "list"}
             >
               <List size={18} />
             </button>
           </div>
-          <button 
+          <button
             type="button"
             className="refresh-btn"
             onClick={refresh}
@@ -211,18 +456,26 @@ export function VideosPageV2() {
             ) : (
               <RefreshCw size={18} />
             )}
-            刷新
+            <span>{t("videos.refresh")}</span>
           </button>
         </div>
       </div>
-      
+
+      <FilterBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        resultCount={filteredItems.length}
+      />
+
       {error && (
         <div className="form-error-v2" role="alert">
           <AlertCircle size={16} />
-          {error}
+          <span>{error}</span>
         </div>
       )}
-      
+
       {status === "loading" && items.length === 0 ? (
         <div className="videos-grid">
           <SkeletonCard />
@@ -232,18 +485,28 @@ export function VideosPageV2() {
           <SkeletonCard />
           <SkeletonCard />
         </div>
-      ) : items.length > 0 ? (
+      ) : filteredItems.length > 0 ? (
         <div className={`videos-${viewMode}`}>
-          {items.map((video) => (
-            <VideoGridCard key={video.task_id} video={video} />
-          ))}
+          {viewMode === "grid"
+            ? filteredItems.map((video) => <VideoGridCard key={video.task_id} video={video} />)
+            : filteredItems.map((video) => <VideoListItem key={video.task_id} video={video} />)}
         </div>
       ) : (
-        <div className="empty-state-v2">
-          <p>还没有可播放的视频</p>
-          <span>先去任务页创建几个任务</span>
+        <div className="empty-state-v2 glass">
+          <div className="empty-emoji">🎭</div>
+          <p>
+            {searchQuery || statusFilter !== "all" ? t("videos.noResults") : t("videos.noPlayable")}
+          </p>
+          <span>
+            {searchQuery || statusFilter !== "all"
+              ? t("videos.tryAdjustFilter")
+              : t("videos.noPlayableHint")}
+          </span>
         </div>
       )}
+
+      {/* 🔐 认证弹窗 */}
+      {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );
 }

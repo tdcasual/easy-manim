@@ -1,0 +1,73 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { vi } from "vitest";
+
+import { App } from "./App";
+import { writeSessionToken } from "../lib/session";
+
+function mockAppFetch() {
+  // @ts-expect-error - test shim
+  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    const path = new URL(String(url), "http://example.test").pathname;
+
+    if (path === "/api/tasks" && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/videos/recent" && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response("not found", { status: 404 });
+  });
+}
+
+test("login defaults to Chinese and can switch to English", async () => {
+  const user = userEvent.setup();
+
+  render(
+    <MemoryRouter initialEntries={["/login"]}>
+      <App />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole("heading", { name: "欢迎回来" })).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(document.documentElement.lang).toBe("zh-CN");
+    expect(document.title).toBe("easy-manim 控制台");
+  });
+
+  await user.click(screen.getByRole("button", { name: "English" }));
+
+  expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
+  expect(screen.getByLabelText("Agent token")).toBeInTheDocument();
+  expect(localStorage.getItem("easy_manim_locale")).toBe("en-US");
+  expect(document.documentElement.lang).toBe("en-US");
+  expect(document.title).toBe("easy-manim Console");
+});
+
+test("authenticated shell respects a persisted English locale", async () => {
+  writeSessionToken("sess-token-1");
+  localStorage.setItem("easy_manim_locale", "en-US");
+  mockAppFetch();
+
+  render(
+    <MemoryRouter initialEntries={["/tasks"]}>
+      <App />
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByRole("heading", { name: "Task workspace" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Refresh list" })).toBeInTheDocument();
+  expect(screen.getByText("Recent queue")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "中文" })).toBeInTheDocument();
+  expect(screen.queryByText("任务管理")).not.toBeInTheDocument();
+});

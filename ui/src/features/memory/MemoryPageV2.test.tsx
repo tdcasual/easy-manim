@@ -20,7 +20,7 @@ test("renders translated persistent memory status", async () => {
           summary_text: "系统会记住最近一次工作偏好",
           lineage_refs: [],
           summary_digest: "digest-a",
-          entries: []
+          entries: [],
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
@@ -38,9 +38,9 @@ test("renders translated persistent memory status", async () => {
               summary_digest: "digest-m1",
               lineage_refs: [],
               created_at: "2030-01-01T00:00:00Z",
-              disabled_at: "2030-01-02T00:00:00Z"
-            }
-          ]
+              disabled_at: "2030-01-02T00:00:00Z",
+            },
+          ],
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       );
