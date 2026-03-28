@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import ValidationError
+
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.errors import AdmissionControlError
 from video_agent.application.persistent_memory_service import PersistentMemoryError
+from video_agent.domain.review_workflow_models import ReviewDecision
 from video_agent.server.app import AppContext
 
 
@@ -233,6 +236,50 @@ def revise_video_task_tool(
     except AdmissionControlError as exc:
         return _error_payload(exc.code, str(exc))
     except PersistentMemoryError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return result.model_dump(mode="json")
+
+
+def get_review_bundle_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
+        result = context.multi_agent_workflow_service.get_review_bundle(
+            task_id=payload["task_id"],
+            agent_principal=principal,
+        )
+    except AdmissionControlError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return result.model_dump(mode="json")
+
+
+def apply_review_decision_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
+        review_decision = ReviewDecision.model_validate(payload["review_decision"])
+        result = context.multi_agent_workflow_service.apply_review_decision(
+            task_id=payload["task_id"],
+            review_decision=review_decision,
+            session_id=payload.get("session_id"),
+            memory_ids=payload.get("memory_ids"),
+            agent_principal=principal,
+        )
+    except ValidationError as exc:
+        return _error_payload("invalid_review_decision", str(exc))
+    except AdmissionControlError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         return _error_payload(_permission_error_code(exc), str(exc))

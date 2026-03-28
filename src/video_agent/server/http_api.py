@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from video_agent.application.persistent_memory_service import PersistentMemoryError
 from video_agent.application.agent_profile_suggestion_service import AgentProfileSuggestionService
@@ -21,7 +21,9 @@ from video_agent.server.mcp_tools import (
     clear_session_memory_tool,
     create_video_task_tool,
     disable_agent_memory_tool,
+    apply_review_decision_tool,
     get_agent_memory_tool,
+    get_review_bundle_tool,
     get_session_memory_tool,
     get_video_result_tool,
     get_video_task_tool,
@@ -55,6 +57,21 @@ class ReviseTaskRequest(BaseModel):
 
 class ProfileApplyRequest(BaseModel):
     patch: dict[str, Any]
+
+
+class ReviewDecisionRequest(BaseModel):
+    decision: str
+    summary: str
+    preserve_working_parts: bool = True
+    confidence: float = 0.0
+    issues: list[dict[str, Any]] = Field(default_factory=list)
+    feedback: str | None = None
+    stop_reason: str | None = None
+
+
+class ApplyReviewDecisionRequest(BaseModel):
+    review_decision: ReviewDecisionRequest
+    memory_ids: list[str] | None = None
 
 
 class PreferenceProposalRequest(BaseModel):
@@ -703,6 +720,42 @@ def create_http_api(settings: Settings) -> FastAPI:
             if reports:
                 payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/validations/{reports[-1].name}"
         return payload
+
+    @app.get("/api/tasks/{task_id}/review-bundle")
+    def get_task_review_bundle(
+        task_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                get_review_bundle_tool(
+                    context,
+                    {"task_id": task_id},
+                    agent_principal=resolved.agent_principal,
+                )
+            )
+        )
+
+    @app.post("/api/tasks/{task_id}/review-decision")
+    def apply_task_review_decision(
+        task_id: str,
+        payload: ApplyReviewDecisionRequest,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                apply_review_decision_tool(
+                    context,
+                    {
+                        "task_id": task_id,
+                        "review_decision": payload.review_decision.model_dump(mode="json"),
+                        "memory_ids": payload.memory_ids,
+                        "session_id": current_internal_session_id(resolved),
+                    },
+                    agent_principal=resolved.agent_principal,
+                )
+            )
+        )
 
     @app.get("/api/videos/recent")
     def list_recent_videos(

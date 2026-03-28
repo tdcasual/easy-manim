@@ -1,4 +1,7 @@
+from collections.abc import Callable
 from pathlib import Path
+import sys
+import types
 
 from fastapi.testclient import TestClient
 
@@ -6,8 +9,55 @@ from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
-from video_agent.server.http_api import create_http_api
 from tests.support import bootstrapped_settings
+
+
+def _with_temporary_mcp_shim(fn: Callable[[], object]) -> object:
+    if "mcp.server.fastmcp" in sys.modules:
+        return fn()
+
+    injected: dict[str, types.ModuleType] = {}
+    original: dict[str, types.ModuleType] = {}
+    module_names = ("mcp", "mcp.server", "mcp.server.fastmcp")
+    for name in module_names:
+        module = sys.modules.get(name)
+        if module is not None:
+            original[name] = module
+
+    mcp_module = types.ModuleType("mcp")
+    mcp_server_module = types.ModuleType("mcp.server")
+    mcp_fastmcp_module = types.ModuleType("mcp.server.fastmcp")
+
+    class _Context:  # pragma: no cover - test import shim
+        pass
+
+    mcp_fastmcp_module.Context = _Context
+    mcp_server_module.fastmcp = mcp_fastmcp_module
+    mcp_module.server = mcp_server_module
+
+    injected["mcp"] = mcp_module
+    injected["mcp.server"] = mcp_server_module
+    injected["mcp.server.fastmcp"] = mcp_fastmcp_module
+
+    try:
+        sys.modules.update(injected)
+        return fn()
+    finally:
+        for name in module_names:
+            previous = original.get(name)
+            if previous is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
+
+
+def _create_http_api(settings: Settings):
+    def _load():
+        from video_agent.server.http_api import create_http_api
+
+        return create_http_api(settings)
+
+    return _with_temporary_mcp_shim(_load)
 
 
 def _build_http_task_settings(tmp_path: Path) -> Settings:
@@ -47,7 +97,7 @@ def _login(client: TestClient, secret: str) -> str:
 
 
 def test_task_create_list_get_result_roundtrip(tmp_path: Path) -> None:
-    client = TestClient(create_http_api(_build_http_task_settings(tmp_path)))
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
     _seed_agent(client, "agent-a", "agent-a-secret")
     login_token = _login(client, "agent-a-secret")
 
@@ -84,7 +134,7 @@ def test_task_create_list_get_result_roundtrip(tmp_path: Path) -> None:
 
 
 def test_task_revise_retry_cancel_endpoints_are_agent_scoped(tmp_path: Path) -> None:
-    client = TestClient(create_http_api(_build_http_task_settings(tmp_path)))
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
     _seed_agent(client, "agent-a", "agent-a-secret")
     _seed_agent(client, "agent-b", "agent-b-secret")
     login_token_a = _login(client, "agent-a-secret")
@@ -152,3 +202,32 @@ def test_task_revise_retry_cancel_endpoints_are_agent_scoped(tmp_path: Path) -> 
     assert cancelled.status_code == 200
     assert cancelled.json()["task_id"] == task_id
     assert cancelled.json()["status"] == "cancelled"
+
+
+def test_new_review_endpoints_do_not_change_existing_task_roundtrip(tmp_path: Path) -> None:
+    settings = _build_http_task_settings(tmp_path)
+    settings.multi_agent_workflow_enabled = True
+    client = TestClient(_create_http_api(settings))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    login_token = _login(client, "agent-a-secret")
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "做一个蓝色圆形开场动画，画面干净简洁"},
+        headers={"Authorization": f"Bearer {login_token}"},
+    )
+    assert created.status_code == 200
+    task_id = created.json()["task_id"]
+
+    listed = client.get("/api/tasks", headers={"Authorization": f"Bearer {login_token}"})
+    assert listed.status_code == 200
+    assert any(item["task_id"] == task_id for item in listed.json()["items"])
+
+    snapshot = client.get(f"/api/tasks/{task_id}", headers={"Authorization": f"Bearer {login_token}"})
+    assert snapshot.status_code == 200
+    assert snapshot.json()["task_id"] == task_id
+
+    result = client.get(f"/api/tasks/{task_id}/result", headers={"Authorization": f"Bearer {login_token}"})
+    assert result.status_code == 200
+    assert result.json()["task_id"] == task_id
+    assert result.json()["ready"] is False

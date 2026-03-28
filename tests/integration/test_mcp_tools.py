@@ -1,18 +1,98 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
+import sys
+import types
 
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
-from video_agent.server.app import create_app_context
-from video_agent.server.mcp_tools import (
-    create_video_task_tool,
-    get_failure_contract_tool,
-    get_video_task_tool,
-    list_video_tasks_tool,
-)
 from tests.support import bootstrapped_settings
+
+
+def _with_temporary_mcp_shim(fn: Callable[[], object]) -> object:
+    if "mcp.server.fastmcp" in sys.modules:
+        return fn()
+
+    injected: dict[str, types.ModuleType] = {}
+    original: dict[str, types.ModuleType] = {}
+    module_names = ("mcp", "mcp.server", "mcp.server.fastmcp")
+    for name in module_names:
+        module = sys.modules.get(name)
+        if module is not None:
+            original[name] = module
+
+    mcp_module = types.ModuleType("mcp")
+    mcp_server_module = types.ModuleType("mcp.server")
+    mcp_fastmcp_module = types.ModuleType("mcp.server.fastmcp")
+
+    class _Context:  # pragma: no cover - test import shim
+        pass
+
+    mcp_fastmcp_module.Context = _Context
+    mcp_server_module.fastmcp = mcp_fastmcp_module
+    mcp_module.server = mcp_server_module
+
+    injected["mcp"] = mcp_module
+    injected["mcp.server"] = mcp_server_module
+    injected["mcp.server.fastmcp"] = mcp_fastmcp_module
+
+    try:
+        sys.modules.update(injected)
+        return fn()
+    finally:
+        for name in module_names:
+            previous = original.get(name)
+            if previous is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
+
+
+def create_app_context(settings: Settings):
+    def _load():
+        from video_agent.server.app import create_app_context as factory
+
+        return factory(settings)
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def create_video_task_tool(app_context, payload, agent_principal=None):
+    def _load():
+        from video_agent.server.mcp_tools import create_video_task_tool as tool
+
+        return tool(app_context, payload, agent_principal=agent_principal)
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def get_video_task_tool(app_context, payload, agent_principal=None):
+    def _load():
+        from video_agent.server.mcp_tools import get_video_task_tool as tool
+
+        return tool(app_context, payload, agent_principal=agent_principal)
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def get_failure_contract_tool(app_context, payload, agent_principal=None):
+    def _load():
+        from video_agent.server.mcp_tools import get_failure_contract_tool as tool
+
+        return tool(app_context, payload, agent_principal=agent_principal)
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def list_video_tasks_tool(app_context, payload, agent_principal=None):
+    def _load():
+        from video_agent.server.mcp_tools import list_video_tasks_tool as tool
+
+        return tool(app_context, payload, agent_principal=agent_principal)
+
+    return _with_temporary_mcp_shim(_load)
 
 
 def _write_executable(path: Path, content: str) -> None:

@@ -316,7 +316,32 @@ curl -fsS http://127.0.0.1:8001/api/profile/scorecard \
   -H "Authorization: Bearer ${SESSION_TOKEN}" | jq
 ```
 
-### 7. Log out when done
+### 7. Optional supervised review loop
+Use this when you want a reviewer to inspect a task and an orchestrator to decide whether to accept, revise, retry, or escalate.
+
+Phase 1 contract:
+
+- reviewer agents are read-only
+- the orchestrator stays responsible for task mutations
+- the server preserves the existing task ownership rules
+
+```bash
+curl -fsS "http://127.0.0.1:8001/api/tasks/${TASK_ID}/review-bundle" \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" | jq
+
+curl -fsS "http://127.0.0.1:8001/api/tasks/${TASK_ID}/review-decision" \
+  -H 'content-type: application/json' \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" \
+  -d '{
+    "review_decision": {
+      "decision": "revise",
+      "summary": "Improve emphasis",
+      "feedback": "Make it blue and add a centered title"
+    }
+  }' | jq
+```
+
+### 8. Log out when done
 ```bash
 curl -fsS -X DELETE http://127.0.0.1:8001/api/sessions/current \
   -H "Authorization: Bearer ${SESSION_TOKEN}" | jq
@@ -332,6 +357,8 @@ If your caller already speaks MCP:
    - `create_video_task`
    - `get_video_task`
    - `get_video_result`
+   - `get_review_bundle`
+   - `apply_review_decision`
    - `revise_video_task`
    - `retry_video_task`
    - `get_session_memory`
@@ -344,6 +371,8 @@ If your caller already speaks MCP:
    - `video-task://{task_id}/artifacts/final_video.mp4`
    - `video-task://{task_id}/logs/events.jsonl`
    - `video-task://{task_id}/validations/{report_name}`
+
+For supervised review over MCP, have a reviewer fetch `get_review_bundle(task_id)` and return a structured decision to the orchestrator, then let the orchestrator call `apply_review_decision(...)`. Reviewer agents stay read-only in this phase; the orchestrator remains the mutation gate.
 
 ## Human Console
 The UI is optional for agents but useful for operators.

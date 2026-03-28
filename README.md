@@ -118,6 +118,33 @@ Supported HTTP artifact paths include files under:
 
 This enables pure API clients to fetch `final_video.mp4` without SSH, Docker volume access, or Coolify-specific paths.
 
+### Review-Driven Regeneration
+
+Phase 1 adds a supervised review workflow without changing task ownership.
+
+- Reviewer agents consume a stable bundle from `GET /api/tasks/{task_id}/review-bundle`.
+- The orchestrator submits a structured decision to `POST /api/tasks/{task_id}/review-decision`.
+- The server converts that decision into `accept`, `revise`, `retry`, or `escalate`.
+- Reviewer agents stay read-only; the orchestrator remains the task owner and mutation gate.
+
+HTTP example:
+
+```bash
+curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/review-bundle \
+  -H "Authorization: Bearer ${SESSION_TOKEN}"
+
+curl -s http://127.0.0.1:8001/api/tasks/${TASK_ID}/review-decision \
+  -H 'content-type: application/json' \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" \
+  -d '{
+    "review_decision": {
+      "decision": "revise",
+      "summary": "Needs stronger contrast",
+      "feedback": "Make the circle blue and add a centered title"
+    }
+  }'
+```
+
 ### Agent Auth Modes
 - `EASY_MANIM_AUTH_MODE=disabled` keeps the local developer flow: task tools work without session authentication and tasks are attributed to `local-anonymous` by default.
 - `EASY_MANIM_AUTH_MODE=required` makes mutating task tools and task resources require an authenticated agent session.
@@ -152,7 +179,7 @@ easy-manim-agent-admin --data-dir data create-profile \
   --profile-json '{"style_hints":{"tone":"teaching","pace":"steady"}}'
 ```
 
-After the client receives a plaintext token, it should call the MCP tool `authenticate_agent(agent_token)` once per session before creating or revising tasks in `required` mode.
+After the client receives a plaintext token, it should call the MCP tool `authenticate_agent(agent_token)` once per session before creating or revising tasks in `required` mode. MCP-native callers can also use `get_review_bundle(task_id)` and `apply_review_decision(task_id, review_decision, memory_ids=None)` to run the same supervised review loop over MCP.
 
 ## Run server and worker separately
 ```bash

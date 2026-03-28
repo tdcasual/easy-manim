@@ -133,6 +133,12 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
             "EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES",
             DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES,
         ),
+        multi_agent_workflow_enabled=_env_bool("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", False),
+        multi_agent_workflow_max_child_attempts=_env_int("EASY_MANIM_MULTI_AGENT_WORKFLOW_MAX_CHILD_ATTEMPTS", 3),
+        multi_agent_workflow_require_completed_for_accept=_env_bool(
+            "EASY_MANIM_MULTI_AGENT_WORKFLOW_REQUIRE_COMPLETED_FOR_ACCEPT",
+            True,
+        ),
     )
 
 

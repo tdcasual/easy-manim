@@ -82,3 +82,23 @@ def test_settings_define_persistent_memory_defaults() -> None:
     assert settings.persistent_memory_enable_embeddings is False
     assert settings.persistent_memory_embedding_provider is None
     assert settings.persistent_memory_embedding_model is None
+
+
+def test_settings_define_multi_agent_workflow_defaults() -> None:
+    settings = Settings()
+
+    assert settings.multi_agent_workflow_enabled is False
+    assert settings.multi_agent_workflow_max_child_attempts == 3
+    assert settings.multi_agent_workflow_require_completed_for_accept is True
+
+
+def test_build_settings_reads_multi_agent_workflow_env(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", "true")
+    monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_MAX_CHILD_ATTEMPTS", "6")
+    monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_REQUIRE_COMPLETED_FOR_ACCEPT", "false")
+
+    settings = build_settings(Path("data"))
+
+    assert settings.multi_agent_workflow_enabled is True
+    assert settings.multi_agent_workflow_max_child_attempts == 6
+    assert settings.multi_agent_workflow_require_completed_for_accept is False

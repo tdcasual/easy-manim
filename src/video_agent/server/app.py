@@ -14,10 +14,13 @@ from video_agent.application.agent_learning_service import AgentLearningService
 from video_agent.application.agent_identity_service import AgentIdentityService
 from video_agent.application.agent_session_service import AgentSessionService
 from video_agent.application.auto_repair_service import AutoRepairService
+from video_agent.application.multi_agent_workflow_service import MultiAgentWorkflowService
 from video_agent.application.persistent_memory_service import PersistentMemoryService, build_persistent_memory_enhancer
+from video_agent.application.review_bundle_builder import ReviewBundleBuilder
 from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
+from video_agent.application.workflow_loop_policy import WorkflowLoopPolicy
 from video_agent.application.workflow_engine import WorkflowEngine
 from video_agent.config import DEFAULT_STUB_LLM_MODEL, Settings
 from video_agent.observability.metrics import MetricsCollector
@@ -43,6 +46,8 @@ class AppContext:
     persistent_memory_service: PersistentMemoryService
     agent_learning_service: AgentLearningService
     task_service: TaskService
+    review_bundle_builder: ReviewBundleBuilder
+    multi_agent_workflow_service: MultiAgentWorkflowService
     workflow_engine: WorkflowEngine
     worker: WorkerLoop
     runtime_service: RuntimeService
@@ -119,6 +124,17 @@ def create_app_context(settings: Settings) -> AppContext:
         session_memory_service=session_memory_service,
         persistent_memory_service=persistent_memory_service,
     )
+    review_bundle_builder = ReviewBundleBuilder(
+        task_service=task_service,
+        store=store,
+        session_memory_service=session_memory_service,
+    )
+    multi_agent_workflow_service = MultiAgentWorkflowService(
+        enabled=settings.multi_agent_workflow_enabled,
+        bundle_builder=review_bundle_builder,
+        task_service=task_service,
+        policy=WorkflowLoopPolicy(settings),
+    )
     runtime_policy = RuntimePolicy(
         work_root=settings.artifact_root,
         render_timeout_seconds=settings.render_timeout_seconds,
@@ -170,6 +186,8 @@ def create_app_context(settings: Settings) -> AppContext:
         persistent_memory_service=persistent_memory_service,
         agent_learning_service=agent_learning_service,
         task_service=task_service,
+        review_bundle_builder=review_bundle_builder,
+        multi_agent_workflow_service=multi_agent_workflow_service,
         workflow_engine=workflow_engine,
         worker=worker,
         runtime_service=runtime_service,

@@ -12,6 +12,7 @@ from video_agent.config import Settings
 from video_agent.server.app import AppContext, create_app_context
 from video_agent.server.mcp_resources import authorize_resource_access, read_resource, read_resource_for_agent
 from video_agent.server.mcp_tools import (
+    apply_review_decision_tool,
     authenticate_agent_tool,
     cancel_video_task_tool,
     clear_session_memory_tool,
@@ -20,6 +21,7 @@ from video_agent.server.mcp_tools import (
     get_failure_contract_tool,
     get_agent_memory_tool,
     get_metrics_snapshot_tool,
+    get_review_bundle_tool,
     get_runtime_status_tool,
     get_session_memory_tool,
     get_task_events_tool,
@@ -134,6 +136,32 @@ def create_mcp_server(
         return get_task_events_tool(
             context,
             {"task_id": task_id, "limit": limit},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="get_review_bundle")
+    def get_review_bundle(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_review_bundle_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="apply_review_decision")
+    def apply_review_decision(
+        task_id: str,
+        review_decision: dict[str, Any],
+        memory_ids: list[str] | None = None,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return apply_review_decision_tool(
+            context,
+            {
+                "task_id": task_id,
+                "review_decision": review_decision,
+                "memory_ids": memory_ids,
+                "session_id": current_session_id(ctx),
+            },
             agent_principal=current_principal(ctx),
         )
 

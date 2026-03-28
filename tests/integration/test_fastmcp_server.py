@@ -1,14 +1,145 @@
 import asyncio
+import inspect
 import json
 from pathlib import Path
+import re
+import sys
+import types
+from collections.abc import Callable
 
-import video_agent.server.fastmcp_server as fastmcp_server_module
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
-from video_agent.server.app import create_app_context
-from video_agent.server.fastmcp_server import create_mcp_server
 from tests.support import bootstrapped_settings
+
+
+def _with_temporary_mcp_shim(fn: Callable[[], object]) -> object:
+    if "mcp.server.fastmcp" in sys.modules:
+        return fn()
+
+    injected: dict[str, types.ModuleType] = {}
+    original: dict[str, types.ModuleType] = {}
+    module_names = ("mcp", "mcp.server", "mcp.server.fastmcp")
+    for name in module_names:
+        module = sys.modules.get(name)
+        if module is not None:
+            original[name] = module
+
+    mcp_module = types.ModuleType("mcp")
+    mcp_server_module = types.ModuleType("mcp.server")
+    mcp_fastmcp_module = types.ModuleType("mcp.server.fastmcp")
+
+    class _Context:  # pragma: no cover - test import shim
+        def __init__(self, client_id: str | None = None) -> None:
+            self.client_id = client_id
+            self.session = object()
+
+    class _ToolInfo:  # pragma: no cover - test import shim
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class _ResourceContent:  # pragma: no cover - test import shim
+        def __init__(self, content: str | bytes) -> None:
+            self.content = content
+
+    def _compile_resource_pattern(template: str) -> re.Pattern[str]:
+        parts: list[str] = []
+        cursor = 0
+        for match in re.finditer(r"{([^}]+)}", template):
+            parts.append(re.escape(template[cursor : match.start()]))
+            parts.append(f"(?P<{match.group(1)}>[^/]+)")
+            cursor = match.end()
+        parts.append(re.escape(template[cursor:]))
+        return re.compile(f"^{''.join(parts)}$")
+
+    class _FastMCP:  # pragma: no cover - test import shim
+        def __init__(self, **kwargs) -> None:
+            self._tools: dict[str, Callable[..., dict[str, object]]] = {}
+            self._resources: list[tuple[re.Pattern[str], Callable[..., str | bytes]]] = []
+            self._ctx = _Context(client_id=f"shim:{id(self)}")
+            self._mcp_server = types.SimpleNamespace(
+                lifespan=kwargs.get("lifespan"),
+            )
+
+        def tool(self, name: str):
+            def decorator(fn):
+                self._tools[name] = fn
+                return fn
+
+            return decorator
+
+        def resource(self, template: str, mime_type: str | None = None):
+            _ = mime_type
+
+            def decorator(fn):
+                self._resources.append((_compile_resource_pattern(template), fn))
+                return fn
+
+            return decorator
+
+        async def list_tools(self):
+            return [_ToolInfo(name) for name in self._tools]
+
+        async def call_tool(self, name: str, payload: dict[str, object]):
+            fn = self._tools[name]
+            kwargs = dict(payload)
+            if "ctx" in inspect.signature(fn).parameters and "ctx" not in kwargs:
+                kwargs["ctx"] = self._ctx
+            return None, fn(**kwargs)
+
+        async def read_resource(self, uri: str):
+            for pattern, fn in self._resources:
+                match = pattern.match(uri)
+                if match is None:
+                    continue
+                kwargs = dict(match.groupdict())
+                if "ctx" in inspect.signature(fn).parameters and "ctx" not in kwargs:
+                    kwargs["ctx"] = self._ctx
+                return [_ResourceContent(fn(**kwargs))]
+            raise KeyError(f"Unknown resource URI: {uri}")
+
+    mcp_fastmcp_module.Context = _Context
+    mcp_fastmcp_module.FastMCP = _FastMCP
+    mcp_server_module.fastmcp = mcp_fastmcp_module
+    mcp_module.server = mcp_server_module
+
+    injected["mcp"] = mcp_module
+    injected["mcp.server"] = mcp_server_module
+    injected["mcp.server.fastmcp"] = mcp_fastmcp_module
+
+    try:
+        sys.modules.update(injected)
+        return fn()
+    finally:
+        for name in module_names:
+            previous = original.get(name)
+            if previous is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
+
+
+def _load_fastmcp_server():
+    def _load():
+        import video_agent.server.fastmcp_server as fastmcp_server_module
+
+        return fastmcp_server_module, fastmcp_server_module.create_mcp_server
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def _create_mcp_server(settings: Settings):
+    _, create_mcp_server = _load_fastmcp_server()
+    return create_mcp_server(settings)
+
+
+def _create_app_context(settings: Settings):
+    def _load():
+        from video_agent.server.app import create_app_context
+
+        return create_app_context(settings)
+
+    return _with_temporary_mcp_shim(_load)
 
 
 
@@ -59,7 +190,7 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
 
 
 def _seed_agent(settings: Settings) -> None:
-    app = create_app_context(settings)
+    app = _create_app_context(settings)
     app.store.upsert_agent_profile(
         AgentProfile(
             agent_id="agent-a",
@@ -78,12 +209,14 @@ def _seed_agent(settings: Settings) -> None:
 
 def test_fastmcp_server_registers_expected_tools(tmp_path: Path) -> None:
     async def run() -> None:
-        mcp = create_mcp_server(_build_fake_pipeline_settings(tmp_path))
+        mcp = _create_mcp_server(_build_fake_pipeline_settings(tmp_path))
         tool_names = {tool.name for tool in await mcp.list_tools()}
         assert {
             "authenticate_agent",
             "create_video_task",
             "get_video_task",
+            "get_review_bundle",
+            "apply_review_decision",
             "revise_video_task",
             "get_video_result",
             "cancel_video_task",
@@ -94,7 +227,7 @@ def test_fastmcp_server_registers_expected_tools(tmp_path: Path) -> None:
 
 def test_fastmcp_registers_session_memory_tools(tmp_path: Path) -> None:
     async def run() -> None:
-        mcp = create_mcp_server(_build_fake_pipeline_settings(tmp_path))
+        mcp = _create_mcp_server(_build_fake_pipeline_settings(tmp_path))
         tool_names = {tool.name for tool in await mcp.list_tools()}
         assert {
             "get_session_memory",
@@ -107,7 +240,7 @@ def test_fastmcp_registers_session_memory_tools(tmp_path: Path) -> None:
 
 def test_fastmcp_registers_persistent_memory_tools(tmp_path: Path) -> None:
     async def run() -> None:
-        mcp = create_mcp_server(_build_fake_pipeline_settings(tmp_path))
+        mcp = _create_mcp_server(_build_fake_pipeline_settings(tmp_path))
         tool_names = {tool.name for tool in await mcp.list_tools()}
         assert {
             "promote_session_memory",
@@ -122,7 +255,7 @@ def test_fastmcp_registers_persistent_memory_tools(tmp_path: Path) -> None:
 
 def test_fastmcp_tool_and_resource_roundtrip(tmp_path: Path) -> None:
     async def run() -> None:
-        mcp = create_mcp_server(_build_fake_pipeline_settings(tmp_path))
+        mcp = _create_mcp_server(_build_fake_pipeline_settings(tmp_path))
         _, created = await mcp.call_tool("create_video_task", {"prompt": "draw a circle"})
         assert created["task_id"]
 
@@ -147,10 +280,11 @@ def test_fastmcp_server_can_skip_background_worker(tmp_path: Path, monkeypatch) 
             await asyncio.sleep(0)
 
     async def run() -> None:
+        fastmcp_server_module, _ = _load_fastmcp_server()
         monkeypatch.setattr(fastmcp_server_module, "_run_background_worker", fake_run_background_worker)
         settings = _build_fake_pipeline_settings(tmp_path)
         settings.run_embedded_worker = False
-        mcp = create_mcp_server(settings)
+        mcp = _create_mcp_server(settings)
 
         async with mcp._mcp_server.lifespan(mcp._mcp_server):
             await asyncio.sleep(0)
@@ -166,7 +300,7 @@ def test_fastmcp_authenticate_agent_enables_followup_task_creation(tmp_path: Pat
         settings.auth_mode = "required"
         settings.run_embedded_worker = False
         _seed_agent(settings)
-        mcp = create_mcp_server(settings)
+        mcp = _create_mcp_server(settings)
 
         _, auth_payload = await mcp.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})
         assert auth_payload["authenticated"] is True
@@ -186,8 +320,8 @@ def test_same_agent_sessions_do_not_share_memory(tmp_path: Path) -> None:
         settings.run_embedded_worker = False
         _seed_agent(settings)
 
-        mcp_a = create_mcp_server(settings)
-        mcp_b = create_mcp_server(settings)
+        mcp_a = _create_mcp_server(settings)
+        mcp_b = _create_mcp_server(settings)
 
         await mcp_a.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})
         await mcp_b.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})

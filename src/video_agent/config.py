@@ -61,6 +61,9 @@ class Settings(BaseModel):
     auto_repair_retryable_issue_codes: list[str] = Field(
         default_factory=lambda: list(DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES)
     )
+    multi_agent_workflow_enabled: bool = False
+    multi_agent_workflow_max_child_attempts: int = 3
+    multi_agent_workflow_require_completed_for_accept: bool = True
 
     @model_validator(mode="after")
     def derive_paths(self) -> "Settings":
