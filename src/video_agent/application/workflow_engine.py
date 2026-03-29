@@ -16,7 +16,7 @@ from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
-from video_agent.application.agent_learning_service import AgentLearningService, compute_quality_score
+from video_agent.application.agent_learning_service import AgentLearningService, quality_score_for_task_outcome
 from video_agent.application.auto_repair_service import AutoRepairService
 from video_agent.application.capability_gate_service import CapabilityGateService
 from video_agent.application.failure_context import build_failure_context
@@ -35,6 +35,7 @@ from video_agent.application.workflow_phases import (
     terminal_task_state,
 )
 from video_agent.domain.enums import TaskPhase, TaskStatus, ValidationDecision
+from video_agent.domain.quality_models import QualityScorecard
 from video_agent.domain.validation_models import ValidationIssue, ValidationReport
 from video_agent.observability.logging import build_log_event
 from video_agent.observability.metrics import MetricsCollector
@@ -378,7 +379,7 @@ class WorkflowEngine:
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
             self.store.append_event(task.task_id, "task_finished", {"status": task.status.value})
-            self._record_agent_learning_outcome(task, combined_report, quality_score=scorecard.total_score or 0.0)
+            self._record_agent_learning_outcome(task, combined_report, task_quality_scorecard=scorecard)
             self._record_session_memory_outcome(
                 task,
                 result_summary=combined_report.summary,
@@ -569,10 +570,17 @@ class WorkflowEngine:
             extra_artifact_refs=extra_artifact_refs,
         )
 
-    def _record_agent_learning_outcome(self, task, report: ValidationReport, quality_score: float | None = None) -> None:
+    def _record_agent_learning_outcome(
+        self,
+        task,
+        report: ValidationReport,
+        task_quality_scorecard: QualityScorecard | None = None,
+    ) -> None:
         if self.agent_learning_service is None or not task.agent_id:
             return
         issue_codes = [issue.code for issue in report.issues]
+        if task_quality_scorecard is None:
+            task_quality_scorecard = self.store.get_task_quality_score(task.task_id)
         try:
             self.agent_learning_service.record_task_outcome(
                 agent_id=task.agent_id,
@@ -580,7 +588,11 @@ class WorkflowEngine:
                 session_id=task.session_id,
                 status=task.status.value,
                 issue_codes=issue_codes,
-                quality_score=quality_score if quality_score is not None else compute_quality_score(task.status.value, issue_codes),
+                quality_score=quality_score_for_task_outcome(
+                    status=task.status.value,
+                    issue_codes=issue_codes,
+                    scorecard=task_quality_scorecard,
+                ),
                 profile_digest=task.effective_profile_digest,
                 memory_ids=task.selected_memory_ids,
             )

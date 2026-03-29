@@ -117,7 +117,7 @@ class AgentProfileSuggestionService:
             )
 
         completed_count = int(scorecard.get("completed_count", 0) or 0)
-        median_quality_score = float(scorecard.get("median_quality_score", 0.0) or 0.0)
+        median_quality_score = self._scorecard_quality_metric(scorecard)
         if not combined_patch or completed_count <= 0 or median_quality_score <= 0.0:
             return None
 
@@ -133,6 +133,10 @@ class AgentProfileSuggestionService:
                 "profile_version": profile_version,
             },
         )
+
+    @staticmethod
+    def _scorecard_quality_metric(scorecard: dict[str, object]) -> float:
+        return float(scorecard.get("quality_score", scorecard.get("median_quality_score", 0.0)) or 0.0)
 
     @staticmethod
     def _patch_from_text(summary_text: str) -> dict[str, Any]:

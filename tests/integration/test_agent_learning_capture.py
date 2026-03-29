@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from video_agent.application.agent_learning_service import AgentLearningService
+from video_agent.application.agent_learning_service import AgentLearningService, quality_score_from_scorecard
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
@@ -164,6 +164,7 @@ def test_completed_task_writes_agent_learning_event(tmp_path: Path) -> None:
     assert events[0].profile_digest == stored_task.effective_profile_digest
     quality_score = app_context.store.get_task_quality_score(task_id)
     assert quality_score is not None
+    assert events[0].quality_score == quality_score_from_scorecard(quality_score)
 
     scorecard = client.get("/api/profile/scorecard", headers={"Authorization": f"Bearer {session_token}"})
     assert scorecard.status_code == 200

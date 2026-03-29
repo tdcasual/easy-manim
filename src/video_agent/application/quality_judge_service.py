@@ -30,6 +30,12 @@ class QualityJudgeService:
         )
         must_fix = [code for code in issue_codes if code in {"static_previews", "near_blank_preview"}]
         return QualityScorecard(
+            overall_score=total,
+            dimensions={
+                "motion_smoothness": motion,
+                "prompt_alignment": prompt_alignment,
+                "visual_clarity": visual_clarity,
+            },
             total_score=total,
             dimension_scores={
                 "motion_smoothness": motion,

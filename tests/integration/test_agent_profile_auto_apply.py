@@ -3,15 +3,19 @@ import subprocess
 
 from fastapi.testclient import TestClient
 
+from video_agent.application.agent_learning_service import quality_score_from_scorecard
 from video_agent.config import Settings
 from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile
+from video_agent.domain.quality_models import QualityScorecard
 from video_agent.server.http_api import create_http_api
 from tests.support import bootstrapped_settings
 
 
 def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
+    low_quality = quality_score_from_scorecard(QualityScorecard(total_score=0.91, accepted=True))
+    high_quality = quality_score_from_scorecard(QualityScorecard(total_score=0.97, accepted=True))
     settings = bootstrapped_settings(
         Settings(
             data_dir=tmp_path / "data",
@@ -21,7 +25,7 @@ def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
             auth_mode="required",
             agent_learning_auto_apply_enabled=True,
             agent_learning_auto_apply_min_completed_tasks=2,
-            agent_learning_auto_apply_min_quality_score=0.9,
+            agent_learning_auto_apply_min_quality_score=0.94,
             agent_learning_auto_apply_max_recent_failures=0,
         )
     )
@@ -44,7 +48,7 @@ def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
             task_id="task-1",
             session_id="sess-1",
             status="completed",
-            quality_score=0.95,
+            quality_score=low_quality,
             profile_digest="digest-1",
         )
     )
@@ -55,7 +59,7 @@ def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
             task_id="task-2",
             session_id="sess-2",
             status="completed",
-            quality_score=0.96,
+            quality_score=high_quality,
             profile_digest="digest-1",
         )
     )
@@ -80,6 +84,9 @@ def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
     generated = client.post("/api/profile/suggestions/generate", headers={"Authorization": f"Bearer {login_token}"})
     assert generated.status_code == 200
     assert any(item["status"] == "applied" for item in generated.json()["items"])
+    scorecard = client.get("/api/profile/scorecard", headers={"Authorization": f"Bearer {login_token}"})
+    assert scorecard.status_code == 200
+    assert scorecard.json()["median_quality_score"] == 0.94
 
     profile = client.get("/api/profile", headers={"Authorization": f"Bearer {login_token}"})
     assert profile.status_code == 200

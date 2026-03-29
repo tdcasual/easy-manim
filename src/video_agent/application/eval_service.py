@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.application.agent_identity_service import AgentPrincipal
-from video_agent.application.agent_learning_service import compute_quality_score, select_quality_issue_codes
+from video_agent.application.agent_learning_service import quality_score_for_task_outcome, select_quality_issue_codes
 from video_agent.application.policy_promotion_service import PolicyPromotionService
 from video_agent.evaluation.corpus import load_prompt_suite
 from video_agent.evaluation.live_reporting import build_live_report
@@ -173,6 +173,7 @@ class EvaluationService:
         issues = [item["code"] for item in terminal_snapshot.latest_validation_summary.get("issues", [])]
         quality_issue_codes = select_quality_issue_codes(issues)
         terminal_task = self.context.store.get_task(terminal_snapshot.task_id)
+        task_quality_scorecard = self.context.store.get_task_quality_score(terminal_snapshot.task_id)
         return EvaluationCaseResult(
             case_id=case.case_id,
             task_id=terminal_snapshot.task_id,
@@ -186,7 +187,11 @@ class EvaluationService:
             repair_success=bool(root_snapshot.repair_state.get("attempted")) and terminal_snapshot.status == "completed",
             repair_stop_reason=root_snapshot.repair_state.get("stop_reason"),
             quality_issue_codes=quality_issue_codes,
-            quality_score=compute_quality_score(terminal_snapshot.status, issues),
+            quality_score=quality_score_for_task_outcome(
+                status=terminal_snapshot.status,
+                issue_codes=issues,
+                scorecard=task_quality_scorecard,
+            ),
             risk_domains=list(case.risk_domains),
             review_focus=list(case.review_focus),
             baseline_group=case.baseline_group,

@@ -28,6 +28,17 @@ def quality_score_from_scorecard(scorecard: QualityScorecard) -> float:
     return float(scorecard.total_score or 0.0)
 
 
+def quality_score_for_task_outcome(
+    *,
+    status: str,
+    issue_codes: list[str],
+    scorecard: QualityScorecard | None,
+) -> float:
+    if scorecard is not None:
+        return quality_score_from_scorecard(scorecard)
+    return compute_quality_score(status, issue_codes)
+
+
 class AgentLearningService:
     def __init__(
         self,
@@ -65,6 +76,7 @@ class AgentLearningService:
     def build_scorecard(self, agent_id: str, limit: int = 200) -> dict[str, object]:
         events = self._list_events(agent_id, limit)
         quality_scores = [float(event.quality_score) for event in events]
+        median_quality_score = round(median(quality_scores), 4) if quality_scores else 0.0
         issue_counts = Counter(code for event in events for code in event.issue_codes)
         recent_profile_digests = list(
             dict.fromkeys(event.profile_digest for event in events if event.profile_digest)
@@ -72,7 +84,8 @@ class AgentLearningService:
         return {
             "completed_count": sum(1 for event in events if event.status == "completed"),
             "failed_count": sum(1 for event in events if event.status == "failed"),
-            "median_quality_score": round(median(quality_scores), 4) if quality_scores else 0.0,
+            "median_quality_score": median_quality_score,
+            "quality_score": median_quality_score,
             "top_issue_codes": [
                 {"code": code, "count": count}
                 for code, count in issue_counts.most_common(5)

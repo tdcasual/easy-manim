@@ -1,4 +1,8 @@
-from video_agent.application.agent_learning_service import AgentLearningService
+from video_agent.application.agent_learning_service import (
+    AgentLearningService,
+    quality_score_for_task_outcome,
+    quality_score_from_scorecard,
+)
 from video_agent.domain.quality_models import QualityScorecard
 from video_agent.domain.agent_learning_models import AgentLearningEvent
 
@@ -95,3 +99,35 @@ def test_learning_service_accepts_quality_scorecard_total_score() -> None:
     )
 
     assert written[0].quality_score == 0.72
+
+
+def test_quality_score_from_scorecard_supports_legacy_overall_score_field() -> None:
+    scorecard = QualityScorecard(
+        overall_score=0.81,
+        dimensions={"motion_smoothness": 0.9},
+        accepted=True,
+    )
+
+    assert quality_score_from_scorecard(scorecard) == 0.81
+
+
+def test_quality_score_for_task_outcome_prefers_scorecard_when_available() -> None:
+    scorecard = QualityScorecard(total_score=0.925, accepted=True)
+
+    score = quality_score_for_task_outcome(
+        status="completed",
+        issue_codes=[],
+        scorecard=scorecard,
+    )
+
+    assert score == 0.925
+
+
+def test_quality_score_for_task_outcome_falls_back_to_heuristic_without_scorecard() -> None:
+    score = quality_score_for_task_outcome(
+        status="completed",
+        issue_codes=[],
+        scorecard=None,
+    )
+
+    assert score == 1.0
