@@ -1,3 +1,5 @@
+# Roadmap requires this alignment suite under unit path even though it validates
+# cross-surface behavior through public service entry points.
 import json
 from pathlib import Path
 
@@ -33,12 +35,31 @@ def _build_quality_alignment_settings(
     _write_executable(
         fake_manim,
         "#!/bin/sh\n"
-        "if [ \"$1\" != \"-ql\" ]; then exit 11; fi\n"
-        "if [ \"$4\" != \"--media_dir\" ]; then exit 12; fi\n"
-        "if [ \"$6\" != \"-o\" ]; then exit 13; fi\n"
-        "script_name=$(basename \"$2\" .py)\n"
-        "mkdir -p \"$5/videos/$script_name/480p15\"\n"
-        "printf 'normal-video' > \"$5/videos/$script_name/480p15/$7\"\n",
+        "script_path=''\n"
+        "media_dir=''\n"
+        "output_name=''\n"
+        "while [ $# -gt 0 ]; do\n"
+        "  case \"$1\" in\n"
+        "    --media_dir)\n"
+        "      shift\n"
+        "      media_dir=\"$1\"\n"
+        "      ;;\n"
+        "    -o)\n"
+        "      shift\n"
+        "      output_name=\"$1\"\n"
+        "      ;;\n"
+        "    *.py)\n"
+        "      script_path=\"$1\"\n"
+        "      ;;\n"
+        "  esac\n"
+        "  shift\n"
+        "done\n"
+        "if [ -z \"$script_path\" ]; then exit 11; fi\n"
+        "if [ -z \"$media_dir\" ]; then exit 12; fi\n"
+        "if [ -z \"$output_name\" ]; then exit 13; fi\n"
+        "script_name=$(basename \"$script_path\" .py)\n"
+        "mkdir -p \"$media_dir/videos/$script_name/480p15\"\n"
+        "printf 'normal-video' > \"$media_dir/videos/$script_name/480p15/$output_name\"\n",
     )
 
     fake_ffprobe = tmp_path / "fake_ffprobe.sh"
@@ -51,7 +72,23 @@ def _build_quality_alignment_settings(
     _write_executable(
         fake_ffprobe,
         "#!/bin/sh\n"
-        "if [ \"$1\" != \"-v\" ]; then exit 31; fi\n"
+        "verbosity=''\n"
+        "output_format=''\n"
+        "while [ $# -gt 0 ]; do\n"
+        "  case \"$1\" in\n"
+        "    -v)\n"
+        "      shift\n"
+        "      verbosity=\"$1\"\n"
+        "      ;;\n"
+        "    -of)\n"
+        "      shift\n"
+        "      output_format=\"$1\"\n"
+        "      ;;\n"
+        "  esac\n"
+        "  shift\n"
+        "done\n"
+        "if [ \"$verbosity\" != 'error' ]; then exit 31; fi\n"
+        "if [ \"$output_format\" != 'json' ]; then exit 32; fi\n"
         f"printf '%s' '{probe_json}'\n",
     )
 
@@ -59,11 +96,32 @@ def _build_quality_alignment_settings(
     _write_executable(
         fake_ffmpeg,
         "#!/bin/sh\n"
-        "if [ \"$1\" != \"-y\" ]; then exit 20; fi\n"
-        "if [ \"$2\" != \"-i\" ]; then exit 21; fi\n"
-        "if [ \"$4\" != \"-vf\" ]; then exit 22; fi\n"
-        "mkdir -p \"$(dirname \"$6\")\"\n"
-        "printf 'frame1' > \"$(dirname \"$6\")/frame_001.png\"\n",
+        "input_path=''\n"
+        "vf_filter=''\n"
+        "output_path=''\n"
+        "while [ $# -gt 0 ]; do\n"
+        "  case \"$1\" in\n"
+        "    -i)\n"
+        "      shift\n"
+        "      input_path=\"$1\"\n"
+        "      ;;\n"
+        "    -vf)\n"
+        "      shift\n"
+        "      vf_filter=\"$1\"\n"
+        "      ;;\n"
+        "    -*)\n"
+        "      ;;\n"
+        "    *)\n"
+        "      output_path=\"$1\"\n"
+        "      ;;\n"
+        "  esac\n"
+        "  shift\n"
+        "done\n"
+        "if [ -z \"$input_path\" ]; then exit 21; fi\n"
+        "if [ -z \"$vf_filter\" ]; then exit 22; fi\n"
+        "if [ -z \"$output_path\" ]; then exit 23; fi\n"
+        "mkdir -p \"$(dirname \"$output_path\")\"\n"
+        "printf 'frame1' > \"$(dirname \"$output_path\")/frame_001.png\"\n",
     )
 
     return bootstrapped_settings(
