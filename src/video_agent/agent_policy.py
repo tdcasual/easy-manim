@@ -8,6 +8,8 @@ DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES = [
     "unsafe_transformmatchingtex_slice",
     "unsafe_bare_tex_selection",
     "unsafe_bare_tex_highlight",
+    "near_blank_preview",
+    "static_previews",
     "black_frames",
     "frozen_tail",
     "encoding_error",

@@ -57,7 +57,7 @@ class Settings(BaseModel):
     agent_learning_auto_apply_min_quality_score: float = 0.9
     agent_learning_auto_apply_max_recent_failures: int = 0
     auto_repair_enabled: bool = False
-    auto_repair_max_children_per_root: int = 1
+    auto_repair_max_children_per_root: int = 2
     auto_repair_retryable_issue_codes: list[str] = Field(
         default_factory=lambda: list(DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES)
     )

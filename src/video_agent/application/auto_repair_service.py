@@ -97,6 +97,7 @@ class AutoRepairService:
             failure_context=failure_context,
             memory_context_summary=memory_context_summary,
         )
+        feedback = self._append_preserved_constraint_feedback(task, feedback, current_issue_code=issue_code)
         if self.recovery_policy_service is None:
             return feedback
 
@@ -113,3 +114,56 @@ class AutoRepairService:
         if not path.exists():
             return {}
         return json.loads(path.read_text())
+
+    def _append_preserved_constraint_feedback(self, task: VideoTask, feedback: str, current_issue_code: str) -> str:
+        guardrails = self._ancestor_semantic_guardrails(task, current_issue_code=current_issue_code)
+        if not guardrails:
+            return feedback
+
+        lines = [feedback, "Preserve previously fixed constraints."]
+        for item in guardrails[:3]:
+            lines.append(self._format_preserved_constraint(item))
+        return " ".join(lines)
+
+    def _ancestor_semantic_guardrails(self, task: VideoTask, *, current_issue_code: str) -> list[dict[str, Any]]:
+        guardrails: list[dict[str, Any]] = []
+        seen: set[tuple[str | None, int | None, str | None]] = set()
+        parent_task_id = task.parent_task_id
+
+        while parent_task_id is not None:
+            failure_context = self._load_failure_context(parent_task_id)
+            for item in failure_context.get("semantic_diagnostics") or []:
+                code = item.get("code")
+                marker = (
+                    str(code) if code is not None else None,
+                    item.get("line"),
+                    item.get("call_name"),
+                )
+                if code == current_issue_code or marker in seen:
+                    continue
+                seen.add(marker)
+                guardrails.append(item)
+
+            parent_task = self.store.get_task(parent_task_id)
+            if parent_task is None:
+                break
+            parent_task_id = parent_task.parent_task_id
+
+        return guardrails
+
+    @staticmethod
+    def _format_preserved_constraint(item: dict[str, Any]) -> str:
+        code = item.get("code") or "unknown_issue"
+        call_name = item.get("call_name")
+        line = item.get("line")
+        message = item.get("message")
+
+        parts = [f"Previously fixed constraint: {code}"]
+        if call_name:
+            parts.append(f"on {call_name}")
+        if line:
+            parts.append(f"at line {line}")
+        detail = " ".join(parts) + "."
+        if message:
+            detail = f"{detail} {str(message).strip()}."
+        return detail

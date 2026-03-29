@@ -128,7 +128,7 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         agent_learning_auto_apply_min_quality_score=_env_float("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_MIN_QUALITY_SCORE", 0.9),
         agent_learning_auto_apply_max_recent_failures=_env_int("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_MAX_RECENT_FAILURES", 0),
         auto_repair_enabled=_env_bool("EASY_MANIM_AUTO_REPAIR_ENABLED", False),
-        auto_repair_max_children_per_root=_env_int("EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT", 1),
+        auto_repair_max_children_per_root=_env_int("EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT", 2),
         auto_repair_retryable_issue_codes=_env_csv(
             "EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES",
             DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES,

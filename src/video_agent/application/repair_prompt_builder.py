@@ -105,6 +105,15 @@ def _preview_guidance(preview_issue_codes: list[str]) -> list[str]:
                 "Make the first beat visibly populated with readable text, geometry, axes, or another clear focal object.",
             ]
         )
-    if "static_previews" in codes:
-        instructions.append("Add a clearly visible motion beat so the preview sequence is not effectively static.")
+    if "near_blank_preview" in codes or "static_previews" in codes:
+        instructions.extend(
+            [
+                "Add a clearly visible motion beat so the preview sequence is not effectively static.",
+                (
+                    "Within the first 2 seconds, change position, scale, or emphasis of an existing on-screen "
+                    "object; do not rely on wait() alone."
+                ),
+                "Keep at least two visually distinct states across the preview frames.",
+            ]
+        )
     return instructions

@@ -10,7 +10,21 @@ class RecoveryPolicyService:
         issue_code: str | None,
         failure_contract: dict | None,
     ) -> RecoveryPlan:
-        _ = failure_contract
+        if failure_contract:
+            recommended_action = str(failure_contract.get("recommended_action") or "")
+            candidate_actions = [str(item) for item in failure_contract.get("candidate_actions") or [] if item]
+            if recommended_action == "auto_repair" and candidate_actions:
+                repair_recipe = failure_contract.get("repair_strategy") or candidate_actions[0]
+                return RecoveryPlan(
+                    task_id="",
+                    issue_code=issue_code,
+                    candidate_actions=candidate_actions,
+                    selected_action=candidate_actions[0],
+                    repair_recipe=repair_recipe,
+                    fallback_generation_mode=failure_contract.get("fallback_generation_mode"),
+                    cost_class=failure_contract.get("cost_class"),
+                    human_gate_required=bool(failure_contract.get("human_review_required")),
+                )
         if issue_code == "near_blank_preview":
             return RecoveryPlan(
                 task_id="",
