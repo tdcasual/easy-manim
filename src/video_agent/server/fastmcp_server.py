@@ -32,6 +32,7 @@ from video_agent.server.mcp_tools import (
     get_video_result_tool,
     list_agent_memories_tool,
     promote_session_memory_tool,
+    query_agent_memories_tool,
     get_video_task_tool,
     list_video_tasks_tool,
     retry_video_task_tool,
@@ -294,6 +295,14 @@ def create_mcp_server(
         return disable_agent_memory_tool(
             context,
             {"memory_id": memory_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="query_agent_memories")
+    def query_agent_memories(query: str, limit: int = 5, ctx: Context | None = None) -> dict[str, Any]:
+        return query_agent_memories_tool(
+            context,
+            {"query": query, "limit": limit},
             agent_principal=current_principal(ctx),
         )
 

@@ -110,18 +110,19 @@ def create_app_context(settings: Settings) -> AppContext:
         max_attempts_per_entry=settings.session_memory_max_attempts_per_entry,
         summary_char_limit=settings.session_memory_summary_char_limit,
     )
+    persistent_memory_enhancer = build_persistent_memory_enhancer(
+        backend=settings.persistent_memory_backend,
+        enable_embeddings=settings.persistent_memory_enable_embeddings,
+        embedding_provider=settings.persistent_memory_embedding_provider,
+        embedding_model=settings.persistent_memory_embedding_model,
+    )
     persistent_memory_service = PersistentMemoryService(
         create_record=store.create_agent_memory,
         get_session_summary=session_memory_service.summarize_session_memory,
         get_record=store.get_agent_memory,
         list_records=store.list_agent_memories,
         disable_record=store.disable_agent_memory,
-        enhancer=build_persistent_memory_enhancer(
-            backend=settings.persistent_memory_backend,
-            enable_embeddings=settings.persistent_memory_enable_embeddings,
-            embedding_provider=settings.persistent_memory_embedding_provider,
-            embedding_model=settings.persistent_memory_embedding_model,
-        ),
+        enhancer=persistent_memory_enhancer,
     )
     agent_learning_service = AgentLearningService(
         write_event=store.create_agent_learning_event,

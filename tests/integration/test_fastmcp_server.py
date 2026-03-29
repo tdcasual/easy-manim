@@ -247,6 +247,7 @@ def test_fastmcp_registers_persistent_memory_tools(tmp_path: Path) -> None:
             "list_agent_memories",
             "get_agent_memory",
             "disable_agent_memory",
+            "query_agent_memories",
         } <= tool_names
 
     asyncio.run(run())
