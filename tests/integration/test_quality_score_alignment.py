@@ -1,5 +1,4 @@
 import json
-import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -10,8 +9,6 @@ from video_agent.application.eval_service import EvaluationService
 from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
-from video_agent.evaluation.models import PromptCase
-from video_agent.evaluation.quality_reporting import build_quality_report
 from video_agent.server.app import create_app_context
 from video_agent.server.http_api import create_http_api
 from tests.support import bootstrapped_settings
@@ -74,6 +71,7 @@ def _build_quality_alignment_settings(
             data_dir=data_dir,
             database_path=data_dir / "video_agent.db",
             artifact_root=data_dir / "tasks",
+            eval_root=data_dir / "evals",
             manim_command=str(fake_manim),
             ffmpeg_command=str(fake_ffmpeg),
             ffprobe_command=str(fake_ffprobe),
@@ -87,41 +85,42 @@ def _build_quality_alignment_settings(
     )
 
 
-def test_completed_task_quality_score_aligns_runtime_learning_profile_and_eval(tmp_path: Path) -> None:
+def test_completed_eval_task_quality_score_aligns_runtime_learning_profile_and_eval(tmp_path: Path) -> None:
     app_context = create_app_context(_build_quality_alignment_settings(tmp_path))
-    created = app_context.task_service.create_video_task(prompt="draw a circle")
+    suite_path = tmp_path / "quality_suite.json"
+    suite_path.write_text(
+        json.dumps(
+            {
+                "suite_id": "quality-alignment",
+                "cases": [{"case_id": "case-1", "prompt": "draw a circle", "tags": ["quality"]}],
+            }
+        )
+    )
 
-    processed = app_context.worker.run_once()
-    assert processed == 1
+    summary = EvaluationService(app_context).run_suite(suite_path=str(suite_path))
+    assert summary.total_cases == 1
+    assert len(summary.items) == 1
 
-    persisted_scorecard = app_context.store.get_task_quality_score(created.task_id)
+    result = summary.items[0]
+    persisted_scorecard = app_context.store.get_task_quality_score(result.task_id)
     assert persisted_scorecard is not None
     expected_score = quality_score_from_scorecard(persisted_scorecard)
 
-    persisted_artifact = app_context.artifact_store.read_quality_score(created.task_id)
+    persisted_artifact = app_context.artifact_store.read_quality_score(result.task_id)
     assert persisted_artifact is not None
     assert persisted_artifact["total_score"] == expected_score
 
     events = app_context.store.list_agent_learning_events("local-anonymous")
     assert len(events) == 1
+    assert events[0].task_id == result.task_id
     assert events[0].quality_score == expected_score
 
     profile_scorecard = app_context.agent_learning_service.build_scorecard("local-anonymous")
     assert profile_scorecard["completed_count"] == 1
     assert profile_scorecard["median_quality_score"] == expected_score
 
-    snapshot = app_context.task_service.get_video_task(created.task_id)
-    eval_result = EvaluationService(app_context)._build_case_result(
-        case=PromptCase(case_id="alignment-case", prompt="draw a circle", tags=["quality"]),
-        root_task_id=created.task_id,
-        root_snapshot=snapshot,
-        terminal_snapshot=snapshot,
-        started=time.monotonic() - 0.5,
-    )
-    assert eval_result.quality_score == expected_score
-
-    quality_report = build_quality_report([eval_result.model_dump(mode="json")])
-    assert quality_report["median_quality_score"] == expected_score
+    assert result.quality_score == expected_score
+    assert summary.report["quality"]["median_quality_score"] == expected_score
 
 
 def test_profile_auto_apply_threshold_uses_scorecard_derived_median(tmp_path: Path) -> None:

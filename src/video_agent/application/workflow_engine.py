@@ -579,7 +579,9 @@ class WorkflowEngine:
         if self.agent_learning_service is None or not task.agent_id:
             return
         issue_codes = [issue.code for issue in report.issues]
-        if task_quality_scorecard is None:
+        # Only load persisted scorecards for completed outcomes to avoid
+        # stale/mismatched scorecard reuse on failure telemetry.
+        if task_quality_scorecard is None and task.status.value == "completed":
             task_quality_scorecard = self.store.get_task_quality_score(task.task_id)
         try:
             self.agent_learning_service.record_task_outcome(

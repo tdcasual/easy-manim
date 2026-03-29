@@ -34,7 +34,9 @@ def quality_score_for_task_outcome(
     issue_codes: list[str],
     scorecard: QualityScorecard | None,
 ) -> float:
-    if scorecard is not None:
+    # Only completed outcomes should inherit persisted scorecard totals.
+    # Failed/cancelled paths must keep heuristic penalties.
+    if scorecard is not None and status == "completed":
         return quality_score_from_scorecard(scorecard)
     return compute_quality_score(status, issue_codes)
 

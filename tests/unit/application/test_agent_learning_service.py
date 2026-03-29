@@ -131,3 +131,15 @@ def test_quality_score_for_task_outcome_falls_back_to_heuristic_without_scorecar
     )
 
     assert score == 1.0
+
+
+def test_quality_score_for_task_outcome_does_not_apply_scorecard_to_failed_status() -> None:
+    scorecard = QualityScorecard(total_score=0.925, accepted=True)
+
+    score = quality_score_for_task_outcome(
+        status="failed",
+        issue_codes=[],
+        scorecard=scorecard,
+    )
+
+    assert score == 0.6
