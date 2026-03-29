@@ -14,6 +14,12 @@ python -m pip install --upgrade pip
 python -m pip install -e '.[dev]'
 ```
 
+If you move or delete git worktrees, editable installs can point at stale paths. Refresh the environment with:
+
+```bash
+python -m pip install -e '.[dev]'
+```
+
 ## Configuration
 - copy `.env.example` to `.env` or export matching `EASY_MANIM_*` variables in your shell
 - `stub` mode is the default local mode and keeps tests deterministic

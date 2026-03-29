@@ -1,5 +1,5 @@
-import json
-import subprocess
+import importlib.util
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -11,6 +11,19 @@ from video_agent.domain.agent_models import AgentProfile
 from video_agent.domain.quality_models import QualityScorecard
 from video_agent.server.http_api import create_http_api
 from tests.support import bootstrapped_settings
+
+
+def _load_cli_runner():
+    module_path = Path(__file__).resolve().parents[1] / "support" / "cli_runner.py"
+    spec = importlib.util.spec_from_file_location("tests_support_cli_runner", module_path)
+    if spec is None or spec.loader is None:
+        raise AssertionError(f"Failed to load cli runner module at {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+run_repo_module_json = _load_cli_runner().run_repo_module_json
 
 
 def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
@@ -73,18 +86,13 @@ def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
         )
     )
 
-    token_payload = json.loads(
-        subprocess.check_output(
-            [
-                ".venv/bin/easy-manim-agent-admin",
-                "--data-dir",
-                str(tmp_path / "data"),
-                "issue-token",
-                "--agent-id",
-                "agent-a",
-            ],
-            text=True,
-        )
+    token_payload = run_repo_module_json(
+        "video_agent.agent_admin.main",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "issue-token",
+        "--agent-id",
+        "agent-a",
     )
     client = TestClient(app)
     login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
@@ -160,18 +168,13 @@ def test_auto_apply_refuses_low_confidence_patch_even_when_global_thresholds_pas
         )
     )
 
-    token_payload = json.loads(
-        subprocess.check_output(
-            [
-                ".venv/bin/easy-manim-agent-admin",
-                "--data-dir",
-                str(tmp_path / "data"),
-                "issue-token",
-                "--agent-id",
-                "agent-a",
-            ],
-            text=True,
-        )
+    token_payload = run_repo_module_json(
+        "video_agent.agent_admin.main",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "issue-token",
+        "--agent-id",
+        "agent-a",
     )
     client = TestClient(app)
     login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
@@ -245,18 +248,13 @@ def test_auto_apply_treats_single_observation_suggestion_as_low_confidence(tmp_p
         )
     )
 
-    token_payload = json.loads(
-        subprocess.check_output(
-            [
-                ".venv/bin/easy-manim-agent-admin",
-                "--data-dir",
-                str(tmp_path / "data"),
-                "issue-token",
-                "--agent-id",
-                "agent-a",
-            ],
-            text=True,
-        )
+    token_payload = run_repo_module_json(
+        "video_agent.agent_admin.main",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "issue-token",
+        "--agent-id",
+        "agent-a",
     )
     client = TestClient(app)
     login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
@@ -340,18 +338,13 @@ def test_auto_apply_treats_split_single_field_evidence_as_low_confidence(tmp_pat
         )
     )
 
-    token_payload = json.loads(
-        subprocess.check_output(
-            [
-                ".venv/bin/easy-manim-agent-admin",
-                "--data-dir",
-                str(tmp_path / "data"),
-                "issue-token",
-                "--agent-id",
-                "agent-a",
-            ],
-            text=True,
-        )
+    token_payload = run_repo_module_json(
+        "video_agent.agent_admin.main",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "issue-token",
+        "--agent-id",
+        "agent-a",
     )
     client = TestClient(app)
     login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
