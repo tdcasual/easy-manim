@@ -13,18 +13,44 @@ class ReviewIssue(BaseModel):
     action: str
 
 
+class CollaborationSection(BaseModel):
+    role: Literal["planner", "reviewer", "repairer"]
+    summary: str = ""
+    decision: Literal["accept", "revise", "retry", "repair", "escalate"] | None = None
+    execution_hint: str | None = None
+
+
+class CollaborationSections(BaseModel):
+    planner_recommendation: CollaborationSection = Field(
+        default_factory=lambda: CollaborationSection(role="planner")
+    )
+    reviewer_decision: CollaborationSection = Field(
+        default_factory=lambda: CollaborationSection(role="reviewer")
+    )
+    repairer_execution_hint: CollaborationSection = Field(
+        default_factory=lambda: CollaborationSection(role="repairer")
+    )
+
+
 class ReviewDecision(BaseModel):
     decision: Literal["accept", "revise", "retry", "repair", "escalate"]
     summary: str
+    decision_role: Literal["orchestrator", "reviewer"] | None = None
     preserve_working_parts: bool = True
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     issues: list[ReviewIssue] = Field(default_factory=list)
     feedback: str | None = None
     stop_reason: str | None = None
+    collaboration: CollaborationSections | None = None
+
+    def resolved_decision(self) -> Literal["accept", "revise", "retry", "repair", "escalate"]:
+        if self.collaboration and self.collaboration.reviewer_decision.decision:
+            return self.collaboration.reviewer_decision.decision
+        return self.decision
 
     @model_validator(mode="after")
     def require_feedback_for_revise_or_repair(self) -> "ReviewDecision":
-        if self.decision in {"revise", "repair"} and not (self.feedback or "").strip():
+        if self.resolved_decision() in {"revise", "repair"} and not (self.feedback or "").strip():
             raise ValueError("feedback is required for revise and repair decisions")
         return self
 
@@ -51,6 +77,7 @@ class ReviewBundle(BaseModel):
     preview_frame_resources: list[str] = Field(default_factory=list)
     script_resource: str | None = None
     validation_report_resource: str | None = None
+    collaboration: CollaborationSections = Field(default_factory=CollaborationSections)
 
 
 class ReviewDecisionOutcome(BaseModel):

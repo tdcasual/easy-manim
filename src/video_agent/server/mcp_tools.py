@@ -34,6 +34,14 @@ def _error_payload(code: str, message: str) -> dict[str, Any]:
     return {"error": {"code": code, "message": message}}
 
 
+def _normalize_review_decision_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(payload)
+    collaboration = normalized.get("collaboration")
+    if collaboration is not None and not isinstance(collaboration, dict):
+        normalized["collaboration"] = None
+    return normalized
+
+
 def _permission_error_code(exc: PermissionError) -> str:
     code = str(exc)
     if code in {"agent_not_authenticated", "agent_access_denied", "agent_scope_denied"}:
@@ -335,7 +343,9 @@ def apply_review_decision_tool(
 ) -> dict[str, Any]:
     try:
         principal = _authorize_agent_action(context, agent_principal, "task:read")
-        review_decision = ReviewDecision.model_validate(payload["review_decision"])
+        review_decision = ReviewDecision.model_validate(
+            _normalize_review_decision_payload(payload["review_decision"])
+        )
         result = context.multi_agent_workflow_service.apply_review_decision(
             task_id=payload["task_id"],
             review_decision=review_decision,

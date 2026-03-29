@@ -70,9 +70,18 @@ class MultiAgentWorkflowService:
             )
 
         if action == "revise":
+            feedback = (
+                review_decision.feedback
+                or (
+                    None
+                    if review_decision.collaboration is None
+                    else review_decision.collaboration.repairer_execution_hint.execution_hint
+                )
+                or review_decision.summary
+            )
             created = self.task_service.revise_video_task(
                 task_id,
-                feedback=review_decision.feedback or review_decision.summary,
+                feedback=feedback,
                 preserve_working_parts=review_decision.preserve_working_parts,
                 session_id=session_id,
                 memory_ids=memory_ids,

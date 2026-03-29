@@ -115,12 +115,16 @@ def _seed_agent_profile_and_token(app_context, *, secret: str, scopes_json: dict
 
 
 def test_apply_review_decision_tool_creates_revision_for_revise_decision(tmp_path: Path) -> None:
-    apply_review_decision_tool, create_video_task_tool, _ = _get_mcp_tools()
+    apply_review_decision_tool, create_video_task_tool, get_review_bundle_tool = _get_mcp_tools()
     app_context = _create_app_context(_build_settings(tmp_path))
     created = create_video_task_tool(
         app_context,
         {"prompt": "draw a circle", "session_id": "session-1"},
     )
+    bundle = get_review_bundle_tool(app_context, {"task_id": created["task_id"]})
+    assert bundle["collaboration"]["planner_recommendation"]["role"] == "planner"
+    assert bundle["collaboration"]["reviewer_decision"]["role"] == "reviewer"
+    assert bundle["collaboration"]["repairer_execution_hint"]["role"] == "repairer"
 
     payload = apply_review_decision_tool(
         app_context,
@@ -141,6 +145,37 @@ def test_apply_review_decision_tool_creates_revision_for_revise_decision(tmp_pat
     revised = app_context.store.get_task(payload["created_task_id"])
     assert revised is not None
     assert revised.parent_task_id == created["task_id"]
+
+
+def test_review_workflow_mutations_remain_orchestrator_owned(tmp_path: Path) -> None:
+    apply_review_decision_tool, create_video_task_tool, _ = _get_mcp_tools()
+    app_context = _create_app_context(_build_required_auth_settings(tmp_path))
+    principal = _seed_agent_profile_and_token(
+        app_context,
+        secret="agent-a-read-secret",
+        scopes_json={"allow": ["task:create", "task:read"]},
+    )
+    created = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle", "session_id": "session-1"},
+        agent_principal=principal,
+    )
+
+    decision = apply_review_decision_tool(
+        app_context,
+        {
+            "task_id": created["task_id"],
+            "review_decision": {
+                "decision": "revise",
+                "summary": "Needs one more pass",
+                "feedback": "Make the circle blue",
+            },
+            "session_id": "session-1",
+        },
+        agent_principal=principal,
+    )
+
+    assert decision["error"]["code"] == "agent_scope_denied"
 
 
 def test_review_workflow_tools_require_authenticated_agent_in_required_mode(tmp_path: Path) -> None:

@@ -4,7 +4,7 @@ from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
-from video_agent.domain.review_workflow_models import ReviewBundle
+from video_agent.domain.review_workflow_models import CollaborationSection, CollaborationSections, ReviewBundle
 
 
 class ReviewBundleBuilder:
@@ -42,6 +42,20 @@ class ReviewBundleBuilder:
         if snapshot.root_task_id is not None:
             child_attempt_count = max(0, self.store.count_lineage_tasks(snapshot.root_task_id) - 1)
 
+        recovery_plan = self.task_service.get_recovery_plan(snapshot.task_id)
+        planner_summary = ""
+        if recovery_plan:
+            planner_summary = str(recovery_plan.get("selected_action") or "").strip()
+        if not planner_summary and snapshot.failure_contract:
+            planner_summary = str(snapshot.failure_contract.get("recommended_action") or "").strip()
+
+        reviewer_summary = str(snapshot.latest_validation_summary.get("summary") or "").strip()
+        repair_hint: str | None = None
+        if recovery_plan:
+            repair_hint = str(recovery_plan.get("repair_recipe") or "").strip() or None
+        if not repair_hint and snapshot.failure_contract:
+            repair_hint = str(snapshot.failure_contract.get("repair_strategy") or "").strip() or None
+
         return ReviewBundle(
             task_id=snapshot.task_id,
             root_task_id=snapshot.root_task_id,
@@ -55,7 +69,7 @@ class ReviewBundleBuilder:
             latest_validation_summary=snapshot.latest_validation_summary,
             failure_contract=snapshot.failure_contract,
             scene_spec=self.task_service.get_scene_spec(snapshot.task_id),
-            recovery_plan=self.task_service.get_recovery_plan(snapshot.task_id),
+            recovery_plan=recovery_plan,
             quality_scorecard=self.task_service.get_quality_score(snapshot.task_id),
             quality_gate_status=snapshot.quality_gate_status,
             task_events=events,
@@ -64,4 +78,18 @@ class ReviewBundleBuilder:
             preview_frame_resources=result.preview_frame_resources,
             script_resource=result.script_resource,
             validation_report_resource=result.validation_report_resource,
+            collaboration=CollaborationSections(
+                planner_recommendation=CollaborationSection(
+                    role="planner",
+                    summary=planner_summary,
+                ),
+                reviewer_decision=CollaborationSection(
+                    role="reviewer",
+                    summary=reviewer_summary,
+                ),
+                repairer_execution_hint=CollaborationSection(
+                    role="repairer",
+                    execution_hint=repair_hint,
+                ),
+            ),
         )

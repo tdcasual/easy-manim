@@ -67,11 +67,13 @@ class ProfileApplyRequest(BaseModel):
 class ReviewDecisionRequest(BaseModel):
     decision: str
     summary: str
+    decision_role: str | None = None
     preserve_working_parts: bool = True
     confidence: float = 0.0
     issues: list[dict[str, Any]] = Field(default_factory=list)
     feedback: str | None = None
     stop_reason: str | None = None
+    collaboration: dict[str, Any] | None = None
 
 
 class ApplyReviewDecisionRequest(BaseModel):

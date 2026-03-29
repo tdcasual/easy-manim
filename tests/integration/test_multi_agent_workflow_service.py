@@ -170,3 +170,6 @@ def test_workflow_service_get_review_bundle(tmp_path: Path) -> None:
 
     assert bundle.task_id == created.task_id
     assert bundle.root_task_id == created.task_id
+    assert bundle.collaboration.planner_recommendation.role == "planner"
+    assert bundle.collaboration.reviewer_decision.role == "reviewer"
+    assert bundle.collaboration.repairer_execution_hint.role == "repairer"

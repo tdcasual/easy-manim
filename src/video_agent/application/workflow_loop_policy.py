@@ -9,7 +9,9 @@ class WorkflowLoopPolicy:
         self.settings = settings
 
     def choose_action(self, bundle: ReviewBundle, review_decision: ReviewDecision) -> str:
-        if review_decision.decision == "accept":
+        normalized_decision = review_decision.resolved_decision()
+
+        if normalized_decision == "accept":
             if self.settings.multi_agent_workflow_require_completed_for_accept and bundle.status != "completed":
                 return "escalate"
             return "accept"
@@ -17,7 +19,7 @@ class WorkflowLoopPolicy:
         if bundle.child_attempt_count >= self.settings.multi_agent_workflow_max_child_attempts:
             return "escalate"
 
-        if review_decision.decision == "repair":
+        if normalized_decision == "repair":
             return "revise"
 
-        return review_decision.decision
+        return normalized_decision
