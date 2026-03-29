@@ -86,3 +86,30 @@ def test_eval_service_runs_challenger_and_records_strategy_metrics(tmp_path: Pat
     assert len(profiles) == 1
     assert profiles[0].metrics["last_eval_run"]["challenger_run_id"] == result["challenger"]["run_id"]
     assert "promotion_recommended" in profiles[0].metrics["last_eval_run"]
+
+
+def test_eval_service_includes_scene_spec_signals_in_eval_items(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_eval_settings(tmp_path))
+    service = EvaluationService(app_context)
+    suite_path = tmp_path / "suite.json"
+    suite_path.write_text(
+        json.dumps(
+            {
+                "suite_id": "scene-spec-signal-suite",
+                "cases": [
+                    {"case_id": "signal-case", "prompt": "draw a blue circle", "tags": ["smoke"]},
+                ],
+            }
+        )
+    )
+
+    summary = service.run_suite(
+        suite_path=str(suite_path),
+        profile_patch={"style_hints": {"scene_complexity": "high", "animation_density": "high"}},
+    )
+
+    assert len(summary.items) == 1
+    item = summary.items[0]
+    assert "requested_scene_complexity:high" in item.risk_signals
+    assert "animation_density:high" in item.risk_signals
+    assert isinstance(item.capability_gate_signals, list)

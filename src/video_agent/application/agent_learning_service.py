@@ -80,9 +80,12 @@ class AgentLearningService:
         quality_scores = [float(event.quality_score) for event in events]
         median_quality_score = round(median(quality_scores), 4) if quality_scores else 0.0
         issue_counts = Counter(code for event in events for code in event.issue_codes)
-        recent_profile_digests = list(
-            dict.fromkeys(event.profile_digest for event in events if event.profile_digest)
-        )
+        profile_digests = [event.profile_digest for event in events if event.profile_digest]
+        recent_profile_digests = list(dict.fromkeys(profile_digests))
+        digest_counts = Counter(profile_digests)
+        profile_digest_stability = 0.0
+        if profile_digests:
+            profile_digest_stability = round(max(digest_counts.values()) / len(profile_digests), 4)
         return {
             "completed_count": sum(1 for event in events if event.status == "completed"),
             "failed_count": sum(1 for event in events if event.status == "failed"),
@@ -93,4 +96,5 @@ class AgentLearningService:
                 for code, count in issue_counts.most_common(5)
             ],
             "recent_profile_digests": recent_profile_digests[:5],
+            "profile_digest_stability": profile_digest_stability,
         }

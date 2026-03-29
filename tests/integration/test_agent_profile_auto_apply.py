@@ -41,6 +41,15 @@ def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
             summary_digest="digest-1",
         )
     )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-2",
+            agent_id="agent-a",
+            source_session_id="sess-2",
+            summary_text="Use a steady teaching tone and 1280x720 output.",
+            summary_digest="digest-1",
+        )
+    )
     ctx.store.create_agent_learning_event(
         AgentLearningEvent(
             event_id="learn-1",
@@ -91,3 +100,272 @@ def test_auto_apply_mode_only_applies_safe_supported_patch(tmp_path) -> None:
     profile = client.get("/api/profile", headers={"Authorization": f"Bearer {login_token}"})
     assert profile.status_code == 200
     assert profile.json()["profile_json"]["style_hints"]["tone"] == "teaching"
+
+
+def test_auto_apply_refuses_low_confidence_patch_even_when_global_thresholds_pass(tmp_path) -> None:
+    high_quality = quality_score_from_scorecard(QualityScorecard(total_score=0.97, accepted=True))
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+            agent_learning_auto_apply_enabled=True,
+            agent_learning_auto_apply_min_completed_tasks=2,
+            agent_learning_auto_apply_min_quality_score=0.90,
+            agent_learning_auto_apply_max_recent_failures=0,
+        )
+    )
+    app = create_http_api(settings)
+    ctx = app.state.app_context
+    ctx.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-1",
+            agent_id="agent-a",
+            source_session_id="sess-1",
+            summary_text="Use a teaching tone.",
+            summary_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-1",
+            agent_id="agent-a",
+            task_id="task-1",
+            session_id="sess-1",
+            status="completed",
+            issue_codes=["static_previews"],
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-2",
+            agent_id="agent-a",
+            task_id="task-2",
+            session_id="sess-2",
+            status="completed",
+            issue_codes=["static_previews"],
+            quality_score=high_quality,
+            profile_digest="digest-2",
+        )
+    )
+
+    token_payload = json.loads(
+        subprocess.check_output(
+            [
+                ".venv/bin/easy-manim-agent-admin",
+                "--data-dir",
+                str(tmp_path / "data"),
+                "issue-token",
+                "--agent-id",
+                "agent-a",
+            ],
+            text=True,
+        )
+    )
+    client = TestClient(app)
+    login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
+    login_token = login.json()["session_token"]
+
+    generated = client.post("/api/profile/suggestions/generate", headers={"Authorization": f"Bearer {login_token}"})
+
+    assert generated.status_code == 200
+    assert generated.json()["items"]
+    assert all(item["status"] == "pending" for item in generated.json()["items"])
+    assert generated.json()["items"][0]["rationale"]["confidence"] < 0.8
+
+    profile = client.get("/api/profile", headers={"Authorization": f"Bearer {login_token}"})
+    assert profile.status_code == 200
+    assert profile.json()["profile_json"]["style_hints"]["tone"] == "patient"
+
+
+def test_auto_apply_treats_single_observation_suggestion_as_low_confidence(tmp_path) -> None:
+    high_quality = quality_score_from_scorecard(QualityScorecard(total_score=0.98, accepted=True))
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+            agent_learning_auto_apply_enabled=True,
+            agent_learning_auto_apply_min_completed_tasks=2,
+            agent_learning_auto_apply_min_quality_score=0.90,
+            agent_learning_auto_apply_max_recent_failures=0,
+        )
+    )
+    app = create_http_api(settings)
+    ctx = app.state.app_context
+    ctx.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-1",
+            agent_id="agent-a",
+            source_session_id="sess-1",
+            summary_text="Use a teaching tone.",
+            summary_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-1",
+            agent_id="agent-a",
+            task_id="task-1",
+            session_id="sess-1",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-2",
+            agent_id="agent-a",
+            task_id="task-2",
+            session_id="sess-2",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+
+    token_payload = json.loads(
+        subprocess.check_output(
+            [
+                ".venv/bin/easy-manim-agent-admin",
+                "--data-dir",
+                str(tmp_path / "data"),
+                "issue-token",
+                "--agent-id",
+                "agent-a",
+            ],
+            text=True,
+        )
+    )
+    client = TestClient(app)
+    login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
+    login_token = login.json()["session_token"]
+
+    generated = client.post("/api/profile/suggestions/generate", headers={"Authorization": f"Bearer {login_token}"})
+
+    assert generated.status_code == 200
+    assert generated.json()["items"]
+    assert all(item["status"] == "pending" for item in generated.json()["items"])
+    assert generated.json()["items"][0]["rationale"]["confidence"] < 0.8
+    assert generated.json()["items"][0]["rationale"]["supporting_evidence_counts"]["style_hints.tone"] == 1
+
+    profile = client.get("/api/profile", headers={"Authorization": f"Bearer {login_token}"})
+    assert profile.status_code == 200
+    assert profile.json()["profile_json"]["style_hints"]["tone"] == "patient"
+
+
+def test_auto_apply_treats_split_single_field_evidence_as_low_confidence(tmp_path) -> None:
+    high_quality = quality_score_from_scorecard(QualityScorecard(total_score=0.98, accepted=True))
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+            agent_learning_auto_apply_enabled=True,
+            agent_learning_auto_apply_min_completed_tasks=2,
+            agent_learning_auto_apply_min_quality_score=0.90,
+            agent_learning_auto_apply_max_recent_failures=0,
+        )
+    )
+    app = create_http_api(settings)
+    ctx = app.state.app_context
+    ctx.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-1",
+            agent_id="agent-a",
+            source_session_id="sess-1",
+            summary_text="Use a teaching tone.",
+            summary_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-2",
+            agent_id="agent-a",
+            source_session_id="sess-2",
+            summary_text="Use 1280x720 output.",
+            summary_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-1",
+            agent_id="agent-a",
+            task_id="task-1",
+            session_id="sess-1",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-2",
+            agent_id="agent-a",
+            task_id="task-2",
+            session_id="sess-2",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+
+    token_payload = json.loads(
+        subprocess.check_output(
+            [
+                ".venv/bin/easy-manim-agent-admin",
+                "--data-dir",
+                str(tmp_path / "data"),
+                "issue-token",
+                "--agent-id",
+                "agent-a",
+            ],
+            text=True,
+        )
+    )
+    client = TestClient(app)
+    login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
+    login_token = login.json()["session_token"]
+
+    generated = client.post("/api/profile/suggestions/generate", headers={"Authorization": f"Bearer {login_token}"})
+
+    assert generated.status_code == 200
+    assert generated.json()["items"]
+    assert all(item["status"] == "pending" for item in generated.json()["items"])
+    assert generated.json()["items"][0]["rationale"]["confidence"] < 0.8
+    assert generated.json()["items"][0]["rationale"]["supporting_evidence_counts"]["style_hints.tone"] == 1
+    assert generated.json()["items"][0]["rationale"]["supporting_evidence_counts"]["output_profile.pixel_width"] == 1
+
+    profile = client.get("/api/profile", headers={"Authorization": f"Bearer {login_token}"})
+    assert profile.status_code == 200
+    assert profile.json()["profile_json"]["style_hints"]["tone"] == "patient"

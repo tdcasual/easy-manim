@@ -98,6 +98,7 @@ class MemoryRetrievalRequest(BaseModel):
 
 _PROFILE_PATCH_ALLOWLIST = frozenset({"style_hints", "output_profile", "validation_profile"})
 _RECENT_PROFILE_SUGGESTION_LIMIT = 5
+_AUTO_APPLY_MIN_SUGGESTION_CONFIDENCE = 0.8
 
 
 def _validate_profile_patch_shape(patch: dict[str, Any]) -> None:
@@ -472,6 +473,11 @@ def create_http_api(settings: Settings) -> FastAPI:
             if eligible:
                 applied: list[Any] = []
                 for suggestion in items:
+                    if not suggestion.is_safe_for_auto_apply(
+                        min_confidence=_AUTO_APPLY_MIN_SUGGESTION_CONFIDENCE,
+                    ):
+                        applied.append(suggestion)
+                        continue
                     unsupported_keys = sorted(set(suggestion.patch_json) - _PROFILE_PATCH_ALLOWLIST)
                     if unsupported_keys:
                         applied.append(suggestion)

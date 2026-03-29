@@ -19,6 +19,13 @@ class SceneSpec(BaseModel):
     style_constraints: list[str] = Field(default_factory=list)
     forbidden_elements: list[str] = Field(default_factory=list)
     generation_mode: str | None = None
+    formula_present: bool = False
+    requested_scene_complexity: str | None = None
+    animation_density: str | None = None
+    animation_density_score: int = 0
+    risk_signals: list[str] = Field(default_factory=list)
+    capability_gate: dict[str, Any] | None = None
+    capability_gate_signals: list[str] = Field(default_factory=list)
 
 
 class TaskRiskProfile(BaseModel):
@@ -28,3 +35,4 @@ class TaskRiskProfile(BaseModel):
     blocked_capabilities: list[str] = Field(default_factory=list)
     expected_failure_modes: list[str] = Field(default_factory=list)
     budget_class: str | None = None
+    triggered_signals: list[str] = Field(default_factory=list)

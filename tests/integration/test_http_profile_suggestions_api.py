@@ -104,6 +104,7 @@ def test_profile_suggestions_list_and_apply_flow(tmp_path: Path) -> None:
     assert applied.json()["profile"]["style_hints"]["tone"] == "teaching"
     assert applied.json()["profile"]["output_profile"]["pixel_width"] == 1280
     assert applied.json()["profile"]["output_profile"]["pixel_height"] == 720
+    assert applied.json()["suggestion"]["rationale"]["confidence"] > 0.0
 
     dismissed = client.post(f"/api/profile/suggestions/{proposed_id}/dismiss", headers=headers)
     assert dismissed.status_code == 200
@@ -139,6 +140,27 @@ def test_generate_profile_suggestions_uses_recent_session_summaries(tmp_path: Pa
     assert generated.json()["items"]
     assert generated.json()["items"][0]["patch"]["style_hints"]["tone"] == "teaching"
     assert generated.json()["items"][0]["patch"]["style_hints"]["pace"] == "steady"
+    assert generated.json()["items"][0]["rationale"]["provenance"]["session_summary"] >= 1
+
+
+def test_generate_profile_suggestions_includes_scorecard_confidence_and_evidence_counts(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_profile_suggestion_settings(tmp_path)))
+    _seed_agent_inputs(client)
+
+    login = client.post("/api/sessions", json={"agent_token": "agent-a-secret"})
+    session_token = login.json()["session_token"]
+    headers = {"Authorization": f"Bearer {session_token}"}
+
+    generated = client.post("/api/profile/suggestions/generate", headers=headers)
+
+    assert generated.status_code == 200
+    assert generated.json()["items"]
+    rationale = generated.json()["items"][0]["rationale"]
+    assert rationale["confidence"] > 0.0
+    assert rationale["provenance"]["memory"] >= 1
+    assert rationale["provenance"]["scorecard"] == 1
+    assert rationale["supporting_evidence_counts"]["style_hints.tone"] >= 1
+    assert rationale["scorecard"]["completed_count"] == 1
 
 
 def test_generate_profile_suggestions_skips_empty_recent_sessions(tmp_path: Path) -> None:

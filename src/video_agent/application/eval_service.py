@@ -58,6 +58,8 @@ class EvaluationCaseResult(BaseModel):
     agent_id: str | None = None
     profile_digest: str | None = None
     memory_ids: list[str] = Field(default_factory=list)
+    risk_signals: list[str] = Field(default_factory=list)
+    capability_gate_signals: list[str] = Field(default_factory=list)
 
 
 class EvaluationRunSummary(BaseModel):
@@ -174,6 +176,7 @@ class EvaluationService:
         quality_issue_codes = select_quality_issue_codes(issues)
         terminal_task = self.context.store.get_task(terminal_snapshot.task_id)
         task_quality_scorecard = self.context.store.get_task_quality_score(terminal_snapshot.task_id)
+        scene_spec_payload = self.context.artifact_store.read_scene_spec(terminal_snapshot.task_id) or {}
         return EvaluationCaseResult(
             case_id=case.case_id,
             task_id=terminal_snapshot.task_id,
@@ -199,6 +202,10 @@ class EvaluationService:
             agent_id=agent_id,
             profile_digest=None if terminal_task is None else terminal_task.effective_profile_digest,
             memory_ids=[] if terminal_task is None else list(terminal_task.selected_memory_ids),
+            risk_signals=[str(item) for item in scene_spec_payload.get("risk_signals", []) if isinstance(item, str)],
+            capability_gate_signals=[
+                str(item) for item in scene_spec_payload.get("capability_gate_signals", []) if isinstance(item, str)
+            ],
         )
 
     def run_strategy_challenger(

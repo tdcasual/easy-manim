@@ -210,6 +210,15 @@ def test_profile_auto_apply_threshold_uses_scorecard_derived_median(tmp_path: Pa
             summary_digest="digest-1",
         )
     )
+    context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-2",
+            agent_id="agent-a",
+            source_session_id="sess-2",
+            summary_text="Use a steady teaching tone and 1280x720 output.",
+            summary_digest="digest-1",
+        )
+    )
 
     login = client.post("/api/sessions", json={"agent_token": "agent-a-secret"})
     assert login.status_code == 200

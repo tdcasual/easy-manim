@@ -121,3 +121,40 @@ def test_workflow_writes_recovery_plan_when_preview_validation_fails(tmp_path: P
     recovery_plan = app.artifact_store.read_recovery_plan(created.task_id)
     assert recovery_plan is not None
     assert recovery_plan["selected_action"] == "preview_repair"
+
+
+def test_workflow_persists_structured_risk_and_gate_signals(tmp_path: Path) -> None:
+    app = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app.task_service.create_video_task(
+        prompt="draw a blue circle",
+        style_hints={"scene_complexity": "high", "animation_density": "high"},
+    )
+
+    app.worker.run_once()
+
+    snapshot = app.task_service.get_video_task(created.task_id)
+    scene_spec = app.artifact_store.read_scene_spec(created.task_id)
+    assert snapshot.risk_level == "high"
+    assert scene_spec is not None
+    assert scene_spec["requested_scene_complexity"] == "high"
+    assert "requested_scene_complexity:high" in scene_spec["risk_signals"]
+    assert scene_spec["capability_gate"] == {"allowed": True}
+
+
+def test_workflow_persists_second_stage_structured_risk_classification(tmp_path: Path) -> None:
+    app = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app.task_service.create_video_task(
+        prompt="show a sine wave and clearly label its amplitude",
+        style_hints={},
+    )
+
+    app.worker.run_once()
+
+    snapshot = app.task_service.get_video_task(created.task_id)
+    scene_spec = app.artifact_store.read_scene_spec(created.task_id)
+    assert scene_spec is not None
+    assert scene_spec["animation_density"] == "high"
+    assert scene_spec["generation_mode"] == "template_first"
+    assert "animation_density:high" in scene_spec["risk_signals"]
+    assert snapshot.risk_level == "high"
+    assert snapshot.generation_mode == "template_first"

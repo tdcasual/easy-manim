@@ -125,6 +125,7 @@ class WorkflowEngine:
                 "Risk profile classified",
                 risk_level=task.risk_level,
                 generation_mode=task.generation_mode,
+                risk_signals=risk_profile.triggered_signals,
             )
 
             self._transition(task, TaskPhase.SCENE_PLANNING)
@@ -135,6 +136,23 @@ class WorkflowEngine:
                 style_hints=task.style_hints,
                 generation_mode=task.generation_mode or "guided_generate",
             ).model_copy(update={"task_id": task.task_id})
+            risk_profile = self.task_risk_service.classify(
+                prompt=task.prompt,
+                style_hints=task.style_hints,
+                scene_spec=scene_spec.model_dump(mode="json"),
+            )
+            # This is the authoritative structured classification and must be persisted
+            # before downstream artifacts/events so task records stay aligned.
+            task.risk_level = risk_profile.risk_level
+            task.generation_mode = risk_profile.generation_mode
+            self.store.update_task(task)
+            self.artifact_store.write_task_snapshot(task)
+            scene_spec = scene_spec.model_copy(
+                update={
+                    "generation_mode": risk_profile.generation_mode,
+                    "risk_signals": risk_profile.triggered_signals,
+                }
+            )
             scene_spec_path = self.artifact_store.scene_spec_path(task.task_id)
             if not self._ensure_allowed_artifact_path(task, TaskPhase.SCENE_PLANNING, scene_spec_path, "scene spec artifact"):
                 return
@@ -168,6 +186,18 @@ class WorkflowEngine:
                 scene_spec=scene_spec.model_dump(mode="json"),
                 runtime_status={"mathtex": mathtex_status.model_dump(mode="json")},
             )
+            capability_gate_payload: dict[str, Any] = {"allowed": gate.allowed}
+            if gate.block_reason is not None:
+                capability_gate_payload["block_reason"] = gate.block_reason
+            if gate.suggested_mode is not None:
+                capability_gate_payload["suggested_mode"] = gate.suggested_mode
+            scene_spec = scene_spec.model_copy(
+                update={
+                    "capability_gate": capability_gate_payload,
+                    "capability_gate_signals": gate.triggered_signals,
+                }
+            )
+            self.artifact_store.write_scene_spec(task.task_id, scene_spec.model_dump(mode="json"))
             if not gate.allowed:
                 if gate.block_reason == "latex_dependency_missing":
                     self._fail_task(
