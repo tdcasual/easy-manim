@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 from video_agent.config import Settings
 from video_agent.server.main import build_settings
@@ -173,3 +175,10 @@ def test_build_settings_keeps_explicit_capability_flag_overrides(monkeypatch) ->
     assert settings.auto_repair_enabled is True
     assert settings.multi_agent_workflow_enabled is True
     assert settings.strategy_promotion_enabled is False
+
+
+def test_build_settings_rejects_unknown_capability_rollout_profile(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "unknown-profile")
+
+    with pytest.raises(ValueError, match="Unsupported capability rollout profile"):
+        build_settings(Path("data"))

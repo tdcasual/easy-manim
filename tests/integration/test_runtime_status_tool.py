@@ -1,9 +1,15 @@
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
+from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.config import Settings
+from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.app import create_app_context
+from video_agent.server.http_api import create_http_api
 from video_agent.server.mcp_tools import get_runtime_status_tool
+from tests.support import bootstrapped_settings
 
 
 def _write_executable(path: Path) -> None:
@@ -56,3 +62,85 @@ def test_runtime_status_tool_reports_binary_and_provider_state(tmp_path: Path) -
         "multi_agent_workflow_enabled": False,
         "strategy_promotion_enabled": False,
     }
+
+
+def test_http_runtime_status_returns_payload_when_auth_optional(tmp_path: Path) -> None:
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            auth_mode="optional",
+            capability_rollout_profile="supervised",
+            run_embedded_worker=False,
+        )
+    )
+    client = TestClient(create_http_api(settings))
+
+    response = client.get("/api/runtime/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["capabilities"]["rollout_profile"] == "supervised"
+    assert payload["capabilities"]["effective"] == {
+        "agent_learning_auto_apply_enabled": False,
+        "auto_repair_enabled": True,
+        "multi_agent_workflow_enabled": True,
+        "strategy_promotion_enabled": False,
+    }
+
+
+def test_http_runtime_status_requires_auth_when_mode_required(tmp_path: Path) -> None:
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            auth_mode="required",
+            run_embedded_worker=False,
+        )
+    )
+    client = TestClient(create_http_api(settings))
+
+    response = client.get("/api/runtime/status")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "missing_session_token"
+
+
+def test_http_runtime_status_allows_authenticated_read_scope(tmp_path: Path) -> None:
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            auth_mode="required",
+            run_embedded_worker=False,
+        )
+    )
+    client = TestClient(create_http_api(settings))
+    context = client.app.state.app_context
+    context.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    context.store.issue_agent_token(
+        AgentToken(
+            token_hash=hash_agent_token("agent-a-secret"),
+            agent_id="agent-a",
+            scopes_json={"allow": ["task:read"]},
+        )
+    )
+
+    login = client.post("/api/sessions", json={"agent_token": "agent-a-secret"})
+    session_token = login.json()["session_token"]
+
+    response = client.get("/api/runtime/status", headers={"Authorization": f"Bearer {session_token}"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["capabilities"]["rollout_profile"] == "conservative"
+    assert payload["capabilities"]["effective"]["auto_repair_enabled"] is False

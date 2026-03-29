@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -240,7 +240,16 @@ def create_http_api(settings: Settings) -> FastAPI:
         return {"status": "ready"}
 
     @app.get("/api/runtime/status")
-    def runtime_status() -> dict[str, Any]:
+    def runtime_status(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        if context.settings.auth_mode == "required":
+            resolved = resolve_agent_session(request, authorization=authorization)
+            try:
+                context.agent_identity_service.require_action(resolved.agent_principal, "task:read")
+            except PermissionError as exc:
+                raise _permission_http_error(exc) from exc
         return context.runtime_service.inspect().model_dump(mode="json")
 
     @app.post("/api/sessions")

@@ -87,10 +87,10 @@ def _env_path(name: str) -> Path | None:
 def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings:
     rollout_profile = os.getenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "conservative")
     normalized_rollout_profile = rollout_profile.strip().lower()
-    profile_defaults = CAPABILITY_ROLLOUT_PROFILES.get(
-        normalized_rollout_profile,
-        CAPABILITY_ROLLOUT_PROFILES["conservative"],
-    )
+    if normalized_rollout_profile not in CAPABILITY_ROLLOUT_PROFILES:
+        supported = ", ".join(sorted(CAPABILITY_ROLLOUT_PROFILES))
+        raise ValueError(f"Unsupported capability rollout profile '{rollout_profile}'. Expected one of: {supported}")
+    profile_defaults = CAPABILITY_ROLLOUT_PROFILES[normalized_rollout_profile]
     return Settings(
         data_dir=data_dir,
         database_path=data_dir / "video_agent.db",
