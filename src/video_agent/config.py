@@ -90,6 +90,10 @@ class Settings(BaseModel):
     quality_gate_min_score: float = 0.75
     risk_routing_enabled: bool = True
     strategy_promotion_enabled: bool = False
+    strategy_promotion_max_success_regression: float = 0.0
+    strategy_promotion_min_quality_gain: float = 0.01
+    strategy_promotion_max_must_fix_issue_rate: float = 0.10
+    strategy_promotion_max_repair_rate_regression: float = 0.05
 
     @model_validator(mode="after")
     def derive_paths(self) -> "Settings":

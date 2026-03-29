@@ -74,7 +74,7 @@ class EvaluationRunSummary(BaseModel):
 class EvaluationService:
     def __init__(self, context: AppContext) -> None:
         self.context = context
-        self.policy_promotion_service = PolicyPromotionService()
+        self.policy_promotion_service = PolicyPromotionService(context.settings)
 
     def run_suite(
         self,
@@ -233,20 +233,23 @@ class EvaluationService:
 
         baseline_metrics = self._promotion_metrics_from_summary(baseline_summary)
         challenger_metrics = self._promotion_metrics_from_summary(challenger_summary)
-        promotion_recommended = self.policy_promotion_service.should_promote(
+        promotion_decision = self.policy_promotion_service.evaluate_promotion(
             baseline=baseline_metrics,
             challenger=challenger_metrics,
         )
+        promotion_recommended = promotion_decision.approved
         self.context.store.record_strategy_eval_run(
             challenger_profile.strategy_id,
             baseline_summary=baseline_summary.model_dump(mode="json"),
             challenger_summary=challenger_summary.model_dump(mode="json"),
             promotion_recommended=promotion_recommended,
+            promotion_decision=promotion_decision,
         )
         return {
             "baseline": baseline_summary.model_dump(mode="json"),
             "challenger": challenger_summary.model_dump(mode="json"),
             "promotion_recommended": promotion_recommended,
+            "promotion_decision": promotion_decision.model_dump(mode="json"),
         }
 
     def _load_or_create_manifest(
@@ -321,9 +324,14 @@ class EvaluationService:
     @staticmethod
     def _promotion_metrics_from_summary(summary: EvaluationRunSummary) -> dict[str, float]:
         quality_report = summary.report.get("quality", {})
+        items = summary.items
+        total_items = len(items)
+        must_fix_cases = sum(1 for item in items if item.quality_issue_codes)
         return {
             "final_success_rate": float(summary.report.get("success_rate", 0.0) or 0.0),
             "accepted_quality_rate": float(quality_report.get("pass_rate", 0.0) or 0.0),
+            "must_fix_issue_rate": (must_fix_cases / total_items) if total_items else 0.0,
+            "repair_rate": float(summary.report.get("repair", {}).get("repair_attempt_rate", 0.0) or 0.0),
         }
 
     @staticmethod

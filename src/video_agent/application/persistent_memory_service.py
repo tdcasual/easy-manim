@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable
+from dataclasses import dataclass
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -24,6 +25,13 @@ class PersistentMemoryContext(BaseModel):
     memory_ids: list[str] = Field(default_factory=list)
     summary_text: str | None = None
     summary_digest: str | None = None
+
+
+@dataclass(frozen=True)
+class _RetrievalScore:
+    score: float
+    matched_terms: list[str]
+    match_reasons: list[str]
 
 
 def build_persistent_memory_enhancer(
@@ -131,24 +139,26 @@ class PersistentMemoryService:
         if not query_tokens:
             return []
 
-        scored: list[tuple[float, AgentMemoryRecord]] = []
+        scored: list[tuple[_RetrievalScore, AgentMemoryRecord]] = []
         for record in self.list_records(agent_id, False):
-            score = self._lexical_score(record, query=normalized_query, query_tokens=query_tokens)
-            if score <= 0:
+            retrieval_score = self._score_record(record, query=normalized_query, query_tokens=query_tokens)
+            if retrieval_score.score <= 0:
                 continue
-            scored.append((score, record))
+            scored.append((retrieval_score, record))
 
-        scored.sort(key=lambda item: (-item[0], item[1].created_at), reverse=False)
+        scored.sort(key=lambda item: (-item[0].score, item[1].created_at), reverse=False)
         return [
             AgentMemoryRetrievalHit(
                 memory_id=record.memory_id,
-                score=round(score, 6),
+                score=round(retrieval_score.score, 6),
                 summary_text=record.summary_text,
                 summary_digest=record.summary_digest,
+                matched_terms=list(retrieval_score.matched_terms),
+                match_reasons=list(retrieval_score.match_reasons),
                 lineage_refs=list(record.lineage_refs),
                 enhancement=dict(record.enhancement),
             )
-            for score, record in scored[:limit]
+            for retrieval_score, record in scored[:limit]
         ]
 
     def resolve_memory_context(self, agent_id: str, memory_ids: list[str] | None) -> PersistentMemoryContext:
@@ -202,19 +212,42 @@ class PersistentMemoryService:
         return [token for token in retrieval["tokens"] if isinstance(token, str)]
 
     @classmethod
-    def _lexical_score(cls, record: AgentMemoryRecord, *, query: str, query_tokens: list[str]) -> float:
+    def _score_record(cls, record: AgentMemoryRecord, *, query: str, query_tokens: list[str]) -> _RetrievalScore:
         retrieval = normalize_retrieval_metadata(record, existing=record.enhancement)
         tokens = [token for token in retrieval["tokens"] if isinstance(token, str)]
         keywords = [token for token in retrieval["keywords"] if isinstance(token, str)]
         if not tokens:
-            return 0.0
+            return _RetrievalScore(score=0.0, matched_terms=[], match_reasons=[])
 
         token_set = set(tokens)
         keyword_set = set(keywords)
-        overlap = sum(1 for token in query_tokens if token in token_set)
-        keyword_overlap = sum(1 for token in query_tokens if token in keyword_set)
-        phrase_bonus = 1.0 if query.lower() in str(retrieval.get("text", "")).lower() else 0.0
-        return (overlap + (keyword_overlap * 1.5) + phrase_bonus) / max(1, len(query_tokens))
+        matched_terms = sorted({token for token in query_tokens if token in token_set})
+        matched_keyword_terms = sorted({token for token in query_tokens if token in keyword_set})
+        denominator = max(1, len(set(query_tokens)))
+        token_overlap = len(matched_terms) / denominator
+        keyword_overlap = len(matched_keyword_terms) / denominator
+        phrase_match = query.lower() in str(retrieval.get("text", "")).lower()
+        phrase_score = 1.0 if phrase_match else 0.0
+
+        score = (
+            (token_overlap * 0.45)
+            + (keyword_overlap * 0.35)
+            + (phrase_score * 0.20)
+        )
+
+        match_reasons: list[str] = []
+        if matched_terms:
+            match_reasons.append("token_overlap")
+        if matched_keyword_terms:
+            match_reasons.append("keyword_overlap")
+        if phrase_match:
+            match_reasons.append("phrase_match")
+
+        return _RetrievalScore(
+            score=score,
+            matched_terms=matched_terms,
+            match_reasons=match_reasons,
+        )
 
     @staticmethod
     def _default_memory_id() -> str:

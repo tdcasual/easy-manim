@@ -190,6 +190,8 @@ def test_query_agent_memories_returns_ranked_active_records(app_context) -> None
 
     assert [item["memory_id"] for item in payload["items"]] == ["mem-b", "mem-a"]
     assert payload["items"][0]["score"] > payload["items"][1]["score"]
+    assert payload["items"][0]["matched_terms"] == ["dark", "transitions"]
+    assert "keyword_overlap" in payload["items"][0]["match_reasons"]
 
 
 def test_query_agent_memories_returns_empty_when_limit_is_zero(app_context) -> None:
@@ -242,6 +244,37 @@ def test_query_agent_memories_is_agent_scoped(app_context) -> None:
     )
 
     assert [item["memory_id"] for item in payload["items"]] == ["mem-b"]
+
+
+def test_query_agent_memories_keeps_stable_order_for_equal_scores(app_context) -> None:
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="Dark background guidance.",
+            summary_digest="digest-mem-a",
+        )
+    )
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-b",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="Dark background guidance.",
+            summary_digest="digest-mem-b",
+        )
+    )
+
+    payload = query_agent_memories_tool(
+        app_context,
+        {"query": "dark background", "limit": 5},
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    assert [item["memory_id"] for item in payload["items"]] == ["mem-a", "mem-b"]
 
 
 def test_query_agent_memories_requires_memory_read_scope(app_context) -> None:

@@ -120,6 +120,7 @@ def test_workflow_service_routes_revision_decision_to_child_task(tmp_path: Path)
 
     assert outcome.action == "revise"
     assert outcome.created_task_id is not None
+    assert outcome.reason == "revision_created"
 
 
 def test_workflow_service_escalates_when_child_budget_is_exhausted(tmp_path: Path) -> None:
@@ -141,6 +142,7 @@ def test_workflow_service_escalates_when_child_budget_is_exhausted(tmp_path: Pat
 
     assert outcome.action == "escalate"
     assert outcome.created_task_id is None
+    assert outcome.reason == "workflow_budget_exhausted"
 
 
 def test_workflow_service_raises_when_disabled(tmp_path: Path) -> None:
@@ -173,3 +175,21 @@ def test_workflow_service_get_review_bundle(tmp_path: Path) -> None:
     assert bundle.collaboration.planner_recommendation.role == "planner"
     assert bundle.collaboration.reviewer_decision.role == "reviewer"
     assert bundle.collaboration.repairer_execution_hint.role == "repairer"
+
+
+def test_workflow_service_blocks_accept_with_explicit_reason(tmp_path: Path) -> None:
+    app_context = _with_temporary_mcp_shim(lambda: _create_app_context(_build_fake_pipeline_settings(tmp_path)))
+    created = app_context.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+
+    outcome = app_context.multi_agent_workflow_service.apply_review_decision(
+        task_id=created.task_id,
+        review_decision=ReviewDecision(
+            decision="accept",
+            summary="looks good",
+        ),
+        session_id="session-1",
+        agent_principal=None,
+    )
+
+    assert outcome.action == "escalate"
+    assert outcome.reason == "acceptance_blocked"

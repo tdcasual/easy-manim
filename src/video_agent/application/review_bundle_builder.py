@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
@@ -55,6 +57,29 @@ class ReviewBundleBuilder:
             repair_hint = str(recovery_plan.get("repair_recipe") or "").strip() or None
         if not repair_hint and snapshot.failure_contract:
             repair_hint = str(snapshot.failure_contract.get("repair_strategy") or "").strip() or None
+        quality_scorecard = self.task_service.get_quality_score(snapshot.task_id)
+        if quality_scorecard is None:
+            quality_scorecard_json = None
+        elif isinstance(quality_scorecard, dict):
+            quality_scorecard_json = dict(quality_scorecard)
+        else:
+            quality_scorecard_json = quality_scorecard.model_dump(mode="json")
+        must_fix_issue_codes = self._must_fix_issue_codes(quality_scorecard_json)
+        acceptance_blockers = self._acceptance_blockers(
+            status=snapshot.status.value,
+            quality_gate_status=snapshot.quality_gate_status,
+            must_fix_issue_codes=must_fix_issue_codes,
+            latest_validation_summary=snapshot.latest_validation_summary,
+            failure_contract=snapshot.failure_contract,
+        )
+        decision_trace = self._decision_trace(
+            status=snapshot.status.value,
+            quality_gate_status=snapshot.quality_gate_status,
+            must_fix_issue_codes=must_fix_issue_codes,
+            latest_validation_summary=snapshot.latest_validation_summary,
+            failure_contract=snapshot.failure_contract,
+            recovery_plan=recovery_plan,
+        )
 
         return ReviewBundle(
             task_id=snapshot.task_id,
@@ -70,8 +95,11 @@ class ReviewBundleBuilder:
             failure_contract=snapshot.failure_contract,
             scene_spec=self.task_service.get_scene_spec(snapshot.task_id),
             recovery_plan=recovery_plan,
-            quality_scorecard=self.task_service.get_quality_score(snapshot.task_id),
+            quality_scorecard=quality_scorecard_json,
             quality_gate_status=snapshot.quality_gate_status,
+            must_fix_issue_codes=must_fix_issue_codes,
+            acceptance_blockers=acceptance_blockers,
+            decision_trace=decision_trace,
             task_events=events,
             session_memory_summary=session_memory_summary or "",
             video_resource=result.video_resource,
@@ -93,3 +121,75 @@ class ReviewBundleBuilder:
                 ),
             ),
         )
+
+    @staticmethod
+    def _must_fix_issue_codes(quality_scorecard: dict[str, Any] | None) -> list[str]:
+        if not isinstance(quality_scorecard, dict):
+            return []
+        return [
+            str(item)
+            for item in quality_scorecard.get("must_fix_issues", []) or []
+            if str(item).strip()
+        ]
+
+    @classmethod
+    def _acceptance_blockers(
+        cls,
+        *,
+        status: str,
+        quality_gate_status: str | None,
+        must_fix_issue_codes: list[str],
+        latest_validation_summary: dict[str, Any],
+        failure_contract: dict[str, Any] | None,
+    ) -> list[str]:
+        blockers: list[str] = []
+        if status != "completed":
+            blockers.append("task_not_completed")
+        if quality_gate_status and quality_gate_status != "accepted":
+            blockers.append("quality_gate_not_accepted")
+        if must_fix_issue_codes:
+            blockers.append("must_fix_issue_codes")
+        if cls._unresolved_validation_issue_codes(latest_validation_summary):
+            blockers.append("unresolved_validation_issues")
+        if isinstance(failure_contract, dict) and str(failure_contract.get("recommended_action") or "").strip():
+            blockers.append("failure_contract_active")
+        return blockers
+
+    @classmethod
+    def _decision_trace(
+        cls,
+        *,
+        status: str,
+        quality_gate_status: str | None,
+        must_fix_issue_codes: list[str],
+        latest_validation_summary: dict[str, Any],
+        failure_contract: dict[str, Any] | None,
+        recovery_plan: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        return {
+            "status": status,
+            "quality_gate_status": quality_gate_status,
+            "must_fix_issue_codes": list(must_fix_issue_codes),
+            "unresolved_validation_issue_codes": cls._unresolved_validation_issue_codes(latest_validation_summary),
+            "failure_recommended_action": None
+            if not isinstance(failure_contract, dict)
+            else str(failure_contract.get("recommended_action") or "").strip() or None,
+            "recovery_selected_action": None
+            if not isinstance(recovery_plan, dict)
+            else str(recovery_plan.get("selected_action") or "").strip() or None,
+        }
+
+    @staticmethod
+    def _unresolved_validation_issue_codes(latest_validation_summary: dict[str, Any]) -> list[str]:
+        issues = latest_validation_summary.get("issues", []) if isinstance(latest_validation_summary, dict) else []
+        codes: list[str] = []
+        for item in issues or []:
+            if not isinstance(item, dict):
+                continue
+            code = str(item.get("code") or "").strip()
+            if not code:
+                continue
+            if bool(item.get("resolved")):
+                continue
+            codes.append(code)
+        return codes

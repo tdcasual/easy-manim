@@ -46,14 +46,28 @@ class AgentProfileSuggestion(BaseModel):
                 continue
         return counts
 
+    @property
+    def field_support(self) -> dict[str, dict[str, Any]]:
+        raw = self.rationale_json.get("field_support", {})
+        if not isinstance(raw, dict):
+            return {}
+        return {
+            str(field): value
+            for field, value in raw.items()
+            if isinstance(value, dict)
+        }
+
     def is_safe_for_auto_apply(
         self,
         *,
         min_confidence: float = 0.8,
     ) -> bool:
+        supporting_evidence_counts = self.supporting_evidence_counts
         return (
             self.status == "pending"
             and bool(self.patch_json)
             and self.confidence >= min_confidence
             and not self.conflicts
+            and bool(supporting_evidence_counts)
+            and all(count >= 2 for count in supporting_evidence_counts.values())
         )

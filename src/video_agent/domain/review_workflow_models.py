@@ -78,6 +78,9 @@ class ReviewBundle(BaseModel):
     recovery_plan: dict[str, Any] | None = None
     quality_scorecard: dict[str, Any] | None = None
     quality_gate_status: str | None = None
+    must_fix_issue_codes: list[str] = Field(default_factory=list)
+    acceptance_blockers: list[str] = Field(default_factory=list)
+    decision_trace: dict[str, Any] = Field(default_factory=dict)
     task_events: list[dict[str, Any]] = Field(default_factory=list)
     session_memory_summary: str = ""
     video_resource: str | None = None

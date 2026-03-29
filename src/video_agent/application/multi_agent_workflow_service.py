@@ -70,6 +70,7 @@ class MultiAgentWorkflowService:
             )
 
         if action == "revise":
+            from_repair_hint = review_decision.resolved_decision() == "repair"
             feedback = (
                 review_decision.feedback
                 or (
@@ -92,7 +93,7 @@ class MultiAgentWorkflowService:
                 root_task_id=bundle.root_task_id,
                 action="revise",
                 created_task_id=created.task_id,
-                reason="revision_created",
+                reason="revision_created_from_repair_hint" if from_repair_hint else "revision_created",
             )
 
         return ReviewDecisionOutcome(
@@ -100,5 +101,14 @@ class MultiAgentWorkflowService:
             root_task_id=bundle.root_task_id,
             action="escalate",
             created_task_id=None,
-            reason="workflow_budget_exhausted",
+            reason=self._escalation_reason(bundle=bundle, review_decision=review_decision),
         )
+
+    def _escalation_reason(self, *, bundle: ReviewBundle, review_decision: ReviewDecision) -> str:
+        if bundle.child_attempt_count >= self.policy.settings.multi_agent_workflow_max_child_attempts:
+            return "workflow_budget_exhausted"
+        if review_decision.resolved_decision() == "accept":
+            return "acceptance_blocked"
+        if review_decision.resolved_decision() == "repair":
+            return "repair_hint_missing"
+        return "workflow_budget_exhausted"

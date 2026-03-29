@@ -18,6 +18,7 @@ from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
 from video_agent.domain.quality_models import QualityScorecard
 from video_agent.domain.strategy_models import StrategyProfile
+from video_agent.domain.strategy_models import StrategyPromotionDecision
 from video_agent.domain.validation_models import ValidationReport
 
 
@@ -1009,10 +1010,17 @@ class SQLiteTaskStore:
         baseline_summary: dict[str, Any],
         challenger_summary: dict[str, Any],
         promotion_recommended: bool,
+        promotion_decision: StrategyPromotionDecision | dict[str, Any] | None = None,
     ) -> StrategyProfile:
         profile = self.get_strategy_profile(strategy_id)
         if profile is None:
             raise ValueError(f"Unknown strategy profile: {strategy_id}")
+        if promotion_decision is None:
+            decision_payload: dict[str, Any] = {"approved": promotion_recommended, "reasons": [], "deltas": {}}
+        elif isinstance(promotion_decision, StrategyPromotionDecision):
+            decision_payload = promotion_decision.model_dump(mode="json")
+        else:
+            decision_payload = dict(promotion_decision)
 
         profile.metrics = {
             **profile.metrics,
@@ -1024,6 +1032,7 @@ class SQLiteTaskStore:
                 "baseline_accepted_quality_rate": baseline_summary.get("report", {}).get("quality", {}).get("pass_rate", 0.0),
                 "challenger_accepted_quality_rate": challenger_summary.get("report", {}).get("quality", {}).get("pass_rate", 0.0),
                 "promotion_recommended": promotion_recommended,
+                "promotion_decision": decision_payload,
             },
         }
         return self.create_strategy_profile(profile)

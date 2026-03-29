@@ -96,6 +96,8 @@ def test_memory_retrieval_endpoint_returns_ranked_active_memories(tmp_path: Path
     payload = response.json()
     assert [item["memory_id"] for item in payload["items"]] == ["mem-a"]
     assert payload["items"][0]["score"] > 0
+    assert payload["items"][0]["matched_terms"] == ["dark", "transitions"]
+    assert "keyword_overlap" in payload["items"][0]["match_reasons"]
     assert "source_session_id" not in payload["items"][0]
 
 
@@ -122,6 +124,44 @@ def test_memory_retrieval_works_without_embeddings_for_local_backend(tmp_path: P
     )
     assert retrieved.status_code == 200
     assert retrieved.json()["items"]
+    assert retrieved.json()["items"][0]["matched_terms"] == ["background", "dark"]
+
+
+def test_memory_retrieval_endpoint_keeps_stable_order_for_equal_scores(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_memory_settings(tmp_path)))
+    _seed_agent_profile_and_token(client)
+    token = client.post("/api/sessions", json={"agent_token": "agent-a-secret"}).json()["session_token"]
+
+    context = client.app.state.app_context
+    context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-a",
+            status="active",
+            summary_text="Dark background guidance.",
+            summary_digest="digest-a",
+        )
+    )
+    context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-b",
+            agent_id="agent-a",
+            source_session_id="session-b",
+            status="active",
+            summary_text="Dark background guidance.",
+            summary_digest="digest-b",
+        )
+    )
+
+    response = client.post(
+        "/api/memories/retrieve",
+        json={"query": "dark background", "limit": 5},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert [item["memory_id"] for item in response.json()["items"]] == ["mem-a", "mem-b"]
 
 
 def test_memory_retrieval_endpoint_is_agent_scoped(tmp_path: Path) -> None:

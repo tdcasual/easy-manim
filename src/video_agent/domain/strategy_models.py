@@ -26,3 +26,9 @@ class PromptClusterStats(BaseModel):
     total_runs: int = 0
     success_rate: float = 0.0
     average_quality_score: float | None = None
+
+
+class StrategyPromotionDecision(BaseModel):
+    approved: bool
+    reasons: list[str] = Field(default_factory=list)
+    deltas: dict[str, float] = Field(default_factory=dict)

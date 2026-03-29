@@ -10,6 +10,8 @@ from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.application.review_bundle_builder import ReviewBundleBuilder
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.enums import TaskPhase, TaskStatus
+from video_agent.domain.quality_models import QualityScorecard
 from tests.support import bootstrapped_settings
 
 
@@ -184,3 +186,42 @@ def test_review_bundle_builder_respects_agent_scoping(tmp_path: Path) -> None:
 
     with pytest.raises(PermissionError):
         builder.build(task_id=created.task_id, agent_principal=agent_b)
+
+
+def test_review_bundle_builder_derives_acceptance_blockers_and_trace(tmp_path: Path) -> None:
+    app_context = _with_temporary_mcp_shim(lambda: _create_app_context(_build_fake_pipeline_settings(tmp_path)))
+    created = app_context.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+    task = app_context.store.get_task(created.task_id)
+    assert task is not None
+    task.status = TaskStatus.FAILED
+    task.phase = TaskPhase.FAILED
+    task.quality_gate_status = "needs_revision"
+    app_context.store.update_task(task)
+    app_context.store.upsert_task_quality_score(
+        created.task_id,
+        QualityScorecard(
+            task_id=created.task_id,
+            accepted=False,
+            must_fix_issues=["timing_overlap"],
+        ),
+    )
+    app_context.artifact_store.write_recovery_plan(
+        created.task_id,
+        {
+            "selected_action": "repair",
+            "repair_recipe": "tighten timing and layout",
+        },
+    )
+
+    builder = ReviewBundleBuilder(
+        task_service=app_context.task_service,
+        store=app_context.store,
+        session_memory_service=app_context.session_memory_service,
+    )
+    bundle = builder.build(task_id=created.task_id, agent_principal=None)
+
+    assert bundle.must_fix_issue_codes == ["timing_overlap"]
+    assert "quality_gate_not_accepted" in bundle.acceptance_blockers
+    assert "must_fix_issue_codes" in bundle.acceptance_blockers
+    assert bundle.decision_trace["quality_gate_status"] == "needs_revision"
+    assert bundle.decision_trace["recovery_selected_action"] == "repair"

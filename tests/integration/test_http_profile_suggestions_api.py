@@ -143,6 +143,38 @@ def test_generate_profile_suggestions_uses_recent_session_summaries(tmp_path: Pa
     assert generated.json()["items"][0]["rationale"]["provenance"]["session_summary"] >= 1
 
 
+def test_generate_profile_suggestions_memory_and_summary_can_corroborate_evidence(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_profile_suggestion_settings(tmp_path)))
+    _seed_agent_inputs(client)
+
+    login = client.post("/api/sessions", json={"agent_token": "agent-a-secret"})
+    session_token = login.json()["session_token"]
+    headers = {"Authorization": f"Bearer {session_token}"}
+
+    context = client.app.state.app_context
+    session = context.agent_session_service.resolve_session(session_token)
+    task = VideoTask(
+        prompt="Prefer a teaching tone.",
+        agent_id="agent-a",
+        session_id=session.session_id,
+        status=TaskStatus.COMPLETED,
+    )
+    context.session_memory_service.record_task_created(task, attempt_kind="create")
+    context.session_memory_service.record_task_outcome(
+        task,
+        result_summary="Recent successful sessions used a teaching tone.",
+    )
+
+    generated = client.post("/api/profile/suggestions/generate", headers=headers)
+
+    assert generated.status_code == 200
+    assert generated.json()["items"]
+    rationale = generated.json()["items"][0]["rationale"]
+    assert rationale["supporting_evidence_counts"]["style_hints.tone"] >= 2
+    assert rationale["field_support"]["style_hints.tone"]["source_type_counts"]["memory"] >= 1
+    assert rationale["field_support"]["style_hints.tone"]["source_type_counts"]["session_summary"] >= 1
+
+
 def test_generate_profile_suggestions_includes_scorecard_confidence_and_evidence_counts(tmp_path: Path) -> None:
     client = TestClient(create_http_api(_build_http_profile_suggestion_settings(tmp_path)))
     _seed_agent_inputs(client)
@@ -160,6 +192,7 @@ def test_generate_profile_suggestions_includes_scorecard_confidence_and_evidence
     assert rationale["provenance"]["memory"] >= 1
     assert rationale["provenance"]["scorecard"] == 1
     assert rationale["supporting_evidence_counts"]["style_hints.tone"] >= 1
+    assert rationale["field_support"]["style_hints.tone"]["support_count"] >= 1
     assert rationale["scorecard"]["completed_count"] == 1
 
 

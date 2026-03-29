@@ -9,6 +9,8 @@ from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile
 from video_agent.domain.quality_models import QualityScorecard
+from video_agent.domain.enums import TaskStatus
+from video_agent.domain.models import VideoTask
 from video_agent.server.http_api import create_http_api
 from tests.support import bootstrapped_settings
 
@@ -362,3 +364,180 @@ def test_auto_apply_treats_split_single_field_evidence_as_low_confidence(tmp_pat
     profile = client.get("/api/profile", headers={"Authorization": f"Bearer {login_token}"})
     assert profile.status_code == 200
     assert profile.json()["profile_json"]["style_hints"]["tone"] == "patient"
+
+
+def test_auto_apply_allows_memory_plus_summary_corroboration(tmp_path) -> None:
+    high_quality = quality_score_from_scorecard(QualityScorecard(total_score=0.98, accepted=True))
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+            agent_learning_auto_apply_enabled=True,
+            agent_learning_auto_apply_min_completed_tasks=2,
+            agent_learning_auto_apply_min_quality_score=0.90,
+            agent_learning_auto_apply_max_recent_failures=0,
+        )
+    )
+    app = create_http_api(settings)
+    ctx = app.state.app_context
+    ctx.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-1",
+            agent_id="agent-a",
+            source_session_id="sess-1",
+            summary_text="Use a teaching tone.",
+            summary_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-1",
+            agent_id="agent-a",
+            task_id="task-1",
+            session_id="sess-1",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-2",
+            agent_id="agent-a",
+            task_id="task-2",
+            session_id="sess-2",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+
+    token_payload = run_repo_module_json(
+        "video_agent.agent_admin.main",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "issue-token",
+        "--agent-id",
+        "agent-a",
+    )
+    client = TestClient(app)
+    login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
+    login_token = login.json()["session_token"]
+
+    session = ctx.agent_session_service.resolve_session(login_token)
+    task = VideoTask(
+        prompt="Prefer a teaching tone.",
+        agent_id="agent-a",
+        session_id=session.session_id,
+        status=TaskStatus.COMPLETED,
+    )
+    ctx.session_memory_service.record_task_created(task, attempt_kind="create")
+    ctx.session_memory_service.record_task_outcome(
+        task,
+        result_summary="Successful sessions preferred a teaching tone.",
+    )
+
+    generated = client.post("/api/profile/suggestions/generate", headers={"Authorization": f"Bearer {login_token}"})
+
+    assert generated.status_code == 200
+    assert generated.json()["items"]
+    assert generated.json()["items"][0]["status"] == "applied"
+    assert generated.json()["items"][0]["rationale"]["supporting_evidence_counts"]["style_hints.tone"] >= 2
+    assert generated.json()["items"][0]["rationale"]["field_support"]["style_hints.tone"]["source_type_counts"]["memory"] >= 1
+    assert generated.json()["items"][0]["rationale"]["field_support"]["style_hints.tone"]["source_type_counts"]["session_summary"] >= 1
+
+
+def test_auto_apply_keeps_conflicting_evidence_pending(tmp_path) -> None:
+    high_quality = quality_score_from_scorecard(QualityScorecard(total_score=0.98, accepted=True))
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            run_embedded_worker=False,
+            auth_mode="required",
+            agent_learning_auto_apply_enabled=True,
+            agent_learning_auto_apply_min_completed_tasks=2,
+            agent_learning_auto_apply_min_quality_score=0.90,
+            agent_learning_auto_apply_max_recent_failures=0,
+        )
+    )
+    app = create_http_api(settings)
+    ctx = app.state.app_context
+    ctx.store.upsert_agent_profile(
+        AgentProfile(
+            agent_id="agent-a",
+            name="Agent A",
+            profile_json={"style_hints": {"tone": "patient"}},
+        )
+    )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-1",
+            agent_id="agent-a",
+            source_session_id="sess-1",
+            summary_text="Use a teaching tone and steady pacing.",
+            summary_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-2",
+            agent_id="agent-a",
+            source_session_id="sess-2",
+            summary_text="Use a direct tone and steady pacing.",
+            summary_digest="digest-2",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-1",
+            agent_id="agent-a",
+            task_id="task-1",
+            session_id="sess-1",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+    ctx.store.create_agent_learning_event(
+        AgentLearningEvent(
+            event_id="learn-2",
+            agent_id="agent-a",
+            task_id="task-2",
+            session_id="sess-2",
+            status="completed",
+            quality_score=high_quality,
+            profile_digest="digest-1",
+        )
+    )
+
+    token_payload = run_repo_module_json(
+        "video_agent.agent_admin.main",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "issue-token",
+        "--agent-id",
+        "agent-a",
+    )
+    client = TestClient(app)
+    login = client.post("/api/sessions", json={"agent_token": token_payload["agent_token"]})
+    login_token = login.json()["session_token"]
+
+    generated = client.post("/api/profile/suggestions/generate", headers={"Authorization": f"Bearer {login_token}"})
+
+    assert generated.status_code == 200
+    assert generated.json()["items"]
+    assert generated.json()["items"][0]["status"] == "pending"
+    assert generated.json()["items"][0]["rationale"]["conflicts"]
+    assert generated.json()["items"][0]["rationale"]["supporting_evidence_counts"]["style_hints.pace"] >= 2

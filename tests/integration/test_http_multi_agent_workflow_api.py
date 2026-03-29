@@ -133,6 +133,7 @@ def test_http_review_bundle_and_decision_flow(tmp_path: Path) -> None:
     assert decision.status_code == 200
     assert decision.json()["action"] == "revise"
     assert decision.json()["created_task_id"]
+    assert decision.json()["reason"] == "revision_created"
 
 
 def test_http_review_workflow_is_agent_scoped(tmp_path: Path) -> None:
@@ -198,3 +199,32 @@ def test_http_review_decision_rejects_invalid_payload(tmp_path: Path) -> None:
 
     assert decision.status_code == 400
     assert decision.json()["detail"] == "invalid_review_decision"
+
+
+def test_http_review_decision_returns_acceptance_blocked_reason(tmp_path: Path) -> None:
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    session_token = _login(client, "agent-a-secret")
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "draw a circle"},
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+    assert created.status_code == 200
+    task_id = created.json()["task_id"]
+
+    decision = client.post(
+        f"/api/tasks/{task_id}/review-decision",
+        json={
+            "review_decision": {
+                "decision": "accept",
+                "summary": "Looks good",
+            }
+        },
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+
+    assert decision.status_code == 200
+    assert decision.json()["action"] == "escalate"
+    assert decision.json()["reason"] == "acceptance_blocked"

@@ -29,5 +29,7 @@ class AgentMemoryRetrievalHit(BaseModel):
     score: float
     summary_text: str
     summary_digest: str
+    matched_terms: list[str] = Field(default_factory=list)
+    match_reasons: list[str] = Field(default_factory=list)
     lineage_refs: list[str] = Field(default_factory=list)
     enhancement: dict[str, Any] = Field(default_factory=dict)

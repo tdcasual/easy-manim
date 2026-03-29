@@ -141,6 +141,7 @@ def test_apply_review_decision_tool_creates_revision_for_revise_decision(tmp_pat
 
     assert payload["action"] == "revise"
     assert payload["created_task_id"]
+    assert payload["reason"] == "revision_created"
 
     revised = app_context.store.get_task(payload["created_task_id"])
     assert revised is not None
@@ -184,6 +185,7 @@ def test_apply_review_decision_tool_accepts_collaboration_only_repair_hint(tmp_p
 
     assert payload["action"] == "revise"
     assert payload["created_task_id"]
+    assert payload["reason"] == "revision_created"
 
 
 def test_review_workflow_mutations_remain_orchestrator_owned(tmp_path: Path) -> None:
@@ -278,3 +280,27 @@ def test_review_workflow_tools_require_task_read_scope(tmp_path: Path) -> None:
 
     assert bundle["error"]["code"] == "agent_scope_denied"
     assert decision["error"]["code"] == "agent_scope_denied"
+
+
+def test_apply_review_decision_tool_returns_acceptance_blocked_reason(tmp_path: Path) -> None:
+    apply_review_decision_tool, create_video_task_tool, _ = _get_mcp_tools()
+    app_context = _create_app_context(_build_settings(tmp_path))
+    created = create_video_task_tool(
+        app_context,
+        {"prompt": "draw a circle", "session_id": "session-1"},
+    )
+
+    payload = apply_review_decision_tool(
+        app_context,
+        {
+            "task_id": created["task_id"],
+            "review_decision": {
+                "decision": "accept",
+                "summary": "Looks good",
+            },
+            "session_id": "session-1",
+        },
+    )
+
+    assert payload["action"] == "escalate"
+    assert payload["reason"] == "acceptance_blocked"

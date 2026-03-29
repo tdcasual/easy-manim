@@ -86,6 +86,11 @@ def test_eval_service_runs_challenger_and_records_strategy_metrics(tmp_path: Pat
     assert len(profiles) == 1
     assert profiles[0].metrics["last_eval_run"]["challenger_run_id"] == result["challenger"]["run_id"]
     assert "promotion_recommended" in profiles[0].metrics["last_eval_run"]
+    assert "promotion_decision" in profiles[0].metrics["last_eval_run"]
+    assert isinstance(profiles[0].metrics["last_eval_run"]["promotion_decision"]["approved"], bool)
+    assert isinstance(profiles[0].metrics["last_eval_run"]["promotion_decision"]["reasons"], list)
+    assert isinstance(profiles[0].metrics["last_eval_run"]["promotion_decision"]["deltas"], dict)
+    assert result["promotion_recommended"] == result["promotion_decision"]["approved"]
 
 
 def test_eval_service_includes_scene_spec_signals_in_eval_items(tmp_path: Path) -> None:
