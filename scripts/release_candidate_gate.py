@@ -58,6 +58,13 @@ def evaluate_gate_result(
         reasons.append(
             f"repair_success_rate {repair_success_rate:.2f} below threshold {min_repair_success_rate:.2f}"
         )
+    rollout_profile = payload.get("capability_rollout_profile", {})
+    expected_rollout_profile = rollout_profile.get("expected")
+    active_rollout_profile = rollout_profile.get("active")
+    if expected_rollout_profile and active_rollout_profile != expected_rollout_profile:
+        reasons.append(
+            f"capability_rollout_profile active={active_rollout_profile!r} expected={expected_rollout_profile!r}"
+        )
 
     return {"ok": not reasons, "reasons": reasons}
 
@@ -101,6 +108,7 @@ def _build_env(mode: str, scratch_dir: Path) -> tuple[dict[str, str], Path]:
         env["EASY_MANIM_FFMPEG_COMMAND"] = str(commands["ffmpeg"])
         env["EASY_MANIM_FFPROBE_COMMAND"] = str(commands["ffprobe"])
         env.setdefault("EASY_MANIM_RELEASE_CHANNEL", "rc")
+        env.setdefault("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "conservative")
         env.setdefault("EASY_MANIM_AUTO_REPAIR_ENABLED", "true")
     return env, data_dir
 
@@ -183,12 +191,13 @@ def run_release_candidate_gate(
             env=env,
             cwd=root,
         )
+        doctor_result_payload = _parse_json(doctor_result.stdout) if doctor_result.stdout.strip() else {}
 
         summary = {
             "doctor": {
                 "status": _status_for(doctor_result),
                 "returncode": doctor_result.returncode,
-                "payload": _parse_json(doctor_result.stdout) if doctor_result.stdout.strip() else {},
+                "payload": doctor_result_payload,
             },
             "tests": {
                 "status": _status_for(tests_result),
@@ -207,6 +216,10 @@ def run_release_candidate_gate(
             "repair_eval": {
                 "status": _status_for(repair_eval_result),
                 "returncode": repair_eval_result.returncode,
+            },
+            "capability_rollout_profile": {
+                "expected": env.get("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "conservative").strip().lower(),
+                "active": doctor_result_payload.get("capabilities", {}).get("rollout_profile"),
             },
         }
 

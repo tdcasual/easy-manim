@@ -239,6 +239,10 @@ def create_http_api(settings: Settings) -> FastAPI:
     def readyz() -> dict[str, str]:
         return {"status": "ready"}
 
+    @app.get("/api/runtime/status")
+    def runtime_status() -> dict[str, Any]:
+        return context.runtime_service.inspect().model_dump(mode="json")
+
     @app.post("/api/sessions")
     def create_session(payload: SessionLoginRequest) -> dict[str, object]:
         try:

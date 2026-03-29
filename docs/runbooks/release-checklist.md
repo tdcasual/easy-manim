@@ -6,6 +6,7 @@
 - Run `python -m pytest -q` in the project virtualenv
 - Run `python scripts/beta_smoke.py --mode ci`
 - Run `python scripts/release_candidate_gate.py --mode ci`
+- Set `EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE` explicitly (recommended `conservative` for RC) before running CI gate/evals
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --json`
 - Run one agent-targeted eval: `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag smoke --agent-id agent-a --memory-id mem-1 --profile-patch-json '{"style_hints":{"tone":"teaching"}}' --json`
 - Run `easy-manim-eval-run --data-dir data --suite evals/beta_prompt_suite.json --include-tag quality --json`
@@ -28,6 +29,7 @@
 - Start `easy-manim-api --host 127.0.0.1 --port 8001 --data-dir data --no-embedded-worker` and confirm the process stays up
 - Start `easy-manim-worker --data-dir data` and confirm queued tasks are drained
 - Verify `get_runtime_status`, `list_video_tasks`, `get_task_events`, and `get_metrics_snapshot` return useful data
+- Verify `get_runtime_status` reports `capabilities.rollout_profile` and expected effective capability flags
 - Verify worker heartbeats expose the configured worker identity
 - Verify one HTTP login -> task create -> result read -> logout flow succeeds with `Authorization: Bearer <session_token>`
 - Verify `GET /api/profile/evals` only returns eval summaries for the authenticated agent

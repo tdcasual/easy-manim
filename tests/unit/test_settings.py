@@ -131,3 +131,45 @@ def test_build_settings_reads_reliability_env(monkeypatch) -> None:
     assert settings.quality_gate_min_score == 0.9
     assert settings.risk_routing_enabled is False
     assert settings.strategy_promotion_enabled is True
+
+
+def test_settings_default_to_conservative_rollout_profile() -> None:
+    settings = Settings()
+
+    assert settings.capability_rollout_profile == "conservative"
+    assert settings.agent_learning_auto_apply_enabled is False
+    assert settings.auto_repair_enabled is False
+    assert settings.multi_agent_workflow_enabled is False
+    assert settings.strategy_promotion_enabled is False
+
+
+def test_build_settings_reads_capability_rollout_profile(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "autonomy-lite")
+    monkeypatch.delenv("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_AUTO_REPAIR_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_STRATEGY_PROMOTION_ENABLED", raising=False)
+
+    settings = build_settings(Path("data"))
+
+    assert settings.capability_rollout_profile == "autonomy-lite"
+    assert settings.agent_learning_auto_apply_enabled is True
+    assert settings.auto_repair_enabled is True
+    assert settings.multi_agent_workflow_enabled is True
+    assert settings.strategy_promotion_enabled is True
+
+
+def test_build_settings_keeps_explicit_capability_flag_overrides(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "autonomy-lite")
+    monkeypatch.setenv("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED", "false")
+    monkeypatch.setenv("EASY_MANIM_STRATEGY_PROMOTION_ENABLED", "false")
+    monkeypatch.delenv("EASY_MANIM_AUTO_REPAIR_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", raising=False)
+
+    settings = build_settings(Path("data"))
+
+    assert settings.capability_rollout_profile == "autonomy-lite"
+    assert settings.agent_learning_auto_apply_enabled is False
+    assert settings.auto_repair_enabled is True
+    assert settings.multi_agent_workflow_enabled is True
+    assert settings.strategy_promotion_enabled is False

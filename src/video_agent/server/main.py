@@ -6,7 +6,7 @@ from pathlib import Path
 
 from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
-from video_agent.config import DEFAULT_STUB_LLM_MODEL, Settings
+from video_agent.config import CAPABILITY_ROLLOUT_PROFILES, DEFAULT_STUB_LLM_MODEL, Settings
 from video_agent.version import get_release_metadata
 
 
@@ -85,6 +85,12 @@ def _env_path(name: str) -> Path | None:
 
 
 def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings:
+    rollout_profile = os.getenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "conservative")
+    normalized_rollout_profile = rollout_profile.strip().lower()
+    profile_defaults = CAPABILITY_ROLLOUT_PROFILES.get(
+        normalized_rollout_profile,
+        CAPABILITY_ROLLOUT_PROFILES["conservative"],
+    )
     return Settings(
         data_dir=data_dir,
         database_path=data_dir / "video_agent.db",
@@ -123,17 +129,27 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         worker_stale_after_seconds=_env_int("EASY_MANIM_WORKER_STALE_AFTER_SECONDS", 30),
         max_queued_tasks=_env_int("EASY_MANIM_MAX_QUEUED_TASKS", 20),
         max_attempts_per_root_task=_env_int("EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK", 5),
-        agent_learning_auto_apply_enabled=_env_bool("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED", False),
+        capability_rollout_profile=rollout_profile,
+        agent_learning_auto_apply_enabled=_env_bool(
+            "EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED",
+            profile_defaults["agent_learning_auto_apply_enabled"],
+        ),
         agent_learning_auto_apply_min_completed_tasks=_env_int("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_MIN_COMPLETED_TASKS", 5),
         agent_learning_auto_apply_min_quality_score=_env_float("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_MIN_QUALITY_SCORE", 0.9),
         agent_learning_auto_apply_max_recent_failures=_env_int("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_MAX_RECENT_FAILURES", 0),
-        auto_repair_enabled=_env_bool("EASY_MANIM_AUTO_REPAIR_ENABLED", False),
+        auto_repair_enabled=_env_bool(
+            "EASY_MANIM_AUTO_REPAIR_ENABLED",
+            profile_defaults["auto_repair_enabled"],
+        ),
         auto_repair_max_children_per_root=_env_int("EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT", 2),
         auto_repair_retryable_issue_codes=_env_csv(
             "EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES",
             DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES,
         ),
-        multi_agent_workflow_enabled=_env_bool("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", False),
+        multi_agent_workflow_enabled=_env_bool(
+            "EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED",
+            profile_defaults["multi_agent_workflow_enabled"],
+        ),
         multi_agent_workflow_max_child_attempts=_env_int("EASY_MANIM_MULTI_AGENT_WORKFLOW_MAX_CHILD_ATTEMPTS", 3),
         multi_agent_workflow_require_completed_for_accept=_env_bool(
             "EASY_MANIM_MULTI_AGENT_WORKFLOW_REQUIRE_COMPLETED_FOR_ACCEPT",
@@ -143,7 +159,10 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         preview_gate_frame_limit=_env_int("EASY_MANIM_PREVIEW_GATE_FRAME_LIMIT", 12),
         quality_gate_min_score=_env_float("EASY_MANIM_QUALITY_GATE_MIN_SCORE", 0.75),
         risk_routing_enabled=_env_bool("EASY_MANIM_RISK_ROUTING_ENABLED", True),
-        strategy_promotion_enabled=_env_bool("EASY_MANIM_STRATEGY_PROMOTION_ENABLED", False),
+        strategy_promotion_enabled=_env_bool(
+            "EASY_MANIM_STRATEGY_PROMOTION_ENABLED",
+            profile_defaults["strategy_promotion_enabled"],
+        ),
     )
 
 

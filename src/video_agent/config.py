@@ -5,6 +5,26 @@ from pydantic import BaseModel, Field, model_validator
 from video_agent.agent_policy import DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES
 
 DEFAULT_STUB_LLM_MODEL = "stub-manim-v1"
+CAPABILITY_ROLLOUT_PROFILES: dict[str, dict[str, bool]] = {
+    "conservative": {
+        "agent_learning_auto_apply_enabled": False,
+        "auto_repair_enabled": False,
+        "multi_agent_workflow_enabled": False,
+        "strategy_promotion_enabled": False,
+    },
+    "supervised": {
+        "agent_learning_auto_apply_enabled": False,
+        "auto_repair_enabled": True,
+        "multi_agent_workflow_enabled": True,
+        "strategy_promotion_enabled": False,
+    },
+    "autonomy-lite": {
+        "agent_learning_auto_apply_enabled": True,
+        "auto_repair_enabled": True,
+        "multi_agent_workflow_enabled": True,
+        "strategy_promotion_enabled": True,
+    },
+}
 
 
 class Settings(BaseModel):
@@ -52,6 +72,7 @@ class Settings(BaseModel):
     persistent_memory_enable_embeddings: bool = False
     persistent_memory_embedding_provider: str | None = None
     persistent_memory_embedding_model: str | None = None
+    capability_rollout_profile: str = "conservative"
     agent_learning_auto_apply_enabled: bool = False
     agent_learning_auto_apply_min_completed_tasks: int = 5
     agent_learning_auto_apply_min_quality_score: float = 0.9
@@ -72,6 +93,14 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def derive_paths(self) -> "Settings":
+        profile_name = self.capability_rollout_profile.strip().lower()
+        if profile_name not in CAPABILITY_ROLLOUT_PROFILES:
+            supported = ", ".join(sorted(CAPABILITY_ROLLOUT_PROFILES))
+            raise ValueError(f"Unsupported capability rollout profile '{self.capability_rollout_profile}'. Expected one of: {supported}")
+        self.capability_rollout_profile = profile_name
+        for flag_name, enabled in CAPABILITY_ROLLOUT_PROFILES[profile_name].items():
+            if flag_name not in self.model_fields_set:
+                setattr(self, flag_name, enabled)
         if self.database_path is None:
             self.database_path = self.data_dir / "video_agent.db"
         if self.artifact_root is None:

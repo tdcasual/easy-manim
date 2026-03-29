@@ -49,3 +49,10 @@ def test_runtime_status_tool_reports_binary_and_provider_state(tmp_path: Path) -
     assert payload["sandbox"]["memory_limit_mb"] is None
     assert payload["release"]["version"]
     assert payload["release"]["channel"] == "beta"
+    assert payload["capabilities"]["rollout_profile"] == "conservative"
+    assert payload["capabilities"]["effective"] == {
+        "agent_learning_auto_apply_enabled": False,
+        "auto_repair_enabled": False,
+        "multi_agent_workflow_enabled": False,
+        "strategy_promotion_enabled": False,
+    }

@@ -67,12 +67,18 @@ class RuntimeSandboxStatus(BaseModel):
     resource_limits_supported: bool
 
 
+class RuntimeCapabilityStatus(BaseModel):
+    rollout_profile: str
+    effective: dict[str, bool]
+
+
 class RuntimeStatus(BaseModel):
     storage: RuntimeStorageStatus
     provider: RuntimeProviderStatus
     worker: RuntimeWorkerStatus
     release: RuntimeReleaseStatus
     sandbox: RuntimeSandboxStatus
+    capabilities: RuntimeCapabilityStatus
     checks: dict[str, RuntimeCheckResult]
     features: dict[str, RuntimeFeatureStatus]
 
@@ -113,6 +119,15 @@ class RuntimeService:
                 channel=self.settings.release_channel,
             ),
             sandbox=RuntimeSandboxStatus.model_validate(self._sandbox_status()),
+            capabilities=RuntimeCapabilityStatus(
+                rollout_profile=self.settings.capability_rollout_profile,
+                effective={
+                    "agent_learning_auto_apply_enabled": self.settings.agent_learning_auto_apply_enabled,
+                    "auto_repair_enabled": self.settings.auto_repair_enabled,
+                    "multi_agent_workflow_enabled": self.settings.multi_agent_workflow_enabled,
+                    "strategy_promotion_enabled": self.settings.strategy_promotion_enabled,
+                },
+            ),
             checks=checks,
             features={
                 "mathtex": self.inspect_mathtex_feature(checks, run_smoke=run_feature_smoke),
