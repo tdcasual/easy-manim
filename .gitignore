@@ -6,6 +6,7 @@ __pycache__/
 *.egg-info/
 .playwright-cli/
 output/playwright/
+uv.lock
 data/
 media/
 .env
