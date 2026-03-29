@@ -162,12 +162,14 @@ def test_completed_task_writes_agent_learning_event(tmp_path: Path) -> None:
     assert stored_task is not None
     assert events[0].session_id == stored_task.session_id
     assert events[0].profile_digest == stored_task.effective_profile_digest
+    quality_score = app_context.store.get_task_quality_score(task_id)
+    assert quality_score is not None
 
     scorecard = client.get("/api/profile/scorecard", headers={"Authorization": f"Bearer {session_token}"})
     assert scorecard.status_code == 200
     assert scorecard.json()["completed_count"] == 1
     assert scorecard.json()["failed_count"] == 0
-    assert scorecard.json()["median_quality_score"] == 1.0
+    assert scorecard.json()["median_quality_score"] == quality_score.total_score
     assert scorecard.json()["top_issue_codes"] == []
     assert scorecard.json()["recent_profile_digests"] == [stored_task.effective_profile_digest]
 

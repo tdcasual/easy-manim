@@ -50,9 +50,24 @@ const durationOptions = [
 ];
 
 const styleOptions = [
-  { value: "natural" as const, labelKey: "studio.settings.style.natural", color: "#81C784", emoji: "🌿" },
-  { value: "vivid" as const, labelKey: "studio.settings.style.vivid", color: "#FF8A65", emoji: "🌈" },
-  { value: "anime" as const, labelKey: "studio.settings.style.anime", color: "#7986CB", emoji: "🎨" },
+  {
+    value: "natural" as const,
+    labelKey: "studio.settings.style.natural",
+    color: "#81C784",
+    emoji: "🌿",
+  },
+  {
+    value: "vivid" as const,
+    labelKey: "studio.settings.style.vivid",
+    color: "#FF8A65",
+    emoji: "🌈",
+  },
+  {
+    value: "anime" as const,
+    labelKey: "studio.settings.style.anime",
+    color: "#7986CB",
+    emoji: "🎨",
+  },
   {
     value: "cinematic" as const,
     labelKey: "studio.settings.style.cinematic",

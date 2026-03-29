@@ -99,5 +99,7 @@ test("history drawer renders cancelled items without crashing", () => {
   );
 
   expect(screen.getByText(/^Cancelled$/i)).toBeInTheDocument();
-  expect(screen.getByRole("listitem", { name: /cancelled draft, cancelled, 2 minutes ago/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole("listitem", { name: /cancelled draft, cancelled, 2 minutes ago/i })
+  ).toBeInTheDocument();
 });

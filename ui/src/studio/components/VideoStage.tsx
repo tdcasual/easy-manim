@@ -68,7 +68,9 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
       <div className={styles.generatingText}>
         <p className={styles.generatingTitle}>{t("studio.video.generatingTitle")}</p>
         <p className={styles.generatingSubtitle}>{t("studio.video.generatingSubtitle")}</p>
-        <p className={styles.estimatedTime}>{t("studio.video.generatingEta", { seconds: timeLeft })}</p>
+        <p className={styles.estimatedTime}>
+          {t("studio.video.generatingEta", { seconds: timeLeft })}
+        </p>
       </div>
 
       <ProgressBar progress={progress} />
@@ -220,7 +222,12 @@ export function VideoStage({
   }, []);
 
   return (
-    <div ref={stageRef} className={styles.stage} role="region" aria-label={t("studio.video.regionLabel")}>
+    <div
+      ref={stageRef}
+      className={styles.stage}
+      role="region"
+      aria-label={t("studio.video.regionLabel")}
+    >
       <div className={styles.border} aria-hidden="true" />
 
       <CornerDecoration position="tl" />

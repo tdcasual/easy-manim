@@ -109,7 +109,9 @@ test("quick prompt chips require auth instead of failing silently", async () => 
     </MemoryRouter>
   );
 
-  await user.click(screen.getByPlaceholderText(/做一个简洁的蓝色圆形动画|生成一个带中文标题的柱状图视频/));
+  await user.click(
+    screen.getByPlaceholderText(/做一个简洁的蓝色圆形动画|生成一个带中文标题的柱状图视频/)
+  );
   await user.click(await screen.findByRole("button", { name: /画一个蓝色圆形/ }));
 
   expect(await screen.findByRole("dialog", { name: /登录/ })).toBeInTheDocument();
@@ -130,7 +132,9 @@ test("quick prompt chips use the active locale", async () => {
     </MemoryRouter>
   );
 
-  const input = await screen.findByPlaceholderText(/Animate a simple blue circle|Create a bar-chart video/);
+  const input = await screen.findByPlaceholderText(
+    /Animate a simple blue circle|Create a bar-chart video/
+  );
   await user.click(input);
 
   expect(

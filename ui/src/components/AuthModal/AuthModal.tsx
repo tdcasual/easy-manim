@@ -103,9 +103,7 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
 
   // 渲染折叠状态（迷你按钮）
   if (!isOpen && isMinimized) {
-    const miniTriggerLabel = isAuthenticated
-      ? t("authModal.signedIn")
-      : t("authModal.openLogin");
+    const miniTriggerLabel = isAuthenticated ? t("authModal.signedIn") : t("authModal.openLogin");
 
     return (
       <div className={styles.collapsed}>

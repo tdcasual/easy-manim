@@ -266,7 +266,12 @@ function FilterBar({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const statusOptions: { value: StatusFilter; label: string; color: string; emoji: string }[] = [
-    { value: "all", label: t("videos.filterStatus.all"), color: "var(--color-cloud-600)", emoji: "🌈" },
+    {
+      value: "all",
+      label: t("videos.filterStatus.all"),
+      color: "var(--color-cloud-600)",
+      emoji: "🌈",
+    },
     {
       value: "completed",
       label: t("videos.filterStatus.completed"),

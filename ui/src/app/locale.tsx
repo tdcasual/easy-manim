@@ -70,11 +70,7 @@ const MESSAGES: Record<Locale, Record<string, MessageValue>> = {
     "studio.error.unknown": "出错了",
     "studio.error.retry": "重试",
     "studio.error.close": "关闭错误提示",
-    "studio.chat.quickPrompts": [
-      "画一个蓝色圆球",
-      "制作柱状图动画",
-      "正弦波动画效果",
-    ],
+    "studio.chat.quickPrompts": ["画一个蓝色圆球", "制作柱状图动画", "正弦波动画效果"],
     "studio.chat.placeholder": "描述你想要的动画...",
     "studio.chat.loadingPlaceholder": "创作中...",
     "studio.chat.label": "输入动画描述",

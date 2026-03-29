@@ -1,11 +1,11 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 const FOCUSABLE_SELECTOR = [
-  'button:not([disabled])',
-  '[href]',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
@@ -98,14 +98,14 @@ export function useDialogA11y<T extends HTMLElement>({
       document.body.style.overflow = previousOverflowRef.current;
 
       const restoreTarget = restoreFocusRef?.current ?? previousFocusedRef.current;
-      if (restoreTarget && restoreTarget.isConnected) {
+      if (restoreTarget?.isConnected) {
         restoreTarget.focus();
         return;
       }
 
-      if (restoreFocusRef) {
+      if (restoreFocusRef?.current?.isConnected) {
         queueMicrotask(() => {
-          if (restoreFocusRef.current && restoreFocusRef.current.isConnected) {
+          if (restoreFocusRef.current?.isConnected) {
             restoreFocusRef.current.focus();
           }
         });

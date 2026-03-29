@@ -12,6 +12,6 @@ test("login page stays constrained to the viewport while remaining scrollable", 
 
 test("login page keeps legacy vh as a fallback instead of overriding modern viewport units", () => {
   expect(loginPageStyles).toMatch(
-    /\.login-page\s*\{[\s\S]*min-height:\s*100vh;[\s\S]*min-height:\s*100svh;[\s\S]*height:\s*100dvh;/,
+    /\.login-page\s*\{[\s\S]*min-height:\s*100vh;[\s\S]*min-height:\s*100svh;[\s\S]*height:\s*100dvh;/
   );
 });
