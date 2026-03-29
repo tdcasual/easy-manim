@@ -37,11 +37,16 @@ def app_context(tmp_path: Path):
     return create_app_context(_build_agent_memory_settings(tmp_path))
 
 
-def agent_principal(agent_id: str) -> AgentPrincipal:
+def agent_principal(
+    agent_id: str,
+    *,
+    scopes_json: dict | None = None,
+    policy_json: dict | None = None,
+) -> AgentPrincipal:
     return AgentPrincipal(
         agent_id=agent_id,
-        profile=AgentProfile(agent_id=agent_id, name=agent_id),
-        token=AgentToken(token_hash=f"token-{agent_id}", agent_id=agent_id),
+        profile=AgentProfile(agent_id=agent_id, name=agent_id, policy_json=policy_json or {}),
+        token=AgentToken(token_hash=f"token-{agent_id}", agent_id=agent_id, scopes_json=scopes_json or {}),
     )
 
 
@@ -185,3 +190,65 @@ def test_query_agent_memories_returns_ranked_active_records(app_context) -> None
 
     assert [item["memory_id"] for item in payload["items"]] == ["mem-b", "mem-a"]
     assert payload["items"][0]["score"] > payload["items"][1]["score"]
+
+
+def test_query_agent_memories_returns_empty_when_limit_is_zero(app_context) -> None:
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="Dark background with smooth transitions and easing.",
+            summary_digest="digest-mem-a",
+        )
+    )
+
+    payload = query_agent_memories_tool(
+        app_context,
+        {"query": "dark transitions", "limit": 0},
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    assert payload["items"] == []
+
+
+def test_query_agent_memories_is_agent_scoped(app_context) -> None:
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="Dark background with smooth transitions.",
+            summary_digest="digest-mem-a",
+        )
+    )
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-b",
+            agent_id="agent-b",
+            source_session_id="session-agent-b",
+            status="active",
+            summary_text="Dark background with contrast guidance.",
+            summary_digest="digest-mem-b",
+        )
+    )
+
+    payload = query_agent_memories_tool(
+        app_context,
+        {"query": "dark background", "limit": 5},
+        agent_principal=agent_principal("agent-b"),
+    )
+
+    assert [item["memory_id"] for item in payload["items"]] == ["mem-b"]
+
+
+def test_query_agent_memories_requires_memory_read_scope(app_context) -> None:
+    payload = query_agent_memories_tool(
+        app_context,
+        {"query": "dark background", "limit": 5},
+        agent_principal=agent_principal("agent-a", scopes_json={"allow": ["task:read"]}),
+    )
+
+    assert payload["error"]["code"] == "agent_scope_denied"

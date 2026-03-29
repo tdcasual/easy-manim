@@ -29,7 +29,7 @@ def test_normalize_retrieval_metadata_produces_stable_payload() -> None:
     assert payload["keywords"] == ["dark", "backgrounds", "smooth", "transitions", "concise", "labels"]
 
 
-def test_normalize_retrieval_metadata_keeps_existing_keywords_when_present() -> None:
+def test_normalize_retrieval_metadata_normalizes_existing_tokens_and_keywords() -> None:
     record = AgentMemoryRecord(
         memory_id="mem-2",
         agent_id="agent-a",
@@ -40,8 +40,13 @@ def test_normalize_retrieval_metadata_keeps_existing_keywords_when_present() -> 
 
     payload = normalize_retrieval_metadata(
         record,
-        existing={"retrieval": {"keywords": ["cinematic", "depth"], "tokens": ["cinematic", "depth"]}},
+        existing={
+            "retrieval": {
+                "keywords": [" Cinematic ", "AND", "Depth!", "x", "depth"],
+                "tokens": ["Cinematic", "Depth!", "  ", "and"],
+            }
+        },
     )
 
+    assert payload["tokens"] == ["cinematic", "depth", "and"]
     assert payload["keywords"] == ["cinematic", "depth"]
-    assert payload["tokens"] == ["cinematic", "depth"]

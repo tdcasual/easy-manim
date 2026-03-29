@@ -121,6 +121,8 @@ class PersistentMemoryService:
         query: str,
         limit: int = 5,
     ) -> list[AgentMemoryRetrievalHit]:
+        if limit <= 0:
+            return []
         normalized_query = query.strip()
         if not normalized_query:
             return []
@@ -137,7 +139,6 @@ class PersistentMemoryService:
             scored.append((score, record))
 
         scored.sort(key=lambda item: (-item[0], item[1].created_at), reverse=False)
-        requested_limit = max(1, limit)
         return [
             AgentMemoryRetrievalHit(
                 memory_id=record.memory_id,
@@ -147,7 +148,7 @@ class PersistentMemoryService:
                 lineage_refs=list(record.lineage_refs),
                 enhancement=dict(record.enhancement),
             )
-            for score, record in scored[:requested_limit]
+            for score, record in scored[:limit]
         ]
 
     def resolve_memory_context(self, agent_id: str, memory_ids: list[str] | None) -> PersistentMemoryContext:

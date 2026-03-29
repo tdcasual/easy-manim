@@ -25,19 +25,26 @@ def _build_http_memory_settings(tmp_path: Path) -> Settings:
     )
 
 
-def _seed_agent_profile_and_token(client: TestClient) -> None:
+def _seed_agent_profile_and_token(
+    client: TestClient,
+    *,
+    agent_id: str = "agent-a",
+    secret: str = "agent-a-secret",
+    scopes_json: dict | None = None,
+) -> None:
     context = client.app.state.app_context
     context.store.upsert_agent_profile(
         AgentProfile(
-            agent_id="agent-a",
-            name="Agent A",
+            agent_id=agent_id,
+            name=f"Agent {agent_id[-1].upper()}",
             profile_json={"style_hints": {"tone": "patient"}},
         )
     )
     context.store.issue_agent_token(
         AgentToken(
-            token_hash=hash_agent_token("agent-a-secret"),
-            agent_id="agent-a",
+            token_hash=hash_agent_token(secret),
+            agent_id=agent_id,
+            scopes_json=scopes_json or {},
         )
     )
 
@@ -115,3 +122,69 @@ def test_memory_retrieval_works_without_embeddings_for_local_backend(tmp_path: P
     )
     assert retrieved.status_code == 200
     assert retrieved.json()["items"]
+
+
+def test_memory_retrieval_endpoint_is_agent_scoped(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_memory_settings(tmp_path)))
+    _seed_agent_profile_and_token(client, agent_id="agent-a", secret="agent-a-secret")
+    _seed_agent_profile_and_token(client, agent_id="agent-b", secret="agent-b-secret")
+    token_a = client.post("/api/sessions", json={"agent_token": "agent-a-secret"}).json()["session_token"]
+    token_b = client.post("/api/sessions", json={"agent_token": "agent-b-secret"}).json()["session_token"]
+
+    context = client.app.state.app_context
+    context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-a",
+            status="active",
+            summary_text="Dark background guidance for agent-a.",
+            summary_digest="digest-a",
+        )
+    )
+    context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-b",
+            agent_id="agent-b",
+            source_session_id="session-b",
+            status="active",
+            summary_text="Dark background guidance for agent-b.",
+            summary_digest="digest-b",
+        )
+    )
+
+    response = client.post(
+        "/api/memories/retrieve",
+        json={"query": "dark background", "limit": 5},
+        headers={"Authorization": f"Bearer {token_b}"},
+    )
+    assert response.status_code == 200
+    assert [item["memory_id"] for item in response.json()["items"]] == ["mem-b"]
+
+    response_a = client.post(
+        "/api/memories/retrieve",
+        json={"query": "dark background", "limit": 5},
+        headers={"Authorization": f"Bearer {token_a}"},
+    )
+    assert response_a.status_code == 200
+    assert [item["memory_id"] for item in response_a.json()["items"]] == ["mem-a"]
+
+
+def test_memory_retrieval_endpoint_requires_memory_read_scope(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_memory_settings(tmp_path)))
+    _seed_agent_profile_and_token(
+        client,
+        agent_id="agent-a",
+        secret="agent-a-secret",
+        scopes_json={"allow": ["task:read"]},
+    )
+    token = client.post("/api/sessions", json={"agent_token": "agent-a-secret"}).json()["session_token"]
+
+    response = client.post(
+        "/api/memories/retrieve",
+        json={"query": "dark background", "limit": 5},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "agent_scope_denied"

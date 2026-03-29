@@ -29,6 +29,24 @@ def _default_keywords(tokens: list[str]) -> list[str]:
     return keywords
 
 
+def _normalize_preserved_terms(raw_terms: list[str]) -> list[str]:
+    normalized: list[str] = []
+    for raw in raw_terms:
+        normalized.extend(_tokenize_text(raw))
+    return normalized
+
+
+def _normalize_preserved_keywords(raw_keywords: list[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for token in _normalize_preserved_terms(raw_keywords):
+        if len(token) < 4 or token in _STOPWORDS or token in seen:
+            continue
+        normalized.append(token)
+        seen.add(token)
+    return normalized
+
+
 def normalize_retrieval_metadata(
     record: AgentMemoryRecord,
     *,
@@ -38,11 +56,15 @@ def normalize_retrieval_metadata(
     existing_retrieval = (existing or {}).get("retrieval", {})
 
     tokens = existing_retrieval.get("tokens")
-    if not isinstance(tokens, list) or not all(isinstance(item, str) for item in tokens):
+    if isinstance(tokens, list) and all(isinstance(item, str) for item in tokens):
+        tokens = _normalize_preserved_terms(tokens)
+    else:
         tokens = _tokenize_text(text)
 
     keywords = existing_retrieval.get("keywords")
-    if not isinstance(keywords, list) or not all(isinstance(item, str) for item in keywords):
+    if isinstance(keywords, list) and all(isinstance(item, str) for item in keywords):
+        keywords = _normalize_preserved_keywords(keywords)
+    else:
         keywords = _default_keywords(tokens)
 
     return {
