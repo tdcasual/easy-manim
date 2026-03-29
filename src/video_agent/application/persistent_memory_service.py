@@ -6,8 +6,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from video_agent.application.persistent_memory_enhancer import PersistentMemoryEnhancer
-from video_agent.domain.agent_memory_models import AgentMemoryRecord
+from video_agent.application.persistent_memory_enhancer import (
+    PersistentMemoryEnhancer,
+    normalize_retrieval_metadata,
+)
+from video_agent.domain.agent_memory_models import AgentMemoryRecord, AgentMemoryRetrievalHit
 from video_agent.domain.session_memory_models import SessionMemorySummary
 
 
@@ -111,6 +114,42 @@ class PersistentMemoryService:
             raise PersistentMemoryError("agent_memory_not_found")
         return self.get_agent_memory(memory_id, agent_id=agent_id)
 
+    def query_agent_memories(
+        self,
+        agent_id: str,
+        *,
+        query: str,
+        limit: int = 5,
+    ) -> list[AgentMemoryRetrievalHit]:
+        normalized_query = query.strip()
+        if not normalized_query:
+            return []
+
+        query_tokens = self._tokenize_for_retrieval(normalized_query)
+        if not query_tokens:
+            return []
+
+        scored: list[tuple[float, AgentMemoryRecord]] = []
+        for record in self.list_records(agent_id, False):
+            score = self._lexical_score(record, query=normalized_query, query_tokens=query_tokens)
+            if score <= 0:
+                continue
+            scored.append((score, record))
+
+        scored.sort(key=lambda item: (-item[0], item[1].created_at), reverse=False)
+        requested_limit = max(1, limit)
+        return [
+            AgentMemoryRetrievalHit(
+                memory_id=record.memory_id,
+                score=round(score, 6),
+                summary_text=record.summary_text,
+                summary_digest=record.summary_digest,
+                lineage_refs=list(record.lineage_refs),
+                enhancement=dict(record.enhancement),
+            )
+            for score, record in scored[:requested_limit]
+        ]
+
     def resolve_memory_context(self, agent_id: str, memory_ids: list[str] | None) -> PersistentMemoryContext:
         selected_ids = list(dict.fromkeys(memory_ids or []))
         if not selected_ids:
@@ -133,16 +172,48 @@ class PersistentMemoryService:
 
     def _build_enhancement(self, record: AgentMemoryRecord) -> dict[str, object]:
         if self.enhancer is None:
-            return {}
-        try:
-            result = self.enhancer(record)
-        except Exception as exc:
-            return {
-                "status": "unavailable",
-                "code": "agent_memory_enhancement_unavailable",
-                "message": str(exc),
-            }
-        return {} if result is None else dict(result)
+            result: dict[str, object] = {}
+        else:
+            try:
+                result_payload = self.enhancer(record)
+            except Exception as exc:
+                result = {
+                    "status": "unavailable",
+                    "code": "agent_memory_enhancement_unavailable",
+                    "message": str(exc),
+                }
+            else:
+                result = {} if result_payload is None else dict(result_payload)
+        result["retrieval"] = normalize_retrieval_metadata(record, existing=result)
+        return result
+
+    @staticmethod
+    def _tokenize_for_retrieval(text: str) -> list[str]:
+        retrieval = normalize_retrieval_metadata(
+            AgentMemoryRecord(
+                memory_id="query",
+                agent_id="query",
+                source_session_id="query",
+                summary_text=text,
+                summary_digest="query",
+            )
+        )
+        return [token for token in retrieval["tokens"] if isinstance(token, str)]
+
+    @classmethod
+    def _lexical_score(cls, record: AgentMemoryRecord, *, query: str, query_tokens: list[str]) -> float:
+        retrieval = normalize_retrieval_metadata(record, existing=record.enhancement)
+        tokens = [token for token in retrieval["tokens"] if isinstance(token, str)]
+        keywords = [token for token in retrieval["keywords"] if isinstance(token, str)]
+        if not tokens:
+            return 0.0
+
+        token_set = set(tokens)
+        keyword_set = set(keywords)
+        overlap = sum(1 for token in query_tokens if token in token_set)
+        keyword_overlap = sum(1 for token in query_tokens if token in keyword_set)
+        phrase_bonus = 1.0 if query.lower() in str(retrieval.get("text", "")).lower() else 0.0
+        return (overlap + (keyword_overlap * 1.5) + phrase_bonus) / max(1, len(query_tokens))
 
     @staticmethod
     def _default_memory_id() -> str:

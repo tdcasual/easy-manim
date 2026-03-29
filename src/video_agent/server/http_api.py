@@ -34,6 +34,7 @@ from video_agent.server.mcp_tools import (
     list_agent_memories_tool,
     list_video_tasks_tool,
     promote_session_memory_tool,
+    query_agent_memories_tool,
     retry_video_task_tool,
     revise_video_task_tool,
     summarize_session_memory_tool,
@@ -86,6 +87,11 @@ class PreferenceProposalRequest(BaseModel):
 class PreferencePromotionRequest(BaseModel):
     session_id: str | None = None
     memory_id: str | None = None
+
+
+class MemoryRetrievalRequest(BaseModel):
+    query: str
+    limit: int = Field(default=5, ge=1, le=20)
 
 
 _PROFILE_PATCH_ALLOWLIST = frozenset({"style_hints", "output_profile", "validation_profile"})
@@ -626,6 +632,21 @@ def create_http_api(settings: Settings) -> FastAPI:
                 list_agent_memories_tool(
                     context,
                     {},
+                    agent_principal=resolved.agent_principal,
+                )
+            )
+        )
+
+    @app.post("/api/memories/retrieve")
+    def retrieve_memories(
+        payload: MemoryRetrievalRequest,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _strip_internal_session_fields(
+            _tool_payload_or_http_error(
+                query_agent_memories_tool(
+                    context,
+                    {"query": payload.query, "limit": payload.limit},
                     agent_principal=resolved.agent_principal,
                 )
             )

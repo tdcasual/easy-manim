@@ -22,3 +22,12 @@ class AgentMemoryRecord(BaseModel):
     enhancement: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=_utcnow)
     disabled_at: datetime | None = None
+
+
+class AgentMemoryRetrievalHit(BaseModel):
+    memory_id: str
+    score: float
+    summary_text: str
+    summary_digest: str
+    lineage_refs: list[str] = Field(default_factory=list)
+    enhancement: dict[str, Any] = Field(default_factory=dict)

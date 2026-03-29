@@ -573,5 +573,24 @@ def disable_agent_memory_tool(
     return record.model_dump(mode="json")
 
 
+def query_agent_memories_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        _authorize_agent_action(context, agent_principal, "memory:read")
+        items = context.persistent_memory_service.query_agent_memories(
+            _resolve_memory_agent_id(context, agent_principal),
+            query=payload.get("query", ""),
+            limit=payload.get("limit", 5),
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+
+    return {"items": [item.model_dump(mode="json") for item in items]}
+
+
 def _resolve_session_id(payload: dict[str, Any], session_id: str | None) -> str | None:
     return session_id or payload.get("session_id")

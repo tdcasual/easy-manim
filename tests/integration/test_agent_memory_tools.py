@@ -13,6 +13,7 @@ from video_agent.server.mcp_tools import (
     get_agent_memory_tool,
     list_agent_memories_tool,
     promote_session_memory_tool,
+    query_agent_memories_tool,
 )
 from tests.support import bootstrapped_settings
 
@@ -131,3 +132,56 @@ def test_promote_returns_enhancement_warning_without_failing(tmp_path: Path) -> 
     assert payload["memory_id"]
     assert payload["enhancement"]["code"] == "agent_memory_enhancement_unavailable"
     assert payload["enhancement"]["backend"] == "memo0"
+
+
+def test_promote_stores_retrieval_metadata_for_local_backend(app_context) -> None:
+    app_context.task_service.create_video_task(
+        prompt="Use a dark background with smooth transitions.",
+        session_id="session-a",
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    payload = promote_session_memory_tool(
+        app_context,
+        {},
+        agent_principal=agent_principal("agent-a"),
+        session_id="session-a",
+    )
+
+    retrieval = payload["enhancement"]["retrieval"]
+    assert retrieval["version"] == 1
+    assert "dark" in retrieval["tokens"]
+    assert retrieval["text"]
+
+
+def test_query_agent_memories_returns_ranked_active_records(app_context) -> None:
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="Dark contrast style recommendations.",
+            summary_digest="digest-mem-a",
+        )
+    )
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-b",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="Dark background with smooth transitions and easing.",
+            summary_digest="digest-mem-b",
+        )
+    )
+    seed_agent_memory(app_context, memory_id="mem-c", agent_id="agent-a", status="disabled")
+
+    payload = query_agent_memories_tool(
+        app_context,
+        {"query": "dark transitions", "limit": 5},
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    assert [item["memory_id"] for item in payload["items"]] == ["mem-b", "mem-a"]
+    assert payload["items"][0]["score"] > payload["items"][1]["score"]
