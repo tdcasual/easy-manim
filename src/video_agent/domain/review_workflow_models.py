@@ -48,9 +48,16 @@ class ReviewDecision(BaseModel):
             return self.collaboration.reviewer_decision.decision
         return self.decision
 
+    def resolved_feedback(self) -> str:
+        if (self.feedback or "").strip():
+            return self.feedback or ""
+        if self.collaboration is None:
+            return ""
+        return (self.collaboration.repairer_execution_hint.execution_hint or "").strip()
+
     @model_validator(mode="after")
     def require_feedback_for_revise_or_repair(self) -> "ReviewDecision":
-        if self.resolved_decision() in {"revise", "repair"} and not (self.feedback or "").strip():
+        if self.resolved_decision() in {"revise", "repair"} and not self.resolved_feedback():
             raise ValueError("feedback is required for revise and repair decisions")
         return self
 
