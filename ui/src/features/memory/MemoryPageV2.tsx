@@ -1,6 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAsyncStatus } from "../../hooks/useAsyncStatus";
-import { Brain, RefreshCw, Trash2, ArrowUp, Loader2, AlertCircle, Lightbulb } from "lucide-react";
+import {
+  Brain,
+  RefreshCw,
+  Trash2,
+  ArrowUp,
+  Loader2,
+  AlertCircle,
+  Lightbulb,
+  Search,
+} from "lucide-react";
 import { useSession } from "../auth/useSession";
 import {
   AgentMemoryRecord,
@@ -8,7 +17,9 @@ import {
   disableMemory,
   getSessionMemorySummary,
   listMemories,
+  MemoryRetrievalHit,
   promoteSessionMemory,
+  retrieveMemories,
   SessionMemorySummary,
 } from "../../lib/memoryApi";
 import { useI18n } from "../../app/locale";
@@ -25,6 +36,9 @@ export function MemoryPageV2() {
   const { showAuthModal, closeAuthModal } = useAuthGuard();
   const [summary, setSummary] = useState<SessionMemorySummary | null>(null);
   const [memories, setMemories] = useState<AgentMemoryRecord[]>([]);
+  const [retrievalQuery, setRetrievalQuery] = useState("");
+  const [retrievalHits, setRetrievalHits] = useState<MemoryRetrievalHit[]>([]);
+  const [retrievalState, setRetrievalState] = useState<"idle" | "searching">("idle");
   const { status, error, startLoading, setErrorState, succeed } = useAsyncStatus();
   const [actionState, setActionState] = useState<"idle" | "clearing" | "promoting" | "disabling">(
     "idle"
@@ -142,6 +156,24 @@ export function MemoryPageV2() {
     },
     [sessionToken, refresh, confirm, announcePolite, t]
   );
+
+  const handleRetrieve = useCallback(async () => {
+    if (!sessionToken || !retrievalQuery.trim()) return;
+
+    setRetrievalState("searching");
+    setActionError(null);
+    try {
+      const payload = await retrieveMemories(retrievalQuery.trim(), sessionToken);
+      setRetrievalHits(Array.isArray(payload.items) ? payload.items : []);
+      announcePolite(`Retrieved ${Array.isArray(payload.items) ? payload.items.length : 0} memory diagnostics`);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "memory_retrieval_failed";
+      setActionError(errorMsg);
+      announcePolite(`Memory retrieval failed: ${errorMsg}`);
+    } finally {
+      setRetrievalState("idle");
+    }
+  }, [announcePolite, retrievalQuery, sessionToken]);
 
   const activeCount = memories.filter((m) => m.status.toLowerCase() === "active").length;
 
@@ -285,6 +317,55 @@ export function MemoryPageV2() {
               <Lightbulb size={48} />
               <p>{t("memory.emptySummary")}</p>
               <span>{t("memory.emptySummaryHint")}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="section-card-v2">
+          <div className="section-header-v2">
+            <h3 className="section-title-v2">
+              <Search size={20} />
+              Memory Retrieval Diagnostics
+            </h3>
+          </div>
+          <div className="memory-actions">
+            <input
+              className="form-select"
+              aria-label="Memory retrieval query"
+              placeholder="Search ranking signals"
+              value={retrievalQuery}
+              onChange={(event) => setRetrievalQuery(event.target.value)}
+            />
+            <button
+              type="button"
+              className="action-btn primary"
+              onClick={handleRetrieve}
+              disabled={retrievalState !== "idle" || !retrievalQuery.trim()}
+              aria-busy={retrievalState === "searching"}
+            >
+              <Search size={16} />
+              {retrievalState === "searching" ? "Inspecting..." : "Inspect Retrieval"}
+            </button>
+          </div>
+          {retrievalHits.length ? (
+            <div className="memory-list">
+              {retrievalHits.map((hit) => (
+                <div key={hit.memory_id} className="memory-item">
+                  <div className="memory-item-header">
+                    <span className="memory-id">{hit.memory_id}</span>
+                    <span className="memory-status active">score {hit.score.toFixed(2)}</span>
+                  </div>
+                  <p className="memory-text">{hit.summary_text}</p>
+                  <div className="memory-meta">
+                    <span>Matched terms: {hit.matched_terms.join(", ") || "none"}</span>
+                    <span>Reasons: {hit.match_reasons.join(", ") || "none"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="memory-content">
+              <p className="memory-summary">Run a retrieval query to inspect matched terms and ranking reasons.</p>
             </div>
           )}
         </div>

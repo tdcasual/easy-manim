@@ -21,8 +21,11 @@ import {
   applyProfilePatch,
   getProfile,
   getProfileScorecard,
+  listProfileSuggestions,
+  ProfileSuggestion,
   ProfileScorecard,
 } from "../../lib/profileApi";
+import { getRuntimeStatus, RuntimeStatus } from "../../lib/runtimeApi";
 import { SkeletonMetricCard } from "../../components/Skeleton";
 import { useARIAMessage } from "../../components/useARIAMessage";
 import { useToast } from "../../components/useToast";
@@ -274,6 +277,26 @@ function FloatingClouds() {
   );
 }
 
+const capabilityLabels: Record<string, string> = {
+  agent_learning_auto_apply_enabled: "Agent learning auto apply",
+  auto_repair_enabled: "Auto repair",
+  multi_agent_workflow_enabled: "Multi-agent workflow",
+  strategy_promotion_enabled: "Strategy promotion",
+};
+
+function formatCapabilityLabel(key: string) {
+  return capabilityLabels[key] ?? key.replaceAll("_", " ");
+}
+
+function formatSupportSummary(counts?: Record<string, number>) {
+  const entries = Object.entries(counts ?? {});
+  if (!entries.length) return "No field evidence";
+  return entries
+    .slice(0, 3)
+    .map(([field, count]) => `${field}: ${count}`)
+    .join(" | ");
+}
+
 // 主组件
 export function ProfilePageV2() {
   const { sessionToken } = useSession();
@@ -282,6 +305,8 @@ export function ProfilePageV2() {
   const { showAuthModal, closeAuthModal } = useAuthGuard();
   const [profile, setProfile] = useState<AgentProfile | null>(null);
   const [scorecard, setScorecard] = useState<ProfileScorecard | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const [suggestions, setSuggestions] = useState<ProfileSuggestion[]>([]);
   const [scorecardHistory, setScorecardHistory] = useState<ProfileScorecard[]>([]);
   const { status, startLoading, setErrorState, succeed } = useAsyncStatus();
   const [patchText, setPatchText] = useState('{"style_hints": {}}');
@@ -349,12 +374,16 @@ export function ProfilePageV2() {
     if (!sessionToken) return;
     startLoading();
     try {
-      const [nextProfile, nextScorecard] = await Promise.all([
+      const [nextProfile, nextScorecard, nextRuntimeStatus, nextSuggestions] = await Promise.all([
         getProfile(sessionToken),
         getProfileScorecard(sessionToken),
+        getRuntimeStatus(sessionToken),
+        listProfileSuggestions(sessionToken),
       ]);
       setProfile(nextProfile);
       setScorecard(nextScorecard);
+      setRuntimeStatus(nextRuntimeStatus);
+      setSuggestions(Array.isArray(nextSuggestions.items) ? nextSuggestions.items : []);
       setScorecardHistory((prev) => [...prev.slice(-4), nextScorecard]);
 
       // 同步表单数据
@@ -573,8 +602,91 @@ export function ProfilePageV2() {
                         {profile.status === "active" ? "🟢" : "⚪"}{" "}
                         {getStatusLabel(profile.status, locale)}
                       </span>
+                      {runtimeStatus && (
+                        <span className="profile-badge">
+                          🧭 Rollout: {runtimeStatus.capabilities.rollout_profile}
+                        </span>
+                      )}
                     </div>
                   </div>
+                </div>
+
+                {runtimeStatus && (
+                  <div className="profile-json">
+                    <label>
+                      <span className="label-icon">🛡️</span>
+                      Runtime Diagnostics
+                    </label>
+                    <div className="memory-meta">
+                      <span>Provider: {runtimeStatus.provider.mode}</span>
+                      <span>
+                        MathTeX: {runtimeStatus.features.mathtex?.available ? "available" : "missing"}
+                      </span>
+                    </div>
+                    <ul>
+                      {Object.entries(runtimeStatus.capabilities.effective).map(([key, enabled]) => (
+                        <li key={key}>
+                          {formatCapabilityLabel(key)}: {enabled ? "enabled" : "disabled"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {scorecard && (
+                  <div className="profile-json">
+                    <label>
+                      <span className="label-icon">📉</span>
+                      Top Issue Codes
+                    </label>
+                    {scorecard.top_issue_codes.length ? (
+                      <ul>
+                        {scorecard.top_issue_codes.map((item) => (
+                          <li key={item.code}>
+                            {item.code} ({item.count})
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No recent issue pressure.</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="profile-json">
+                  <label>
+                    <span className="label-icon">🧪</span>
+                    Suggestion Diagnostics
+                  </label>
+                  {suggestions.length ? (
+                    <div className="memory-list">
+                      {suggestions.slice(0, 3).map((suggestion) => (
+                        <div key={suggestion.suggestion_id} className="memory-item">
+                          <div className="memory-item-header">
+                            <span className="memory-id">{suggestion.suggestion_id}</span>
+                            <span className={`memory-status ${suggestion.status.toLowerCase()}`}>
+                              {suggestion.status}
+                            </span>
+                          </div>
+                          <p className="memory-text">
+                            Confidence {Number(suggestion.rationale.confidence ?? 0).toFixed(2)}
+                          </p>
+                          <div className="memory-meta">
+                            <span>
+                              Evidence: {formatSupportSummary(suggestion.rationale.supporting_evidence_counts)}
+                            </span>
+                            {suggestion.rationale.conflicts?.length ? (
+                              <span>
+                                Conflicts: {suggestion.rationale.conflicts.map((item) => item.field).join(", ")}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>No pending profile suggestions.</p>
+                  )}
                 </div>
 
                 <div className="profile-json">

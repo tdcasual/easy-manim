@@ -26,6 +26,17 @@ export type AgentMemoryRecord = {
   disabled_at?: string | null;
 };
 
+export type MemoryRetrievalHit = {
+  memory_id: string;
+  score: number;
+  summary_text: string;
+  summary_digest: string;
+  matched_terms: string[];
+  match_reasons: string[];
+  lineage_refs: string[];
+  enhancement: Record<string, unknown>;
+};
+
 export async function getSessionMemorySummary(token: string): Promise<SessionMemorySummary> {
   return requestJson<SessionMemorySummary>("/api/memory/session/summary", token, {
     method: "GET",
@@ -62,4 +73,15 @@ export async function disableMemory(memoryId: string, token: string): Promise<Ag
     token,
     { method: "POST" }
   );
+}
+
+export async function retrieveMemories(
+  query: string,
+  token: string,
+  limit = 5
+): Promise<{ items: MemoryRetrievalHit[] }> {
+  return requestJson<{ items: MemoryRetrievalHit[] }>("/api/memories/retrieve", token, {
+    method: "POST",
+    body: { query, limit },
+  });
 }

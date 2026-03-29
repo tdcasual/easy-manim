@@ -20,8 +20,38 @@ export type ProfileScorecard = {
   failed_count: number;
   failed_count_recent: number;
   median_quality_score: number;
-  top_issue_codes: string[];
+  top_issue_codes: Array<{ code: string; count: number }>;
   recent_profile_digests: string[];
+};
+
+export type ProfileSuggestionRationale = {
+  confidence?: number;
+  provenance?: Record<string, number>;
+  supporting_evidence_counts?: Record<string, number>;
+  field_support?: Record<
+    string,
+    {
+      support_count?: number;
+      source_type_counts?: Record<string, number>;
+      distinct_session_count?: number;
+      distinct_memory_count?: number;
+      confidence?: number;
+    }
+  >;
+  conflicts?: Array<{
+    field: string;
+    values?: Array<{ value: unknown; count: number }>;
+  }>;
+};
+
+export type ProfileSuggestion = {
+  suggestion_id: string;
+  agent_id: string;
+  patch: Record<string, unknown>;
+  rationale: ProfileSuggestionRationale;
+  status: string;
+  created_at: string;
+  applied_at?: string | null;
 };
 
 export async function getProfile(token: string): Promise<AgentProfile> {
@@ -30,6 +60,12 @@ export async function getProfile(token: string): Promise<AgentProfile> {
 
 export async function getProfileScorecard(token: string): Promise<ProfileScorecard> {
   return requestJson<ProfileScorecard>("/api/profile/scorecard", token, { method: "GET" });
+}
+
+export async function listProfileSuggestions(token: string): Promise<{ items: ProfileSuggestion[] }> {
+  return requestJson<{ items: ProfileSuggestion[] }>("/api/profile/suggestions", token, {
+    method: "GET",
+  });
 }
 
 export async function applyProfilePatch(

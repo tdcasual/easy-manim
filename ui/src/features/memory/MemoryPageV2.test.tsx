@@ -1,11 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import { writeSessionToken } from "../../lib/session";
 import { MemoryPageV2 } from "./MemoryPageV2";
 
-test("renders translated persistent memory status", async () => {
+test("renders translated persistent memory status and retrieval diagnostics", async () => {
   writeSessionToken("sess-token-1");
 
   // @ts-expect-error - test shim
@@ -45,6 +45,25 @@ test("renders translated persistent memory status", async () => {
         { status: 200, headers: { "content-type": "application/json" } }
       );
     }
+    if (path === "/api/memories/retrieve" && init?.method === "POST") {
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              memory_id: "mem-1",
+              score: 0.93,
+              summary_text: "旧偏好已经停用",
+              summary_digest: "digest-m1",
+              matched_terms: ["teaching"],
+              match_reasons: ["phrase_match", "keyword_overlap"],
+              lineage_refs: [],
+              enhancement: {},
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
     return new Response("not found", { status: 404 });
   });
 
@@ -56,4 +75,12 @@ test("renders translated persistent memory status", async () => {
 
   expect(await screen.findByText("mem-1")).toBeInTheDocument();
   expect(screen.getByText("已停用")).toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText(/memory retrieval query/i), {
+    target: { value: "teaching" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /inspect retrieval/i }));
+
+  expect(await screen.findByText(/matched terms: teaching/i)).toBeInTheDocument();
+  expect(screen.getByText(/reasons: phrase_match, keyword_overlap/i)).toBeInTheDocument();
 });
