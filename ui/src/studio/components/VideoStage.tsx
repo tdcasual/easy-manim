@@ -3,6 +3,7 @@
  * 重构后版本 - 使用 CSS Modules
  */
 import { useRef, useState, useCallback, useEffect } from "react";
+import { useI18n } from "../../app/locale";
 import { resolveApiUrl } from "../../lib/api";
 import styles from "../styles/VideoStage.module.css";
 
@@ -31,6 +32,7 @@ function ProgressBar({ progress }: { progress: number }) {
 
 // 生成中动画
 function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
+  const { t } = useI18n();
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
 
@@ -64,9 +66,9 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
       </div>
 
       <div className={styles.generatingText}>
-        <p className={styles.generatingTitle}>正在创作中...</p>
-        <p className={styles.generatingSubtitle}>AI 正在绘制你的动画</p>
-        <p className={styles.estimatedTime}>预计还需 {timeLeft} 秒</p>
+        <p className={styles.generatingTitle}>{t("studio.video.generatingTitle")}</p>
+        <p className={styles.generatingSubtitle}>{t("studio.video.generatingSubtitle")}</p>
+        <p className={styles.estimatedTime}>{t("studio.video.generatingEta", { seconds: timeLeft })}</p>
       </div>
 
       <ProgressBar progress={progress} />
@@ -90,7 +92,7 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
-          取消生成
+          {t("studio.video.cancel")}
         </button>
       )}
     </div>
@@ -99,6 +101,8 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
 
 // 空状态
 function EmptyState() {
+  const { t } = useI18n();
+
   return (
     <div className={styles.emptyState}>
       <div className={styles.emptyIcon}>
@@ -114,8 +118,8 @@ function EmptyState() {
         </svg>
       </div>
       <div className={styles.emptyText}>
-        <p className={styles.emptyTitle}>开始你的创作之旅</p>
-        <p className={styles.emptySubtitle}>在下方输入你想创作的动画</p>
+        <p className={styles.emptyTitle}>{t("studio.video.emptyTitle")}</p>
+        <p className={styles.emptySubtitle}>{t("studio.video.emptySubtitle")}</p>
       </div>
     </div>
   );
@@ -142,6 +146,7 @@ export function VideoStage({
   onPause,
   onCancel,
 }: VideoStageProps) {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -215,7 +220,7 @@ export function VideoStage({
   }, []);
 
   return (
-    <div ref={stageRef} className={styles.stage} role="region" aria-label="视频展示区">
+    <div ref={stageRef} className={styles.stage} role="region" aria-label={t("studio.video.regionLabel")}>
       <div className={styles.border} aria-hidden="true" />
 
       <CornerDecoration position="tl" />
@@ -236,13 +241,13 @@ export function VideoStage({
               poster={resolvedPosterUrl ?? undefined}
               className={styles.video}
               onEnded={() => setIsPlaying(false)}
-              aria-label={title ?? "生成的动画视频"}
+              aria-label={title ?? t("studio.video.generatedLabel")}
             />
 
             <button
               type="button"
               onClick={togglePlay}
-              aria-label={isPlaying ? "暂停视频" : "播放视频"}
+              aria-label={isPlaying ? t("studio.video.pause") : t("studio.video.play")}
               className={styles.playButton}
             >
               {isPlaying ? (
@@ -274,7 +279,7 @@ export function VideoStage({
             <button
               type="button"
               onClick={toggleFullscreen}
-              aria-label="全屏观看"
+              aria-label={t("studio.video.fullscreen")}
               className={styles.fullscreenButton}
             >
               <svg

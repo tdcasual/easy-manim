@@ -2,6 +2,7 @@
  * ThemeToggle - 主题切换按钮
  * Kawaii 二次元风格 - 使用 emoji
  */
+import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
 import styles from "../styles/ThemeToggle.module.css";
 
@@ -11,12 +12,14 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ isNight, onToggle }: ThemeToggleProps) {
+  const { t } = useI18n();
+
   return (
     <button
       type="button"
       onClick={onToggle}
       className={isNight ? styles.toggleNight : styles.toggleDay}
-      aria-label={isNight ? "切换到白天模式" : "切换到夜间模式"}
+      aria-label={isNight ? t("studio.theme.toDay") : t("studio.theme.toNight")}
       aria-pressed={isNight}
     >
       {/* 背景光晕 */}

@@ -118,7 +118,7 @@
 /* ================================
    页面头部 Kawaii 风格
    ================================ */
-.page-header-v2 {
+.page-kawaii .page-header-v2 {
   position: relative;
   z-index: 1;
   display: flex;
@@ -134,7 +134,7 @@
   box-shadow: var(--shadow-md);
 }
 
-.page-eyebrow {
+.page-kawaii .page-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -146,7 +146,7 @@
   margin-bottom: var(--space-2);
 }
 
-.page-title-v2 {
+.page-kawaii .page-title-v2 {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -166,7 +166,7 @@
   50% { transform: translateY(-5px); }
 }
 
-.page-description-v2 {
+.page-kawaii .page-description-v2 {
   font-size: var(--font-size-md, 14px);
   color: var(--color-cloud-700, #7A7A7A);
   margin: 0;
@@ -175,7 +175,7 @@
 /* ================================
    指标卡片 Kawaii 风格
    ================================ */
-.metrics-grid-v2 {
+.page-kawaii .metrics-grid-v2 {
   position: relative;
   z-index: 1;
   display: grid;
@@ -184,7 +184,7 @@
   margin-bottom: var(--space-8);
 }
 
-.metric-card-v2 {
+.page-kawaii .metric-card-v2 {
   position: relative;
   display: flex;
   align-items: center;
@@ -200,7 +200,7 @@
   overflow: hidden;
 }
 
-.metric-card-v2:hover {
+.page-kawaii .metric-card-v2:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
 }
@@ -226,7 +226,7 @@
   border-top: 4px solid var(--color-lavender-400, #B56CB5);
 }
 
-.metric-icon-wrapper {
+.page-kawaii .metric-icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -237,11 +237,11 @@
   color: var(--color-pink-500, #FF6B8A);
 }
 
-.metric-content {
+.page-kawaii .metric-content {
   flex: 1;
 }
 
-.metric-label-v2 {
+.page-kawaii .metric-label-v2 {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-cloud-700, #7A7A7A);
@@ -250,7 +250,7 @@
   margin: 0 0 var(--space-1);
 }
 
-.metric-value-v2 {
+.page-kawaii .metric-value-v2 {
   font-size: var(--font-size-3xl, 24px);
   font-weight: 700;
   color: var(--color-cloud-900, #4A4A4A);
@@ -272,7 +272,7 @@
   overflow: hidden;
 }
 
-.section-header-v2 {
+.page-kawaii .section-header-v2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -280,7 +280,7 @@
   border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.5));
 }
 
-.section-title-v2 {
+.page-kawaii .section-title-v2 {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -817,7 +817,7 @@
 }
 
 /* 错误提示 */
-.form-error-v2 {
+.page-kawaii .form-error-v2 {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -876,7 +876,7 @@
 }
 
 /* 空状态 */
-.empty-state-v2 {
+.page-kawaii .empty-state-v2 {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -891,7 +891,7 @@
   animation: float 3s ease-in-out infinite;
 }
 
-.empty-state-v2 p {
+.page-kawaii .empty-state-v2 p {
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-cloud-700, #7A7A7A);
@@ -899,7 +899,7 @@
 }
 
 /* 旋转动画 */
-.spin {
+.page-kawaii .spin {
   animation: spin 1s linear infinite;
 }
 
@@ -912,7 +912,7 @@
    响应式设计
    ================================ */
 @media (max-width: 768px) {
-  .page-header-v2 {
+  .page-kawaii .page-header-v2 {
     flex-direction: column;
     gap: var(--space-4);
   }
@@ -931,12 +931,12 @@
     justify-content: center;
   }
 
-  .section-header-v2 {
+  .page-kawaii .section-header-v2 {
     flex-wrap: wrap;
     gap: var(--space-3);
   }
 
-  .metrics-grid-v2 {
+  .page-kawaii .metrics-grid-v2 {
     grid-template-columns: 1fr;
   }
 }
@@ -955,7 +955,7 @@
     justify-content: center;
   }
 
-  .page-title-v2 {
+  .page-kawaii .page-title-v2 {
     font-size: var(--font-size-2xl, 20px);
   }
 }

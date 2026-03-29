@@ -4,6 +4,7 @@
  */
 import { useState, useCallback, useEffect } from "react";
 import { X, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { useI18n } from "../app/locale";
 import { ToastContext, ToastType } from "./ToastContext";
 import "./Toast.css";
 
@@ -15,6 +16,7 @@ interface ToastItem {
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const removeToast = useCallback((id: string) => {
@@ -61,7 +63,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast, success, error, warning, info }}>
       {children}
-      <div className="toast-container" role="region" aria-label="通知">
+      <div className="toast-container" role="region" aria-label={t("toast.region")}>
         {toasts.map((t) => (
           <Toast key={t.id} item={t} onClose={() => removeToast(t.id)} />
         ))}
@@ -71,6 +73,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 }
 
 function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
+  const { t } = useI18n();
+
   useEffect(() => {
     const timer = setTimeout(onClose, item.duration);
     return () => clearTimeout(timer);
@@ -84,10 +88,10 @@ function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
   };
 
   const labels = {
-    success: "成功",
-    error: "错误",
-    warning: "警告",
-    info: "提示",
+    success: t("toast.type.success"),
+    error: t("toast.type.error"),
+    warning: t("toast.type.warning"),
+    info: t("toast.type.info"),
   };
 
   return (
@@ -96,7 +100,7 @@ function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
         {icons[item.type]}
       </span>
       <span className="toast-message">{item.message}</span>
-      <button className="toast-close" onClick={onClose} aria-label="关闭通知" type="button">
+      <button className="toast-close" onClick={onClose} aria-label={t("toast.close")} type="button">
         <X size={14} />
       </button>
     </div>

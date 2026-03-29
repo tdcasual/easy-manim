@@ -15,6 +15,7 @@ import {
   Wand2,
   Sparkles,
   Film,
+  AlertCircle,
 } from "lucide-react";
 import { useSession } from "../auth/useSession";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
@@ -103,6 +104,7 @@ function VideoThumb({ video }: { video: RecentVideoItem }) {
 
 // 📝 Kawaii 任务项 - 玻璃卡片效果
 function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: string) => void }) {
+  const { t } = useI18n();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -134,7 +136,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
         <button
           className="action-btn kawaii-icon-btn"
           onClick={() => setShowMenu(!showMenu)}
-          aria-label="更多操作"
+          aria-label={t("tasks.moreActions")}
         >
           <MoreHorizontal size={18} />
         </button>
@@ -147,7 +149,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
               onClick={() => setShowMenu(false)}
             >
               <Wand2 size={16} />
-              <span>✨ 详情</span>
+              <span>✨ {t("tasks.viewDetails")}</span>
             </Link>
             {canCancel && onCancel && (
               <button
@@ -158,7 +160,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
                 }}
               >
                 <Trash2 size={16} />
-                <span>🗑️ 取消</span>
+                <span>🗑️ {t("taskDetail.cancelTask")}</span>
               </button>
             )}
           </div>
@@ -176,24 +178,27 @@ interface QuickInputProps {
 }
 
 function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps) {
-  const { t } = useI18n();
+  const { list, t } = useI18n();
   const [prompt, setPrompt] = useState("");
   const [isFocused, setIsFocused] = useState(false);
 
-  const quickPrompts = [
-    { emoji: "🎨", text: "制作LOGO动画" },
-    { emoji: "📊", text: "数据可视化" },
-    { emoji: "✨", text: "文字特效" },
-    { emoji: "🌊", text: "粒子效果" },
-  ];
+  const quickPromptEmojis = ["🎨", "📊", "✨", "🌊"];
+  const quickPrompts = list("tasks.quickPrompts").map((text, index) => ({
+    emoji: quickPromptEmojis[index % quickPromptEmojis.length],
+    text,
+  }));
+
+  const submitPrompt = (nextPrompt: string) => {
+    const trimmedPrompt = nextPrompt.trim();
+    if (!trimmedPrompt) return;
+    if (!requireAuth()) return;
+    onSubmit(trimmedPrompt);
+    setPrompt("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim()) return;
-    // 检查认证，未认证时自动弹窗
-    if (!requireAuth()) return;
-    onSubmit(prompt.trim());
-    setPrompt("");
+    submitPrompt(prompt);
   };
 
   return (
@@ -207,14 +212,14 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
             onChange={(e) => setPrompt(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-            placeholder={t("tasks.quickPlaceholder") ?? "✨ 想创作什么动画呢？"}
+            placeholder={t("tasks.promptPlaceholder")}
             className="input-field"
           />
           <button
             type="submit"
             className={`send-btn kawaii-send ${creating ? "loading" : ""}`}
             disabled={!prompt.trim() || creating}
-            aria-label={creating ? "创建中..." : "创建任务"}
+            aria-label={creating ? t("tasks.creating") : t("tasks.create")}
           >
             {creating ? <span className="spinner" aria-hidden="true" /> : <Plus size={18} />}
           </button>
@@ -227,7 +232,7 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
                 key={item.text}
                 type="button"
                 className="chip kawaii-chip"
-                onClick={() => onSubmit(item.text)}
+                onClick={() => submitPrompt(item.text)}
               >
                 <span>{item.emoji}</span>
                 <span>{item.text}</span>
@@ -274,13 +279,21 @@ export function TasksPageV2() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [videos, setVideos] = useState<RecentVideoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "running" | "completed">("all");
 
   // 加载数据
   const loadData = useCallback(async () => {
-    if (!sessionToken) return;
+    if (!sessionToken) {
+      setTasks([]);
+      setVideos([]);
+      setLoadError(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    setLoadError(null);
     try {
       const [tasksRes, videosRes] = await Promise.all([
         listTasks(sessionToken),
@@ -289,11 +302,11 @@ export function TasksPageV2() {
       setTasks(tasksRes.items ?? []);
       setVideos(videosRes.items ?? []);
     } catch {
-      // 静默处理
+      setLoadError(t("tasks.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [sessionToken]);
+  }, [sessionToken, t]);
 
   useEffect(() => {
     loadData();
@@ -310,21 +323,25 @@ export function TasksPageV2() {
     try {
       const res = await createTask(prompt, sessionToken);
       if (res?.task_id) {
+        const title = res.display_title ?? prompt.slice(0, 20);
         setTasks((prev) => [
           {
             task_id: res.task_id,
             status: "queued",
-            display_title: res.display_title ?? prompt.slice(0, 20),
+            display_title: title,
           },
           ...prev,
         ]);
-        toastSuccess(t("tasks.created") ?? "✨ 任务创建成功！");
-        announcePolite(t("tasks.created") || "任务创建成功");
+        toastSuccess(t("tasks.taskCreated", { title }));
+        announcePolite(t("tasks.taskCreated", { title }));
         loadData();
       }
-    } catch {
-      toastError(t("tasks.createFailed") || "💔 创建失败，请重试");
-      announcePolite(t("tasks.createFailed") || "创建失败");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error && error.message ? error.message : t("common.loadingFailed");
+      const failureMessage = t("tasks.createFailed", { error: errorMessage });
+      toastError(failureMessage);
+      announcePolite(failureMessage);
     } finally {
       setCreating(false);
     }
@@ -338,9 +355,9 @@ export function TasksPageV2() {
       setTasks((prev) =>
         prev.map((t) => (t.task_id === taskId ? { ...t, status: "cancelled" } : t))
       );
-      announcePolite(t("tasks.cancelled") || "任务已取消");
+      announcePolite(t("tasks.cancelled"));
     } catch {
-      announcePolite(t("tasks.cancelFailed") || "取消失败");
+      announcePolite(t("tasks.cancelFailed"));
     }
   };
 
@@ -368,7 +385,7 @@ export function TasksPageV2() {
       <ARIALiveRegion />
 
       {/* 页面标题 - 供测试使用 */}
-      <h1 className="visually-hidden">任务管理</h1>
+      <h1 className="visually-hidden">{t("tasks.page.title")}</h1>
 
       {/* 🌸 头部统计 - Kawaii 卡片风格 */}
       <AnimatedContainer animation="slide-down" delay={0}>
@@ -376,26 +393,26 @@ export function TasksPageV2() {
           <StatCard
             icon={<Clock size={18} className="stat-icon-inner running" />}
             value={stats.running}
-            label="进行中"
+            label={t("tasks.metric.active")}
             color="sky"
           />
           <StatCard
             icon={<CheckCircle2 size={18} className="stat-icon-inner completed" />}
             value={stats.completed}
-            label="已完成"
+            label={t("tasks.metric.completed")}
             color="mint"
           />
           <StatCard
             icon={<Film size={18} className="stat-icon-inner" />}
             value={stats.total}
-            label="总计"
+            label={t("tasks.metric.total")}
             color="pink"
           />
           <button
             className="refresh-btn kawaii-refresh"
             onClick={loadData}
             disabled={loading}
-            aria-label="刷新"
+            aria-label={t("tasks.refreshList")}
           >
             <RefreshCw size={18} className={loading ? "spin" : ""} />
           </button>
@@ -411,9 +428,9 @@ export function TasksPageV2() {
       <AnimatedContainer animation="slide-up" delay={150}>
         <div className="tabs kawaii-tabs">
           {[
-            { key: "all" as const, label: "🌸 全部", emoji: "🌸" },
-            { key: "running" as const, label: "🎬 进行中", emoji: "🎬" },
-            { key: "completed" as const, label: "✨ 已完成", emoji: "✨" },
+            { key: "all" as const, label: t("tasks.tabs.all"), emoji: "🌸" },
+            { key: "running" as const, label: t("tasks.tabs.running"), emoji: "🎬" },
+            { key: "completed" as const, label: t("tasks.tabs.completed"), emoji: "✨" },
           ].map((tab, index) => (
             <button
               key={tab.key}
@@ -422,11 +439,21 @@ export function TasksPageV2() {
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <span className="tab-emoji">{tab.emoji}</span>
-              <span className="tab-label">{tab.label.replace(/^./, "").trim()}</span>
+              <span className="tab-label">{tab.label}</span>
             </button>
           ))}
         </div>
       </AnimatedContainer>
+
+      {loadError && (
+        <div className="task-load-error" role="alert">
+          <AlertCircle size={18} />
+          <div className="task-load-error-copy">
+            <p>{loadError}</p>
+            <span>{t("tasks.loadFailedHint")}</span>
+          </div>
+        </div>
+      )}
 
       {/* 📝 任务列表 */}
       <div className="task-list kawaii-list">
@@ -449,11 +476,17 @@ export function TasksPageV2() {
               </HoverAnimation>
             </AnimatedContainer>
           ))
+        ) : loadError && tasks.length === 0 ? (
+          <div className="task-load-fallback kawaii-empty" aria-hidden="true">
+            <span className="empty-emoji">💔</span>
+            <p>{loadError}</p>
+            <span>{t("tasks.loadFailedHint")}</span>
+          </div>
         ) : (
           <div className="empty-tip kawaii-empty">
             <span className="empty-emoji">🌸</span>
-            <p>还没有任务呢</p>
-            <span>创建一个新任务开始创作之旅吧 ✨</span>
+            <p>{t("tasks.noTasks")}</p>
+            <span>{t("tasks.noTasksHint")}</span>
           </div>
         )}
       </div>
@@ -464,9 +497,9 @@ export function TasksPageV2() {
           <div className="video-section kawaii-section">
             <h3 className="section-title kawaii-title">
               <span className="title-emoji">🎬</span>
-              <span>最近生成</span>
+              <span>{t("tasks.recentVideos")}</span>
               <Link to="/videos" className="view-all kawaii-link">
-                查看全部 →
+                {t("tasks.viewAll")} →
               </Link>
             </h3>
             <div className="video-grid">

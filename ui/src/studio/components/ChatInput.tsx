@@ -11,6 +11,7 @@ import {
   KeyboardEvent,
   useEffect,
 } from "react";
+import { useI18n } from "../../app/locale";
 import styles from "../styles/ChatInput.module.css";
 
 interface QuickPrompt {
@@ -25,12 +26,6 @@ interface ChatInputProps {
   isLoading?: boolean;
   placeholder?: string;
 }
-
-const quickPrompts: QuickPrompt[] = [
-  { icon: "🔵", text: "画一个蓝色圆球" },
-  { icon: "📊", text: "制作柱状图动画" },
-  { icon: "📈", text: "正弦波动画效果" },
-];
 
 // 种子飞行动画
 function SeedFlying({ isAnimating, onComplete }: { isAnimating: boolean; onComplete: () => void }) {
@@ -48,10 +43,17 @@ export interface ChatInputRef {
 }
 
 export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
-  ({ value, onChange, onSubmit, isLoading = false, placeholder = "描述你想要的动画..." }, ref) => {
+  ({ value, onChange, onSubmit, isLoading = false, placeholder }, ref) => {
+    const { list, t } = useI18n();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [isSeedFlying, setIsSeedFlying] = useState(false);
     const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const quickPromptIcons = ["🔵", "📊", "📈"];
+    const quickPrompts: QuickPrompt[] = list("studio.chat.quickPrompts").map((text, index) => ({
+      icon: quickPromptIcons[index % quickPromptIcons.length],
+      text,
+    }));
+    const resolvedPlaceholder = placeholder ?? t("studio.chat.placeholder");
 
     // 暴露 focus 方法给父组件
     useImperativeHandle(
@@ -162,11 +164,11 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               value={value}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
-              placeholder={isLoading ? "创作中..." : placeholder}
+              placeholder={isLoading ? t("studio.chat.loadingPlaceholder") : resolvedPlaceholder}
               disabled={isLoading}
               rows={1}
               className={styles.textarea}
-              aria-label="输入动画描述"
+              aria-label={t("studio.chat.label")}
               aria-busy={isLoading}
             />
 
@@ -175,7 +177,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               type="button"
               onClick={handleSubmit}
               disabled={!value.trim() || isLoading}
-              aria-label={isLoading ? "创作中" : "发送"}
+              aria-label={isLoading ? t("studio.chat.sending") : t("studio.chat.send")}
               className={`${styles.sendButton} ${value.trim() && !isLoading ? styles.sendButtonActive : ""}`}
             >
               <svg
@@ -196,9 +198,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         </div>
 
         {/* 提示 */}
-        <p className={styles.hint}>
-          按 <kbd>Enter</kbd> 发送，<kbd>Shift + Enter</kbd> 换行
-        </p>
+        <p className={styles.hint}>{t("studio.chat.hint")}</p>
       </div>
     );
   }

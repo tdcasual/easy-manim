@@ -29,6 +29,12 @@ test("authenticated access to protected routes renders the requested page", asyn
         headers: { "content-type": "application/json" },
       });
     }
+    if (path === "/api/videos/recent" && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
     return new Response("not found", { status: 404 });
   };
 

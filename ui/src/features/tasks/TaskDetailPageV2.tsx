@@ -214,6 +214,7 @@ export function TaskDetailPageV2() {
   const status = String(snapshot.status);
   const terminal = TERMINAL.has(status);
   const videoUrl = resolveApiUrl(result?.video_download_url);
+  const previewPosterUrl = resolveApiUrl(result?.preview_download_urls?.[0]);
   const displayTitle = snapshot.display_title ?? taskId;
 
   const statusConfig: Record<string, { icon: React.ElementType; colorVar: string; label: string }> =
@@ -311,7 +312,7 @@ export function TaskDetailPageV2() {
                 className="main-video-player"
                 src={videoUrl}
                 controls
-                poster={result?.preview_download_urls?.[0]}
+                poster={previewPosterUrl ?? undefined}
               />
             </div>
           )}

@@ -3,6 +3,7 @@
  * Kawaii 二次元风格
  */
 import type { TaskError } from "../../store";
+import { useI18n } from "../../../app/locale";
 import { StatusIcon, EmojiIcon } from "../../../components";
 import styles from "../../styles/Studio.module.css";
 
@@ -13,6 +14,7 @@ interface ErrorBannerProps {
 }
 
 export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
+  const { t } = useI18n();
   const isNetwork = error.type === "network";
 
   return (
@@ -34,10 +36,10 @@ export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
         <div
           className={`${styles.errorTitle} ${isNetwork ? styles.errorTitleNetwork : styles.errorTitleOther}`}
         >
-          {error.type === "network" && "网络错误"}
-          {error.type === "timeout" && "请求超时"}
-          {error.type === "generation" && "生成失败"}
-          {error.type === "unknown" && "出错了"}
+          {error.type === "network" && t("studio.error.network")}
+          {error.type === "timeout" && t("studio.error.timeout")}
+          {error.type === "generation" && t("studio.error.generation")}
+          {error.type === "unknown" && t("studio.error.unknown")}
         </div>
         <div className={styles.errorMessage}>{error.message}</div>
       </div>
@@ -46,13 +48,13 @@ export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
         {error.retryable && onRetry && (
           <button type="button" onClick={onRetry} className={styles.retryButton}>
             <EmojiIcon emoji="🔄" color="white" size="xs" />
-            重试
+            {t("studio.error.retry")}
           </button>
         )}
         <button
           type="button"
           onClick={onClose}
-          aria-label="关闭错误提示"
+          aria-label={t("studio.error.close")}
           className={styles.closeButton}
         >
           <EmojiIcon emoji="✖️" color="white" size="xs" />

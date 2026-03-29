@@ -6,6 +6,7 @@ import { readLocale, syncDocumentLocale } from "./app/locale";
 // 导入设计系统样式（顺序很重要）
 import "./styles/tokens.css";
 import "./styles/ghibli-theme.css";
+import "./styles/page-shell-v2.css";
 
 // 同步语言和主题
 syncDocumentLocale(readLocale());

@@ -2,8 +2,10 @@
  * SettingsPanel - 参数控制面板
  * Kawaii 二次元风格
  */
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
+import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
+import { useDialogA11y } from "../../components/useDialogA11y";
 import styles from "../styles/SettingsPanel.module.css";
 
 export interface GenerationParams {
@@ -27,72 +29,97 @@ const resolutionOptions = [
 ];
 
 const durationOptions = [
-  { value: "5s" as const, label: "5 秒", description: "快速预览", emoji: "⚡" },
-  { value: "10s" as const, label: "10 秒", description: "标准长度", emoji: "🎬" },
-  { value: "15s" as const, label: "15 秒", description: "详细展示", emoji: "🎭" },
+  {
+    value: "5s" as const,
+    labelKey: "studio.settings.duration.5s.label",
+    descriptionKey: "studio.settings.duration.5s.description",
+    emoji: "⚡",
+  },
+  {
+    value: "10s" as const,
+    labelKey: "studio.settings.duration.10s.label",
+    descriptionKey: "studio.settings.duration.10s.description",
+    emoji: "🎬",
+  },
+  {
+    value: "15s" as const,
+    labelKey: "studio.settings.duration.15s.label",
+    descriptionKey: "studio.settings.duration.15s.description",
+    emoji: "🎭",
+  },
 ];
 
 const styleOptions = [
-  { value: "natural" as const, label: "自然", color: "#81C784", emoji: "🌿" },
-  { value: "vivid" as const, label: "鲜艳", color: "#FF8A65", emoji: "🌈" },
-  { value: "anime" as const, label: "动漫", color: "#7986CB", emoji: "🎨" },
-  { value: "cinematic" as const, label: "电影", color: "#4DD0E1", emoji: "🎬" },
+  { value: "natural" as const, labelKey: "studio.settings.style.natural", color: "#81C784", emoji: "🌿" },
+  { value: "vivid" as const, labelKey: "studio.settings.style.vivid", color: "#FF8A65", emoji: "🌈" },
+  { value: "anime" as const, labelKey: "studio.settings.style.anime", color: "#7986CB", emoji: "🎨" },
+  {
+    value: "cinematic" as const,
+    labelKey: "studio.settings.style.cinematic",
+    color: "#4DD0E1",
+    emoji: "🎬",
+  },
 ];
 
 const qualityOptions = [
-  { value: "standard" as const, label: "标准", description: "生成快，省积分", emoji: "🚀" },
-  { value: "high" as const, label: "高清", description: "平衡速度质量", emoji: "✨" },
-  { value: "ultra" as const, label: "超清", description: "最佳质量，较慢", emoji: "💎" },
+  {
+    value: "standard" as const,
+    labelKey: "studio.settings.quality.standard",
+    descriptionKey: "studio.settings.quality.standard.description",
+    emoji: "🚀",
+  },
+  {
+    value: "high" as const,
+    labelKey: "studio.settings.quality.high",
+    descriptionKey: "studio.settings.quality.high.description",
+    emoji: "✨",
+  },
+  {
+    value: "ultra" as const,
+    labelKey: "studio.settings.quality.ultra",
+    descriptionKey: "studio.settings.quality.ultra.description",
+    emoji: "💎",
+  },
 ];
 
 export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: SettingsPanelProps) {
+  const { t } = useI18n();
   const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // ESC 关闭 - 只在面板打开时监听
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // 点击外部关闭 - 只在面板打开时监听
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  useDialogA11y({
+    isOpen,
+    onClose,
+    dialogRef: panelRef,
+    initialFocusRef: closeButtonRef,
+  });
 
   if (!isOpen) return null;
 
   return (
     <>
       {/* 遮罩 */}
-      <div className={styles.overlay} />
+      <div className={styles.overlay} onClick={onClose} aria-hidden="true" />
 
       {/* 面板 */}
-      <div ref={panelRef} className={styles.panel} role="dialog" aria-label="生成参数设置">
+      <div
+        ref={panelRef}
+        className={styles.panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("studio.settings.dialog")}
+      >
         {/* 头部 */}
         <div className={styles.header}>
           <div className={styles.headerTitle}>
             <EmojiIcon emoji="⚙️" color="mint" size="sm" />
-            <h2>生成设置</h2>
+            <h2>{t("studio.settings.title")}</h2>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            aria-label="关闭设置"
+            aria-label={t("studio.settings.close")}
             className={styles.closeButton}
           >
             <EmojiIcon emoji="✖️" color="white" size="xs" />
@@ -105,7 +132,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <EmojiIcon emoji="🖥️" color="sky" size="xs" />
-              <h3>分辨率</h3>
+              <h3>{t("studio.settings.resolution")}</h3>
             </div>
             <div className={styles.optionsGrid3}>
               {resolutionOptions.map((opt) => (
@@ -140,7 +167,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <EmojiIcon emoji="⏱️" color="peach" size="xs" />
-              <h3>视频时长</h3>
+              <h3>{t("studio.settings.duration")}</h3>
             </div>
             <div className={styles.optionsGrid3}>
               {durationOptions.map((opt) => (
@@ -157,9 +184,9 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
                       params.duration === opt.value ? styles.optionLabelActive : styles.optionLabel
                     }
                   >
-                    {opt.emoji} {opt.label}
+                    {opt.emoji} {t(opt.labelKey)}
                   </div>
-                  <div className={styles.optionDescription}>{opt.description}</div>
+                  <div className={styles.optionDescription}>{t(opt.descriptionKey)}</div>
                 </button>
               ))}
             </div>
@@ -169,7 +196,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <EmojiIcon emoji="🎨" color="pink" size="xs" />
-              <h3>画面风格</h3>
+              <h3>{t("studio.settings.style")}</h3>
             </div>
             <div className={styles.optionsGrid4}>
               {styleOptions.map((opt) => (
@@ -192,7 +219,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
                       color: params.style === opt.value ? opt.color : undefined,
                     }}
                   >
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </div>
                 </button>
               ))}
@@ -203,7 +230,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <EmojiIcon emoji="💎" color="lavender" size="xs" />
-              <h3>生成质量</h3>
+              <h3>{t("studio.settings.quality")}</h3>
             </div>
             <div className={styles.optionsVertical}>
               {qualityOptions.map((opt) => (
@@ -223,9 +250,9 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
                           : styles.qualityLabel
                       }
                     >
-                      {opt.emoji} {opt.label}
+                      {opt.emoji} {t(opt.labelKey)}
                     </div>
-                    <div className={styles.qualityDescription}>{opt.description}</div>
+                    <div className={styles.qualityDescription}>{t(opt.descriptionKey)}</div>
                   </div>
                   {params.quality === opt.value && (
                     <div className={styles.checkIndicator}>

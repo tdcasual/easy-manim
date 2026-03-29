@@ -2,16 +2,19 @@
  * HistoryDrawer - 历史记录抽屉
  * Kawaii 二次元风格
  */
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useI18n } from "../../app/locale";
+import { getStatusLabel } from "../../app/ui";
 import { Play } from "lucide-react";
 import { resolveApiUrl } from "../../lib/api";
 import { EmojiIcon, KawaiiIcon } from "../../components";
+import { useDialogA11y } from "../../components/useDialogA11y";
 import styles from "../styles/HistoryDrawer.module.css";
 
 interface HistoryItem {
   id: string;
   title: string;
-  status: "completed" | "running" | "queued" | "failed";
+  status: "completed" | "running" | "rendering" | "queued" | "failed" | "cancelled";
   timestamp: string;
   thumbnailUrl?: string | null;
 }
@@ -26,20 +29,23 @@ interface HistoryDrawerProps {
 
 // 状态配置
 const statusConfig = {
-  completed: { emoji: "✨", label: "已完成", color: "mint" as const },
-  running: { emoji: "🎬", label: "进行中", color: "sky" as const },
-  queued: { emoji: "⏳", label: "排队中", color: "peach" as const },
-  failed: { emoji: "💥", label: "失败", color: "pink" as const },
+  completed: { emoji: "✨", color: "mint" as const },
+  rendering: { emoji: "🎨", color: "sky" as const },
+  running: { emoji: "🎬", color: "sky" as const },
+  queued: { emoji: "⏳", color: "peach" as const },
+  failed: { emoji: "💥", color: "pink" as const },
+  cancelled: { emoji: "🚫", color: "lemon" as const },
 };
 
-// 验证 URL 安全性
-function isValidImageUrl(url: string | null | undefined): boolean {
-  if (!url) return false;
+function resolveThumbnailUrl(url: string | null | undefined): string | null {
+  const resolved = resolveApiUrl(url);
+  if (!resolved) return null;
+
   try {
-    const parsed = new URL(url);
-    return ["http:", "https:"].includes(parsed.protocol);
+    const parsed = new URL(resolved, window.location.origin);
+    return ["http:", "https:"].includes(parsed.protocol) ? resolved : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -50,96 +56,27 @@ export function HistoryDrawer({
   onItemClick,
   activeId,
 }: HistoryDrawerProps) {
+  const { locale, t } = useI18n();
   const drawerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const previousOverflowRef = useRef("");
+  useDialogA11y({
+    isOpen,
+    onClose,
+    dialogRef: drawerRef,
+    initialFocusRef: closeButtonRef,
+  });
 
-  // 处理 ESC 关闭 - 只在 drawer 打开时监听
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // 处理点击外部关闭 + 背景滚动控制
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-
-    previousOverflowRef.current = document.body.style.overflow;
-    document.addEventListener("mousedown", handleClickOutside);
-    document.body.style.overflow = "hidden";
-    // 聚焦到关闭按钮
-    closeButtonRef.current?.focus();
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.body.style.overflow = previousOverflowRef.current;
-    };
-  }, [isOpen, onClose]);
-
-  // 焦点管理 (Tab 循环)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const drawer = drawerRef.current;
-    if (!drawer) return;
-
-    const getFocusableElements = () => {
-      return Array.from(
-        drawer.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      );
-    };
-
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-
-      const focusableElements = getFocusableElements();
-      if (focusableElements.length === 0) return;
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (e.shiftKey && document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement.focus();
-      } else if (!e.shiftKey && document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement.focus();
-      }
-    };
-
-    drawer.addEventListener("keydown", handleTabKey);
-    return () => drawer.removeEventListener("keydown", handleTabKey);
-  }, [isOpen]);
+  if (!isOpen) return null;
 
   return (
     <>
       {/* 遮罩 */}
-      <div
-        className={isOpen ? styles.overlay : styles.overlayHidden}
-        onClick={onClose}
-        aria-hidden={!isOpen}
-      />
+      <div className={styles.overlay} onClick={onClose} aria-hidden="true" />
 
       {/* 抽屉 */}
       <div
         ref={drawerRef}
-        className={isOpen ? styles.drawerOpen : styles.drawer}
+        className={styles.drawerOpen}
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-title"
@@ -151,8 +88,8 @@ export function HistoryDrawer({
               <EmojiIcon emoji="📚" color="pink" size="sm" />
             </div>
             <div className={styles.headerText}>
-              <h2 id="drawer-title">创作历史</h2>
-              <p>🎨 {items.length} 个作品</p>
+              <h2 id="drawer-title">{t("studio.history.title")}</h2>
+              <p>🎨 {t("studio.history.count", { count: items.length })}</p>
             </div>
           </div>
 
@@ -160,7 +97,7 @@ export function HistoryDrawer({
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            aria-label="关闭历史抽屉"
+            aria-label={t("studio.history.close")}
             className={styles.closeButton}
           >
             <EmojiIcon emoji="✖️" color="white" size="xs" />
@@ -168,21 +105,25 @@ export function HistoryDrawer({
         </div>
 
         {/* 列表 */}
-        <div className={styles.list} role="list" aria-label="创作历史列表">
+        <div className={styles.list} role="list" aria-label={t("studio.history.list")}>
           {items.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>
                 <EmojiIcon emoji="📖" color="lavender" size="xl" bounce />
               </div>
-              <p className={styles.emptyTitle}>还没有创作记录</p>
-              <p className={styles.emptySubtitle}>开始创作你的第一个动画吧 ✨</p>
+              <p className={styles.emptyTitle}>{t("studio.history.emptyTitle")}</p>
+              <p className={styles.emptySubtitle}>{t("studio.history.emptySubtitle")}</p>
             </div>
           ) : (
             <div className={styles.items}>
               {items.map((item, index) => {
-                const status = statusConfig[item.status];
+                const status = statusConfig[item.status] ?? {
+                  emoji: "📹",
+                  color: "lavender" as const,
+                };
+                const statusLabel = getStatusLabel(item.status, locale);
                 const isActive = item.id === activeId;
-                const hasValidThumbnail = isValidImageUrl(item.thumbnailUrl);
+                const thumbnailUrl = resolveThumbnailUrl(item.thumbnailUrl);
 
                 return (
                   <button
@@ -191,19 +132,15 @@ export function HistoryDrawer({
                     onClick={() => onItemClick(item.id)}
                     role="listitem"
                     aria-current={isActive ? "true" : undefined}
-                    aria-label={`${item.title}, ${status.label}, ${item.timestamp}`}
+                    aria-label={`${item.title}, ${statusLabel}, ${item.timestamp}`}
                     className={isActive ? styles.itemActive : styles.item}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     {/* 缩略图 */}
-                    {hasValidThumbnail ? (
-                      <div
-                        className={styles.thumbnail}
-                        style={{
-                          background: `url(${resolveApiUrl(item.thumbnailUrl!)}) center/cover`,
-                        }}
-                        aria-hidden="true"
-                      />
+                    {thumbnailUrl ? (
+                      <div className={styles.thumbnail} aria-hidden="true">
+                        <img className={styles.thumbnailImage} src={thumbnailUrl} alt="" />
+                      </div>
                     ) : (
                       <div className={styles.thumbnailPlaceholder} aria-hidden="true">
                         <KawaiiIcon icon={Play} color="white" size="xs" />
@@ -216,7 +153,7 @@ export function HistoryDrawer({
                       <div className={styles.itemMeta}>
                         <span className={styles.status}>
                           <EmojiIcon emoji={status.emoji} color={status.color} size="xs" />
-                          {status.label}
+                          {statusLabel}
                         </span>
                         <span className={styles.timestamp}>{item.timestamp}</span>
                       </div>

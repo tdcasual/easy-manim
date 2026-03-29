@@ -36,7 +36,17 @@
 
 @media (max-width: 640px) {
   .kawaii-stats {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-card {
+    min-width: 0;
+  }
+
+  .kawaii-refresh {
+    width: 100%;
+    min-height: 72px;
   }
 }
 
@@ -132,6 +142,7 @@
   font-size: 12px;
   color: var(--color-cloud-600);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* 🔄 刷新按钮 */
@@ -536,6 +547,41 @@
   color: var(--color-cloud-500);
 }
 
+.task-load-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid rgba(244, 114, 182, 0.25);
+  border-radius: var(--radius-xl);
+  color: var(--color-pink-700);
+  box-shadow: var(--shadow-sm);
+}
+
+.task-load-error svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.task-load-error-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-load-error-copy p,
+.task-load-fallback p {
+  margin: 0;
+}
+
+.task-load-error-copy span {
+  font-size: 13px;
+  color: var(--color-cloud-600);
+}
+
 /* 💀 Kawaii 骨架屏 */
 .kawaii-skeleton {
   display: flex;
@@ -599,7 +645,7 @@
 
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 

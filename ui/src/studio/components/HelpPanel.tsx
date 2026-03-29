@@ -2,8 +2,10 @@
  * HelpPanel - 快捷键帮助面板
  * Kawaii 二次元风格
  */
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
+import { useDialogA11y } from "../../components/useDialogA11y";
 import styles from "../styles/HelpPanel.module.css";
 
 interface HelpPanelProps {
@@ -11,45 +13,27 @@ interface HelpPanelProps {
   onClose: () => void;
 }
 
-const shortcuts = [
-  { key: "/", description: "聚焦输入框", emoji: "🔍" },
-  { key: "Enter", description: "提交生成", emoji: "🚀" },
-  { key: "Shift + Enter", description: "换行", emoji: "↩️" },
-  { key: "Esc", description: "关闭面板/取消聚焦", emoji: "🚪" },
-  { key: "H", description: "打开历史记录", emoji: "📚" },
-  { key: "S", description: "打开设置", emoji: "⚙️" },
-  { key: "T", description: "切换主题", emoji: "🌓" },
-  { key: "?", description: "显示/隐藏帮助", emoji: "❓" },
-];
-
 export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
+  const { t } = useI18n();
   const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const shortcuts = [
+    { key: "/", description: t("studio.help.shortcuts.focusPrompt"), emoji: "🔍" },
+    { key: "Enter", description: t("studio.help.shortcuts.submit"), emoji: "🚀" },
+    { key: "Shift + Enter", description: t("studio.help.shortcuts.newline"), emoji: "↩️" },
+    { key: "Esc", description: t("studio.help.shortcuts.escape"), emoji: "🚪" },
+    { key: "H", description: t("studio.help.shortcuts.history"), emoji: "📚" },
+    { key: "S", description: t("studio.help.shortcuts.settings"), emoji: "⚙️" },
+    { key: "T", description: t("studio.help.shortcuts.theme"), emoji: "🌓" },
+    { key: "?", description: t("studio.help.shortcuts.help"), emoji: "❓" },
+  ];
 
-  // ESC 关闭 - 只在面板打开时监听
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // 点击外部关闭 - 只在面板打开时监听
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  useDialogA11y({
+    isOpen,
+    onClose,
+    dialogRef: panelRef,
+    initialFocusRef: closeButtonRef,
+  });
 
   if (!isOpen) return null;
 
@@ -59,17 +43,24 @@ export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
       <div className={styles.overlay} onClick={onClose} />
 
       {/* 面板 */}
-      <div ref={panelRef} className={styles.panel} role="dialog" aria-label="快捷键帮助">
+      <div
+        ref={panelRef}
+        className={styles.panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("studio.help.dialog")}
+      >
         {/* 头部 */}
         <div className={styles.header}>
           <div className={styles.headerTitle}>
             <EmojiIcon emoji="⌨️" color="sky" size="sm" />
-            <h2>快捷键</h2>
+            <h2>{t("studio.help.title")}</h2>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            aria-label="关闭帮助"
+            aria-label={t("studio.help.close")}
             className={styles.closeButton}
           >
             <EmojiIcon emoji="✖️" color="white" size="xs" />
@@ -91,7 +82,7 @@ export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
 
         {/* 底部提示 */}
         <div className={styles.footer}>
-          <p>💡 提示：在输入框内按 Esc 可取消聚焦</p>
+          <p>💡 {t("studio.help.footer")}</p>
         </div>
       </div>
     </>

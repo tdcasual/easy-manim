@@ -10,6 +10,7 @@ import { Sparkles } from "lucide-react";
 import { useTaskManager, useHistory, useKeyboardShortcuts, useResponsive } from "./hooks";
 import { useTheme } from "./hooks/useTheme";
 import { useSession } from "../features/auth/useSession";
+import { useI18n } from "../app/locale";
 
 // Store
 import { useStudioStore } from "./store";
@@ -23,23 +24,27 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { HelpPanel } from "./components/HelpPanel";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { AuthModal, useAuthGuard } from "../components/AuthModal";
+import { LocaleToggle } from "../components/LocaleToggle";
 
 // Styles
 import styles from "./styles/Studio.module.css";
 
 // Loading Screen
 function LoadingScreen() {
+  const { t } = useI18n();
+
   return (
     <div className={styles.loadingScreen}>
       <div className={styles.loadingIcon}>
         <Sparkles size={48} color="var(--accent-primary)" />
       </div>
-      <p className={styles.loadingText}>正在加载创作室...</p>
+      <p className={styles.loadingText}>{t("studio.loading")}</p>
     </div>
   );
 }
 
 export function Studio() {
+  const { t } = useI18n();
   const { isNight, toggleTheme } = useTheme();
   const { sessionToken } = useSession();
   const { isMobile } = useResponsive();
@@ -137,7 +142,7 @@ export function Studio() {
       if (item) {
         setCurrentTask({
           id: item.id,
-          videoUrl: item.thumbnailUrl,
+          videoUrl: item.videoUrl,
           title: item.title,
           status: item.status,
         });
@@ -170,17 +175,18 @@ export function Studio() {
             </div>
             <div className={styles.brand}>
               <h1 className={styles.brandTitle}>easy-manim</h1>
-              {!isMobile && <p className={styles.brandSubtitle}>AI 动画创作室</p>}
+              {!isMobile && <p className={styles.brandSubtitle}>{t("studio.brandSubtitle")}</p>}
             </div>
           </div>
 
           <div className={styles.toolbar}>
+            <LocaleToggle />
             <button
               type="button"
               onClick={toggleHistory}
               className={styles.toolbarButton}
-              aria-label="打开历史记录"
-              title="历史 (H)"
+              aria-label={t("studio.toolbar.historyAria")}
+              title={t("studio.toolbar.historyTitle")}
             >
               <svg
                 width="20"
@@ -192,14 +198,14 @@ export function Studio() {
               >
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
               </svg>
-              <span>历史</span>
+              <span>{t("studio.toolbar.history")}</span>
             </button>
             <button
               type="button"
               onClick={toggleHelp}
               className={styles.toolbarButton}
-              aria-label="打开帮助"
-              title="帮助 (?)"
+              aria-label={t("studio.toolbar.helpAria")}
+              title={t("studio.toolbar.helpTitle")}
             >
               <svg
                 width="20"
@@ -213,14 +219,14 @@ export function Studio() {
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
-              <span>帮助</span>
+              <span>{t("studio.toolbar.help")}</span>
             </button>
             <button
               type="button"
               onClick={toggleSettings}
               className={styles.toolbarButton}
-              aria-label="打开设置"
-              title="设置 (S)"
+              aria-label={t("studio.toolbar.settingsAria")}
+              title={t("studio.toolbar.settingsTitle")}
             >
               <svg
                 width="20"
@@ -233,7 +239,7 @@ export function Studio() {
                 <circle cx="12" cy="12" r="3" />
                 <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 6.34L2.1 2.1m17.8 17.8l-4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24 4.24l-4.24-4.24M6.34 6.34L2.1 2.1" />
               </svg>
-              <span>设置</span>
+              <span>{t("studio.toolbar.settings")}</span>
             </button>
             <div className={styles.toolbarDivider} />
             <div className={styles.spacer} />
@@ -281,10 +287,10 @@ export function Studio() {
               <div
                 className={`${styles.errorTitle} ${error.type === "network" ? styles.errorTitleNetwork : styles.errorTitleOther}`}
               >
-                {error.type === "network" && "网络错误"}
-                {error.type === "timeout" && "请求超时"}
-                {error.type === "generation" && "生成失败"}
-                {error.type === "unknown" && "出错了"}
+                {error.type === "network" && t("studio.error.network")}
+                {error.type === "timeout" && t("studio.error.timeout")}
+                {error.type === "generation" && t("studio.error.generation")}
+                {error.type === "unknown" && t("studio.error.unknown")}
               </div>
               <div className={styles.errorMessage}>{error.message}</div>
             </div>
@@ -302,13 +308,13 @@ export function Studio() {
                   >
                     <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
                   </svg>
-                  重试
+                  {t("studio.error.retry")}
                 </button>
               )}
               <button
                 type="button"
                 onClick={clearError}
-                aria-label="关闭错误提示"
+                aria-label={t("studio.error.close")}
                 className={styles.closeButton}
               >
                 <svg

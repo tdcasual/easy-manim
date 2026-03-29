@@ -210,8 +210,11 @@
   font-size: 1.5rem;
 }
 
-.thumbnail::before {
-  content: '🎬';
+.thumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .thumbnailPlaceholder {

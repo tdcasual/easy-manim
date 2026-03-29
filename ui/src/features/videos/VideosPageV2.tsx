@@ -266,11 +266,31 @@ function FilterBar({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const statusOptions: { value: StatusFilter; label: string; color: string; emoji: string }[] = [
-    { value: "all", label: "全部", color: "var(--color-cloud-600)", emoji: "🌈" },
-    { value: "completed", label: "已完成", color: "var(--color-mint-500)", emoji: "✨" },
-    { value: "running", label: "处理中", color: "var(--color-sky-500)", emoji: "🎬" },
-    { value: "queued", label: "队列中", color: "var(--color-lemon-600)", emoji: "⏳" },
-    { value: "failed", label: "失败", color: "var(--color-pink-500)", emoji: "💦" },
+    { value: "all", label: t("videos.filterStatus.all"), color: "var(--color-cloud-600)", emoji: "🌈" },
+    {
+      value: "completed",
+      label: t("videos.filterStatus.completed"),
+      color: "var(--color-mint-500)",
+      emoji: "✨",
+    },
+    {
+      value: "running",
+      label: t("videos.filterStatus.running"),
+      color: "var(--color-sky-500)",
+      emoji: "🎬",
+    },
+    {
+      value: "queued",
+      label: t("videos.filterStatus.queued"),
+      color: "var(--color-lemon-600)",
+      emoji: "⏳",
+    },
+    {
+      value: "failed",
+      label: t("videos.filterStatus.failed"),
+      color: "var(--color-pink-500)",
+      emoji: "💦",
+    },
   ];
 
   return (
@@ -285,17 +305,23 @@ function FilterBar({
           className="search-input"
         />
         {searchQuery && (
-          <button className="search-clear" onClick={() => onSearchChange("")} aria-label="清除搜索">
+          <button
+            type="button"
+            className="search-clear"
+            onClick={() => onSearchChange("")}
+            aria-label={t("videos.clearSearch")}
+          >
             <span>×</span>
           </button>
         )}
       </div>
 
       <button
+        type="button"
         className={`filter-toggle ${isExpanded ? "active" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
-        aria-label="筛选"
+        aria-label={t("videos.filter")}
       >
         <Filter size={16} />
         <span>{t("videos.filter")}</span>
@@ -310,6 +336,7 @@ function FilterBar({
         <div className="filter-options">
           {statusOptions.map((option) => (
             <button
+              type="button"
               key={option.value}
               className={`filter-chip ${statusFilter === option.value ? "active" : ""}`}
               onClick={() => onStatusChange(option.value)}
@@ -399,7 +426,7 @@ export function VideosPageV2() {
         const query = searchQuery.toLowerCase();
         const title = (item.display_title ?? "").toLowerCase();
         const taskId = item.task_id.toLowerCase();
-        return title.includes(query) ?? taskId.includes(query);
+        return title.includes(query) || taskId.includes(query);
       }
 
       return true;

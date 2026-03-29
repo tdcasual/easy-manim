@@ -2,25 +2,29 @@
  * useHistory - 历史记录管理 Hook
  */
 import { useState, useCallback, useRef, useEffect } from "react";
+import { readLocale } from "../../app/locale";
 import { listTasks, TaskListItem } from "../../lib/tasksApi";
 import { listRecentVideos, RecentVideoItem } from "../../lib/videosApi";
 
 export interface HistoryItem {
   id: string;
   title: string;
-  status: "completed" | "running" | "queued" | "failed";
+  status: "completed" | "running" | "rendering" | "queued" | "failed" | "cancelled";
   timestamp: string;
   thumbnailUrl?: string | null;
+  videoUrl?: string | null;
 }
 
 function formatTime(date: Date): string {
+  const locale = readLocale();
   const now = new Date();
   const diff = now.getTime() - date.getTime();
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 
-  if (diff < 60000) return "刚刚";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-  return `${Math.floor(diff / 86400000)}天前`;
+  if (diff < 60000) return locale === "zh-CN" ? "刚刚" : "just now";
+  if (diff < 3600000) return formatter.format(-Math.floor(diff / 60000), "minute");
+  if (diff < 86400000) return formatter.format(-Math.floor(diff / 3600000), "hour");
+  return formatter.format(-Math.floor(diff / 86400000), "day");
 }
 
 interface UseHistoryOptions {
@@ -93,6 +97,7 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
       status: task.status.toLowerCase() as HistoryItem["status"],
       timestamp,
       thumbnailUrl: video?.latest_preview_url,
+      videoUrl: video?.latest_video_url,
     };
   });
 

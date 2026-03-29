@@ -15,7 +15,7 @@ export interface Task {
   id: string;
   videoUrl?: string | null;
   title?: string;
-  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  status: "queued" | "running" | "rendering" | "completed" | "failed" | "cancelled";
 }
 
 export interface TaskError {

@@ -35,7 +35,7 @@ export function AnimatedContainer({
   trigger = "mount",
   onAnimationEnd,
 }: AnimatedContainerProps) {
-  const [isVisible, setIsVisible] = useState(trigger === "mount" ? false : true);
+  const [isVisible, setIsVisible] = useState(trigger === "manual");
   const [hasAnimated, setHasAnimated] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

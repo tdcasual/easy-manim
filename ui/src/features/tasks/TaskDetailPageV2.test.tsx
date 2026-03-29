@@ -70,3 +70,55 @@ test("shows an error alert when task detail loading fails", async () => {
 
   expect(await screen.findByRole("alert")).toHaveTextContent(/加载失败/i);
 });
+
+test("task detail resolves relative preview posters for the video player", async () => {
+  writeSessionToken("sess-token-1");
+
+  // @ts-expect-error - test shim
+  globalThis.fetch = vi.fn(async (url: string) => {
+    const path = new URL(String(url), "http://example.test").pathname;
+    if (path === "/api/tasks/task-2") {
+      return new Response(
+        JSON.stringify({
+          task_id: "task-2",
+          display_title: "相对路径 poster 测试",
+          title_source: "prompt",
+          status: "completed",
+          phase: "completed",
+          attempt_count: 1,
+          latest_validation_summary: { summary: "" },
+          artifact_summary: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+    if (path === "/api/tasks/task-2/result") {
+      return new Response(
+        JSON.stringify({
+          task_id: "task-2",
+          status: "completed",
+          ready: true,
+          summary: "done",
+          video_resource: null,
+          video_download_url: "artifacts/videos/final.mp4",
+          preview_download_urls: ["artifacts/previews/frame_001.png"],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+    return new Response("not found", { status: 404 });
+  });
+
+  const { container } = render(
+    <MemoryRouter initialEntries={["/tasks/task-2"]}>
+      <Routes>
+        <Route path="/tasks/:taskId" element={<TaskDetailPageV2 />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+  expect(await screen.findByRole("heading", { name: "相对路径 poster 测试" })).toBeInTheDocument();
+  const video = container.querySelector("video.main-video-player");
+  expect(video).not.toBeNull();
+  expect(video).toHaveAttribute("poster", "/artifacts/previews/frame_001.png");
+});

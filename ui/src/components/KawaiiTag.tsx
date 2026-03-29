@@ -3,6 +3,7 @@
  * 可爱、柔和、有弹性的标签设计
  */
 import type { ReactNode } from "react";
+import { useI18n } from "../app/locale";
 import "./KawaiiTag.css";
 
 export type TagVariant =
@@ -45,6 +46,8 @@ export function KawaiiTag({
   pulse = false,
   className = "",
 }: KawaiiTagProps) {
+  const { t } = useI18n();
+
   return (
     <span
       className={`kawaii-tag ${variant} ${size} ${pulse ? "pulse" : ""} ${closable ? "closable" : ""} ${className}`}
@@ -59,7 +62,7 @@ export function KawaiiTag({
             e.stopPropagation();
             onClose?.();
           }}
-          aria-label="移除标签"
+          aria-label={t("common.removeTag")}
         >
           ×
         </button>

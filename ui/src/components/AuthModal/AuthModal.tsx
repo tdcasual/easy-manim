@@ -5,13 +5,14 @@
  * - 可关闭，保持未认证状态
  * - 固定在右下角
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { X, LogOut, Sparkles } from "lucide-react";
 import { postSession } from "../../lib/api";
 import { writeSessionToken, clearSessionToken } from "../../lib/session";
 import { useSession } from "../../features/auth/useSession";
 import { useAsyncStatus } from "../../hooks/useAsyncStatus";
 import { useI18n } from "../../app/locale";
+import { useDialogA11y } from "../useDialogA11y";
 import styles from "./AuthModal.module.css";
 
 export interface AuthModalProps {
@@ -30,6 +31,9 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
   const [token, setToken] = useState("");
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // 自动弹出逻辑
   useEffect(() => {
@@ -89,16 +93,29 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
 
   const isLoading = status === "loading";
 
+  useDialogA11y({
+    isOpen,
+    onClose: handleClose,
+    dialogRef: modalRef,
+    initialFocusRef: inputRef,
+    restoreFocusRef: triggerRef,
+  });
+
   // 渲染折叠状态（迷你按钮）
   if (!isOpen && isMinimized) {
+    const miniTriggerLabel = isAuthenticated
+      ? t("authModal.signedIn")
+      : t("authModal.openLogin");
+
     return (
       <div className={styles.collapsed}>
         <button
+          ref={triggerRef}
           type="button"
           className={styles.miniButton}
           onClick={handleOpen}
-          aria-label={isAuthenticated ? "已登录" : "点击登录"}
-          title={isAuthenticated ? "已登录" : "点击登录"}
+          aria-label={miniTriggerLabel}
+          title={miniTriggerLabel}
         >
           {isAuthenticated ? "✨" : "🔒"}
         </button>
@@ -113,19 +130,25 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
       <div className={styles.overlay} onClick={handleClose} aria-hidden="true" />
 
       {/* 弹窗 */}
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div
+        ref={modalRef}
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-title"
+      >
         <div className={styles.content}>
           {/* 头部 */}
           <div className={styles.header}>
             <h2 id="auth-title" className={styles.headerTitle}>
               <span className={styles.headerEmoji}>{isAuthenticated ? "✨" : "🔐"}</span>
-              <span>{isAuthenticated ? "欢迎回来" : "登录"}</span>
+              <span>{isAuthenticated ? t("login.welcome") : t("authModal.titleLogin")}</span>
             </h2>
             <button
               type="button"
               className={styles.closeButton}
               onClick={handleClose}
-              aria-label="关闭"
+              aria-label={t("common.close")}
             >
               <X size={18} />
             </button>
@@ -137,11 +160,11 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
               /* 已登录状态 */
               <div className={styles.authenticated}>
                 <div className={styles.successIcon}>🎉</div>
-                <p className={styles.authenticatedText}>登录成功！</p>
-                <p className={styles.authenticatedSubtext}>可以开始使用 easy-manim 了</p>
+                <p className={styles.authenticatedText}>{t("authModal.successTitle")}</p>
+                <p className={styles.authenticatedSubtext}>{t("authModal.successSubtitle")}</p>
                 <button type="button" className={styles.logoutButton} onClick={handleLogout}>
                   <LogOut size={16} />
-                  <span>退出登录</span>
+                  <span>{t("sidebar.logout")}</span>
                 </button>
               </div>
             ) : (
@@ -170,11 +193,12 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
                       <span>{t("login.tokenLabel")}</span>
                     </label>
                     <input
+                      ref={inputRef}
                       id="auth-token"
                       type="text"
                       value={token}
                       onChange={(e) => setToken(e.target.value)}
-                      placeholder={t("login.tokenPlaceholder") ?? "输入您的访问令牌..."}
+                      placeholder={t("login.tokenPlaceholder")}
                       className={styles.input}
                       disabled={isLoading}
                       autoFocus
@@ -189,12 +213,12 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
                     {isLoading ? (
                       <>
                         <span className={styles.spinner} />
-                        <span>登录中...</span>
+                        <span>{t("login.loggingIn")}</span>
                       </>
                     ) : (
                       <>
                         <Sparkles size={18} />
-                        <span>{t("login.submit") ?? "登录"}</span>
+                        <span>{t("login.submit")}</span>
                       </>
                     )}
                   </button>
@@ -203,10 +227,8 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
                 {/* 帮助链接 */}
                 <div className={styles.help}>
                   <span>💡</span>
-                  <span>没有令牌？</span>
-                  <a href="/help" className={styles.helpLink} target="_blank" rel="noreferrer">
-                    查看帮助
-                  </a>
+                  <span>{t("authModal.noToken")}</span>
+                  <span>{t("login.tokenHint")}</span>
                 </div>
               </>
             )}
