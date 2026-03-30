@@ -81,6 +81,9 @@ def test_eval_service_runs_challenger_and_records_strategy_metrics(tmp_path: Pat
 
     assert result["baseline"]["total_cases"] == 1
     assert result["challenger"]["total_cases"] == 1
+    assert result["promotion_mode"] == "shadow"
+    assert result["promotion_decision"]["mode"] == "shadow"
+    assert result["promotion_decision"]["applied"] is False
 
     profiles = app_context.store.list_strategy_profiles()
     assert len(profiles) == 1
@@ -90,7 +93,158 @@ def test_eval_service_runs_challenger_and_records_strategy_metrics(tmp_path: Pat
     assert isinstance(profiles[0].metrics["last_eval_run"]["promotion_decision"]["approved"], bool)
     assert isinstance(profiles[0].metrics["last_eval_run"]["promotion_decision"]["reasons"], list)
     assert isinstance(profiles[0].metrics["last_eval_run"]["promotion_decision"]["deltas"], dict)
+    assert profiles[0].metrics["last_eval_run"]["promotion_decision"]["mode"] == "shadow"
+    assert profiles[0].metrics["last_eval_run"]["promotion_decision"]["applied"] is False
+    assert profiles[0].metrics["decision_timeline"][0]["kind"] == "strategy_promotion_shadow"
+    assert profiles[0].metrics["decision_timeline"][0]["promotion_decision"]["mode"] == "shadow"
     assert result["promotion_recommended"] == result["promotion_decision"]["approved"]
+
+
+def test_eval_service_records_capped_newest_first_shadow_timeline(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_eval_settings(tmp_path))
+    strategy = app_context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-1",
+            scope="global",
+            prompt_cluster="beta",
+            status="candidate",
+            params={"style_hints": {"tone": "teaching"}},
+        )
+    )
+    service = EvaluationService(app_context)
+
+    for _ in range(7):
+        service.run_strategy_challenger(
+            suite_path=str(_suite_path()),
+            challenger_profile=strategy,
+            limit=1,
+        )
+
+    profile = app_context.store.get_strategy_profile("strategy-1")
+    assert profile is not None
+    timeline = profile.metrics["decision_timeline"]
+    assert len(timeline) == 5
+    assert timeline == sorted(timeline, key=lambda item: item["recorded_at"], reverse=True)
+    assert all(item["kind"] == "strategy_promotion_shadow" for item in timeline)
+
+
+def test_eval_service_guarded_auto_applies_after_consecutive_shadow_passes(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        bootstrapped_settings(
+            _build_fake_eval_settings(tmp_path).model_copy(
+                update={
+                    "strategy_promotion_enabled": True,
+                    "strategy_promotion_guarded_auto_apply_enabled": True,
+                    "strategy_promotion_guarded_auto_apply_min_shadow_passes": 2,
+                    "strategy_promotion_min_quality_gain": 0.0,
+                }
+            )
+        )
+    )
+    previous_active = app_context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-active",
+            scope="global",
+            prompt_cluster="beta",
+            status="active",
+            params={"style_hints": {"tone": "patient"}},
+        )
+    )
+    candidate = app_context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-candidate",
+            scope="global",
+            prompt_cluster="beta",
+            status="candidate",
+            params={"style_hints": {"tone": "teaching"}},
+        )
+    )
+    service = EvaluationService(app_context)
+
+    first = service.run_strategy_challenger(
+        suite_path=str(_suite_path()),
+        challenger_profile=candidate,
+        limit=1,
+    )
+    second = service.run_strategy_challenger(
+        suite_path=str(_suite_path()),
+        challenger_profile=candidate,
+        limit=1,
+    )
+
+    updated_candidate = app_context.store.get_strategy_profile(candidate.strategy_id)
+    updated_previous = app_context.store.get_strategy_profile(previous_active.strategy_id)
+
+    assert first["promotion_decision"]["mode"] == "shadow"
+    assert first["promotion_decision"]["applied"] is False
+    assert second["promotion_decision"]["mode"] == "guarded_auto_apply"
+    assert second["promotion_decision"]["applied"] is True
+    assert updated_candidate is not None
+    assert updated_candidate.status == "active"
+    assert updated_candidate.metrics["decision_timeline"][0]["kind"] == "strategy_promotion_applied"
+    assert updated_candidate.metrics["decision_timeline"][0]["promotion_decision"]["mode"] == "guarded_auto_apply"
+    assert updated_previous is not None
+    assert updated_previous.status == "superseded"
+
+
+def test_eval_service_guarded_auto_rolls_back_after_regression(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        bootstrapped_settings(
+            _build_fake_eval_settings(tmp_path).model_copy(
+                update={
+                    "strategy_promotion_enabled": True,
+                    "strategy_promotion_guarded_auto_apply_enabled": True,
+                    "strategy_promotion_guarded_auto_apply_min_shadow_passes": 1,
+                    "strategy_promotion_min_quality_gain": 0.0,
+                }
+            )
+        )
+    )
+    previous_active = app_context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-active",
+            scope="global",
+            prompt_cluster="beta",
+            status="active",
+            params={"style_hints": {"tone": "patient"}},
+        )
+    )
+    candidate = app_context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-candidate",
+            scope="global",
+            prompt_cluster="beta",
+            status="candidate",
+            params={"style_hints": {"tone": "teaching"}},
+        )
+    )
+    service = EvaluationService(app_context)
+
+    applied = service.run_strategy_challenger(
+        suite_path=str(_suite_path()),
+        challenger_profile=candidate,
+        limit=1,
+    )
+    app_context.settings.strategy_promotion_min_quality_gain = 0.01
+    rolled_back = service.run_strategy_challenger(
+        suite_path=str(_suite_path()),
+        challenger_profile=candidate,
+        limit=1,
+    )
+
+    updated_candidate = app_context.store.get_strategy_profile(candidate.strategy_id)
+    restored_previous = app_context.store.get_strategy_profile(previous_active.strategy_id)
+
+    assert applied["promotion_decision"]["mode"] == "guarded_auto_apply"
+    assert applied["promotion_decision"]["applied"] is True
+    assert rolled_back["promotion_decision"]["mode"] == "guarded_auto_rollback"
+    assert rolled_back["promotion_decision"]["applied"] is True
+    assert rolled_back["promotion_decision"]["approved"] is False
+    assert updated_candidate is not None
+    assert updated_candidate.status == "rolled_back"
+    assert updated_candidate.metrics["decision_timeline"][0]["kind"] == "strategy_promotion_rollback"
+    assert restored_previous is not None
+    assert restored_previous.status == "active"
 
 
 def test_eval_service_includes_scene_spec_signals_in_eval_items(tmp_path: Path) -> None:

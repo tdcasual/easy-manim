@@ -12,14 +12,21 @@ from video_agent.adapters.llm.client import (
     ProviderTimeoutError,
 )
 from video_agent.adapters.llm.script_sanitizer import sanitize_script_text
+from video_agent.adapters.rendering.emergency_video_writer import EmergencyVideoWriter
 from video_agent.adapters.rendering.frame_extractor import FrameExtractor
 from video_agent.adapters.rendering.manim_runner import ManimRunner
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_learning_service import AgentLearningService, quality_score_for_task_outcome
 from video_agent.application.auto_repair_service import AutoRepairService
+from video_agent.application.branch_arbitration import build_arbitration_summary, build_branch_scoreboard
+from video_agent.application.case_memory_service import CaseMemoryService
 from video_agent.application.capability_gate_service import CapabilityGateService
+from video_agent.application.delivery_case_service import DeliveryCaseService
+from video_agent.application.delivery_guarantee_service import DeliveryGuaranteeDecision, DeliveryGuaranteeService
+from video_agent.application.errors import AdmissionControlError
 from video_agent.application.failure_context import build_failure_context
+from video_agent.application.outcome_signals import is_quality_passed
 from video_agent.application.quality_judge_service import QualityJudgeService
 from video_agent.application.recovery_policy_service import RecoveryPolicyService
 from video_agent.application.runtime_service import RuntimeService
@@ -69,6 +76,10 @@ class WorkflowEngine:
         capability_gate_service: CapabilityGateService | None = None,
         recovery_policy_service: RecoveryPolicyService | None = None,
         quality_judge_service: QualityJudgeService | None = None,
+        emergency_video_writer: EmergencyVideoWriter | None = None,
+        delivery_guarantee_service: DeliveryGuaranteeService | None = None,
+        delivery_case_service: DeliveryCaseService | None = None,
+        case_memory_service: CaseMemoryService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
@@ -92,12 +103,23 @@ class WorkflowEngine:
         self.quality_judge_service = quality_judge_service or QualityJudgeService(
             min_score=runtime_service.settings.quality_gate_min_score
         )
+        self.emergency_video_writer = emergency_video_writer or EmergencyVideoWriter(
+            command=runtime_service.settings.ffmpeg_command,
+            validator=lambda path: self.hard_validator.validate(path).passed,
+        )
         self.auto_repair_service = AutoRepairService(
             store=store,
             artifact_store=artifact_store,
             settings=runtime_service.settings,
             recovery_policy_service=self.recovery_policy_service,
         )
+        self.delivery_guarantee_service = delivery_guarantee_service or DeliveryGuaranteeService(
+            settings=runtime_service.settings,
+            artifact_store=artifact_store,
+            emergency_video_writer=self.emergency_video_writer,
+        )
+        self.delivery_case_service = delivery_case_service
+        self.case_memory_service = case_memory_service
 
     def run_task(self, task_id: str) -> None:
         task = self.store.get_task(task_id)
@@ -129,6 +151,8 @@ class WorkflowEngine:
             )
 
             self._transition(task, TaskPhase.SCENE_PLANNING)
+            if self.delivery_case_service is not None:
+                self.delivery_case_service.mark_planner_running(task=task)
             render_profile = self._resolve_render_profile(task)
             scene_spec = self.scene_spec_service.build(
                 prompt=task.prompt,
@@ -171,6 +195,14 @@ class WorkflowEngine:
                 return
             written_scene_plan_path = self.artifact_store.write_scene_plan(task.task_id, scene_plan.model_dump(mode="json"))
             self.store.register_artifact(task.task_id, "scene_plan", written_scene_plan_path)
+            if self.delivery_case_service is not None:
+                self.delivery_case_service.record_planner_run(
+                    task=task,
+                    scene_spec_path=written_scene_spec_path,
+                    scene_plan_path=written_scene_plan_path,
+                )
+            if self.case_memory_service is not None:
+                self.case_memory_service.record_planner_state(task)
             self._log(
                 task,
                 TaskPhase.SCENE_PLANNING,
@@ -219,6 +251,8 @@ class WorkflowEngine:
             )
 
             self._transition(task, TaskPhase.GENERATING_CODE)
+            if self.delivery_case_service is not None:
+                self.delivery_case_service.mark_generator_running(task=task)
             generation_started = time.monotonic()
             try:
                 script_text = sanitize_script_text(self.llm_client.generate_script(prompt_text))
@@ -358,6 +392,16 @@ class WorkflowEngine:
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
             self._log(task, TaskPhase.RENDERING, "Render completed", video_path=str(final_video_path))
+            if self.delivery_case_service is not None:
+                self.delivery_case_service.record_generator_run(
+                    task=task,
+                    status="completed",
+                    summary="Generation and render completed",
+                    phase=TaskPhase.RENDERING.value,
+                    script_path=script_path,
+                    video_path=final_video_path,
+                    decision={"attempt_count": task.attempt_count},
+                )
 
             self._transition(task, TaskPhase.PREVIEW_RENDER)
             preview_dir = self.artifact_store.previews_dir(task.task_id)
@@ -369,6 +413,8 @@ class WorkflowEngine:
             self._log(task, TaskPhase.PREVIEW_RENDER, "Preview extraction completed", preview_count=len(preview_paths))
 
             self._transition(task, TaskPhase.PREVIEW_VALIDATION)
+            if self.delivery_case_service is not None:
+                self.delivery_case_service.mark_reviewer_running(task=task)
             preview_report = self.preview_quality_validator.validate(preview_paths, profile=task.validation_profile)
             self._transition(task, TaskPhase.VALIDATION)
             validation_started = time.monotonic()
@@ -405,10 +451,49 @@ class WorkflowEngine:
             task.quality_gate_status = "accepted" if scorecard.accepted else "needs_revision"
 
             task.status, task.phase = terminal_task_state(combined_report)
-            self.metrics.increment("tasks_completed")
+            task.delivery_status = "delivered"
+            task.resolved_task_id = task.task_id
+            if task.completion_mode is None:
+                task.completion_mode = "primary" if task.parent_task_id is None else "repaired"
+            if task.delivery_tier is None:
+                task.delivery_tier = "primary" if task.parent_task_id is None else (task.generation_mode or "guided_generate")
+            task.delivery_stop_reason = None
+            quality_passed = is_quality_passed(
+                status=task.status.value,
+                quality_gate_status=task.quality_gate_status,
+                completion_mode=task.completion_mode,
+            )
+            self.metrics.increment("deliveries_completed")
+            if quality_passed:
+                self.metrics.increment("tasks_completed")
             self.store.update_task(task)
             self.artifact_store.write_task_snapshot(task)
+            self._sync_root_delivery_resolution(task)
+            if self.delivery_case_service is not None:
+                self.delivery_case_service.record_reviewer_run(
+                    task=task,
+                    report=combined_report,
+                    summary="Validation and quality review completed",
+                    quality_gate_status=task.quality_gate_status,
+                    validation_report_path=report_path,
+                    quality_score_path=written_quality_score_path,
+                )
+                self.delivery_case_service.sync_case_for_root(task.root_task_id or task.task_id)
+            if self.case_memory_service is not None:
+                self.case_memory_service.record_review_outcome(
+                    task,
+                    summary=combined_report.summary,
+                    quality_gate_status=task.quality_gate_status,
+                    quality_scorecard=scorecard,
+                    failure_contract=None,
+                    recovery_plan=None,
+                )
             self.store.append_event(task.task_id, "task_finished", {"status": task.status.value})
+            auto_challenger_decision = self._maybe_schedule_quality_challenger(task, scorecard)
+            self._record_auto_challenger_decision(task, auto_challenger_decision)
+            auto_arbitration_decision = self._maybe_auto_promote_challenger(task)
+            self._record_auto_arbitration_decision(task, auto_arbitration_decision)
+            self._record_case_memory_branch_state(task)
             self._record_agent_learning_outcome(task, combined_report, task_quality_scorecard=scorecard)
             self._record_session_memory_outcome(
                 task,
@@ -466,6 +551,21 @@ class WorkflowEngine:
         persist_snapshot: bool = True,
     ) -> None:
         top_issue = report.issues[0] if report.issues else None
+        if self.delivery_case_service is not None and task.phase in {
+            TaskPhase.GENERATING_CODE,
+            TaskPhase.STATIC_CHECK,
+            TaskPhase.RENDERING,
+        }:
+            self.delivery_case_service.record_generator_run(
+                task=task,
+                status="failed",
+                summary="Generation failed",
+                phase=task.phase.value,
+                stop_reason=None if top_issue is None else top_issue.code,
+                decision={
+                    "issue_codes": [issue.code for issue in report.issues],
+                },
+            )
         self.store.record_validation(task.task_id, report)
         if persist_report_artifact:
             report_path = self.artifact_store.validation_report_path(task.task_id)
@@ -542,10 +642,53 @@ class WorkflowEngine:
                 self.artifact_store.resource_uri(task.task_id, self.artifact_store.failure_context_path(task.task_id))
             )
         self._record_session_memory_outcome(task, result_summary=report.summary, extra_artifact_refs=failure_artifact_refs)
+        if self.delivery_case_service is not None:
+            self.delivery_case_service.mark_repairer_running(task=task)
         auto_repair_decision = self.auto_repair_service.maybe_schedule_repair(task)
         self._record_repair_state(task, report, auto_repair_decision)
+        if self.delivery_case_service is not None:
+            self.delivery_case_service.record_reviewer_run(
+                task=task,
+                report=report,
+                summary="Failure reviewed",
+                quality_gate_status=task.quality_gate_status,
+                failure_contract=self.artifact_store.read_failure_contract(task.task_id),
+                recovery_plan=self.artifact_store.read_recovery_plan(task.task_id),
+                validation_report_path=self.artifact_store.validation_report_path(task.task_id),
+            )
+            self.delivery_case_service.record_repairer_run(
+                task=task,
+                auto_repair_decision=auto_repair_decision,
+                report=report,
+            )
+        if self.case_memory_service is not None:
+            self.case_memory_service.record_review_outcome(
+                task,
+                summary=report.summary,
+                quality_gate_status=task.quality_gate_status,
+                quality_scorecard=self.store.get_task_quality_score(task.task_id),
+                failure_contract=self.artifact_store.read_failure_contract(task.task_id),
+                recovery_plan=self.artifact_store.read_recovery_plan(task.task_id),
+            )
+        delivery_decision = None
         if not auto_repair_decision.created:
-            self._record_agent_learning_outcome(task, report)
+            delivery_decision = self._maybe_schedule_degraded_delivery(task)
+            if delivery_decision is None:
+                try:
+                    delivery_decision = self.delivery_guarantee_service.maybe_deliver(task)
+                except Exception as exc:
+                    delivery_decision = DeliveryGuaranteeDecision(delivered=False, reason="delivery_exception")
+                    self._log(
+                        task,
+                        TaskPhase.FAILED,
+                        "Delivery guarantee failed",
+                        error=str(exc),
+                    )
+            if delivery_decision.delivered:
+                self._finalize_guaranteed_delivery(task, delivery_decision)
+            elif not delivery_decision.scheduled:
+                self._mark_delivery_failed(task, stop_reason=delivery_decision.reason)
+                self._record_agent_learning_outcome(task, report)
         self.store.append_event(
             task.task_id,
             "auto_repair_decision",
@@ -576,6 +719,18 @@ class WorkflowEngine:
             issue_code=auto_repair_decision.issue_code,
             child_task_id=auto_repair_decision.child_task_id,
         )
+        if delivery_decision is not None:
+            self._log(
+                task,
+                TaskPhase.FAILED,
+                "Delivery guarantee evaluated",
+                delivered=delivery_decision.delivered,
+                reason=delivery_decision.reason,
+                scheduled=delivery_decision.scheduled,
+                child_task_id=delivery_decision.child_task_id,
+                completion_mode=delivery_decision.completion_mode,
+                delivery_tier=delivery_decision.delivery_tier,
+            )
         self._log(
             task,
             TaskPhase.FAILED,
@@ -583,7 +738,12 @@ class WorkflowEngine:
             issues=[issue.code for issue in report.issues],
             summary=report.summary,
         )
-        self.metrics.increment("tasks_failed")
+        if delivery_decision is not None and delivery_decision.delivered:
+            self.metrics.increment("deliveries_completed")
+        else:
+            self.metrics.increment("tasks_failed")
+        if self.delivery_case_service is not None:
+            self.delivery_case_service.sync_case_for_root(task.root_task_id or task.task_id)
 
     def _record_session_memory_outcome(
         self,
@@ -609,9 +769,14 @@ class WorkflowEngine:
         if self.agent_learning_service is None or not task.agent_id:
             return
         issue_codes = [issue.code for issue in report.issues]
-        # Only load persisted scorecards for completed outcomes to avoid
-        # stale/mismatched scorecard reuse on failure telemetry.
-        if task_quality_scorecard is None and task.status.value == "completed":
+        quality_passed = is_quality_passed(
+            status=task.status.value,
+            quality_gate_status=task.quality_gate_status,
+            completion_mode=task.completion_mode,
+        )
+        # Only load persisted scorecards for quality-passed outcomes to avoid
+        # stale/mismatched scorecard reuse on failure or delivery-only telemetry.
+        if task_quality_scorecard is None and quality_passed:
             task_quality_scorecard = self.store.get_task_quality_score(task.task_id)
         try:
             self.agent_learning_service.record_task_outcome(
@@ -619,11 +784,13 @@ class WorkflowEngine:
                 task_id=task.task_id,
                 session_id=task.session_id,
                 status=task.status.value,
+                quality_passed=quality_passed,
                 issue_codes=issue_codes,
                 quality_score=quality_score_for_task_outcome(
                     status=task.status.value,
                     issue_codes=issue_codes,
                     scorecard=task_quality_scorecard,
+                    quality_passed=quality_passed,
                 ),
                 profile_digest=task.effective_profile_digest,
                 memory_ids=task.selected_memory_ids,
@@ -649,6 +816,451 @@ class WorkflowEngine:
         root_task.repair_stop_reason = None if auto_repair_decision.created else auto_repair_decision.reason
         self.store.update_task(root_task)
         self.artifact_store.write_task_snapshot(root_task)
+
+    def _maybe_schedule_degraded_delivery(self, task) -> DeliveryGuaranteeDecision | None:
+        if not self.runtime_service.settings.delivery_guarantee_enabled:
+            return None
+        if task.parent_task_id is None:
+            return None
+        if task.completion_mode == "degraded":
+            return None
+        if self._lineage_already_has_degraded_attempt(task.root_task_id or task.task_id):
+            return None
+
+        failure_contract = self.artifact_store.read_failure_contract(task.task_id) or {}
+        if bool(failure_contract.get("human_review_required")):
+            return None
+        issue_code = str(failure_contract.get("issue_code") or "")
+        if issue_code.startswith("provider_") or issue_code in {
+            "latex_dependency_missing",
+            "sandbox_policy_violation",
+            "runtime_policy_violation",
+        }:
+            return None
+
+        task_service = getattr(self.auto_repair_service, "task_service", None)
+        if task_service is None:
+            return None
+
+        recovery_plan = self.artifact_store.read_recovery_plan(task.task_id) or {}
+        generation_mode = str(
+            recovery_plan.get("fallback_generation_mode")
+            or failure_contract.get("fallback_generation_mode")
+            or task.generation_mode
+            or "guided_generate"
+        )
+        try:
+            created = task_service.create_degraded_delivery_task(
+                task.task_id,
+                feedback=self._build_degraded_delivery_feedback(task, issue_code=issue_code, generation_mode=generation_mode),
+                generation_mode=generation_mode,
+                style_hints=self._build_degraded_style_hints(task.style_hints),
+                output_profile=self._build_degraded_output_profile(task.output_profile),
+            )
+        except (AdmissionControlError, ValueError) as exc:
+            self._log(
+                task,
+                TaskPhase.FAILED,
+                "Skipped degraded delivery attempt",
+                reason=str(exc),
+            )
+            return None
+
+        return DeliveryGuaranteeDecision(
+            delivered=False,
+            reason="created_degraded_attempt",
+            scheduled=True,
+            child_task_id=created.task_id,
+            completion_mode="degraded",
+            delivery_tier=generation_mode,
+        )
+
+    def _maybe_schedule_quality_challenger(self, task, scorecard: QualityScorecard) -> dict[str, Any]:
+        if not self.runtime_service.settings.multi_agent_workflow_enabled:
+            return {
+                "created": False,
+                "reason": "multi_agent_workflow_disabled",
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+        if not self.runtime_service.settings.multi_agent_workflow_auto_challenger_enabled:
+            return {
+                "created": False,
+                "reason": "auto_challenger_governance_disabled",
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+        if task.status is not TaskStatus.COMPLETED or task.delivery_status != "delivered":
+            return {
+                "created": False,
+                "reason": "task_not_delivered",
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+        if task.quality_gate_status == "accepted":
+            return {
+                "created": False,
+                "reason": "quality_accepted",
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+        if task.completion_mode in {"degraded", "emergency_fallback"}:
+            return {
+                "created": False,
+                "reason": "completion_mode_ineligible",
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+        guard_blockers = self._guarded_rollout_blockers()
+        if guard_blockers:
+            return {
+                "created": False,
+                "reason": "guarded_rollout_blocked",
+                "blocked_reasons": guard_blockers,
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+
+        task_service = getattr(self.auto_repair_service, "task_service", None)
+        if task_service is None:
+            return {
+                "created": False,
+                "reason": "task_service_unavailable",
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+
+        try:
+            created = task_service.create_challenger_task(
+                task.task_id,
+                feedback=self._build_quality_challenger_feedback(task, scorecard),
+                session_id=task.session_id,
+            )
+        except (AdmissionControlError, ValueError) as exc:
+            return {
+                "created": False,
+                "reason": str(exc) if isinstance(exc, ValueError) else exc.code,
+                "child_task_id": None,
+                "quality_gate_status": task.quality_gate_status,
+                "overall_score": scorecard.total_score,
+            }
+
+        return {
+            "created": True,
+            "reason": "created",
+            "child_task_id": created.task_id,
+            "quality_gate_status": task.quality_gate_status,
+            "overall_score": scorecard.total_score,
+        }
+
+    def _record_auto_challenger_decision(self, task, decision: dict[str, Any]) -> None:
+        self.store.append_event(task.task_id, "auto_challenger_decision", decision)
+        if task.root_task_id and task.root_task_id != task.task_id:
+            self.store.append_event(task.root_task_id, "auto_challenger_decision", decision)
+        if self.case_memory_service is not None and task.root_task_id:
+            self.case_memory_service.record_decision(
+                task.root_task_id,
+                action="auto_challenger_decision",
+                task_id=task.task_id,
+                details=decision,
+            )
+        self._log(
+            task,
+            TaskPhase.COMPLETED,
+            "Auto challenger evaluated",
+            created=bool(decision.get("created")),
+            reason=decision.get("reason"),
+            child_task_id=decision.get("child_task_id"),
+            quality_gate_status=decision.get("quality_gate_status"),
+            overall_score=decision.get("overall_score"),
+        )
+
+    def _maybe_auto_promote_challenger(self, task) -> dict[str, Any]:
+        if not self.runtime_service.settings.multi_agent_workflow_enabled:
+            return {
+                "promoted": False,
+                "reason": "multi_agent_workflow_disabled",
+                "recommended_task_id": None,
+                "recommended_action": None,
+                "selected_task_id": None,
+            }
+        if not self.runtime_service.settings.multi_agent_workflow_auto_arbitration_enabled:
+            return {
+                "promoted": False,
+                "reason": "auto_arbitration_governance_disabled",
+                "recommended_task_id": None,
+                "recommended_action": None,
+                "selected_task_id": None,
+            }
+        if task.branch_kind != "challenger":
+            return {
+                "promoted": False,
+                "reason": "not_challenger_branch",
+                "recommended_task_id": None,
+                "recommended_action": None,
+                "selected_task_id": None,
+            }
+        if task.status is not TaskStatus.COMPLETED or task.delivery_status != "delivered":
+            return {
+                "promoted": False,
+                "reason": "task_not_delivered",
+                "recommended_task_id": None,
+                "recommended_action": None,
+                "selected_task_id": None,
+            }
+        if task.quality_gate_status != "accepted":
+            return {
+                "promoted": False,
+                "reason": "quality_not_accepted",
+                "recommended_task_id": task.task_id,
+                "recommended_action": "wait_for_completion",
+                "selected_task_id": None,
+            }
+        guard_blockers = self._guarded_rollout_blockers()
+        if guard_blockers:
+            return {
+                "promoted": False,
+                "reason": "guarded_rollout_blocked",
+                "blocked_reasons": guard_blockers,
+                "recommended_task_id": None,
+                "recommended_action": None,
+                "selected_task_id": None,
+            }
+
+        root_task_id = task.root_task_id or task.task_id
+        delivery_case = self.store.get_delivery_case(root_task_id)
+        selected_task_id = None if delivery_case is None else delivery_case.selected_task_id
+        active_task_id = None if delivery_case is None else delivery_case.active_task_id
+        lineage = self.store.list_lineage_tasks(root_task_id)
+        arbitration_summary = build_arbitration_summary(
+            branch_scoreboard=build_branch_scoreboard(
+                lineage_tasks=lineage,
+                scorecards_by_task_id={
+                    lineage_task.task_id: self._load_quality_scorecard_json(lineage_task.task_id)
+                    for lineage_task in lineage
+                },
+                selected_task_id=selected_task_id,
+                active_task_id=active_task_id,
+            ),
+            selected_task_id=selected_task_id,
+            active_task_id=active_task_id,
+        )
+        decision = {
+            "promoted": False,
+            "reason": str(arbitration_summary.get("reason") or "arbitration_completed"),
+            "recommended_task_id": arbitration_summary.get("recommended_task_id"),
+            "recommended_action": arbitration_summary.get("recommended_action"),
+            "selected_task_id": arbitration_summary.get("selected_task_id"),
+            "candidate_count": arbitration_summary.get("candidate_count"),
+        }
+        if (
+            arbitration_summary.get("recommended_action") != "promote_challenger"
+            or arbitration_summary.get("recommended_task_id") != task.task_id
+        ):
+            return decision
+
+        task_service = getattr(self.auto_repair_service, "task_service", None)
+        if task_service is None:
+            decision["reason"] = "task_service_unavailable"
+            return decision
+
+        try:
+            task_service.accept_best_version(task.task_id)
+        except (AdmissionControlError, ValueError) as exc:
+            decision["reason"] = str(exc) if isinstance(exc, ValueError) else exc.code
+            return decision
+
+        decision["promoted"] = True
+        decision["selected_task_id"] = task.task_id
+        return decision
+
+    def _guarded_rollout_blockers(self) -> list[str]:
+        guard = self.runtime_service.inspect_multi_agent_autonomy_guard()
+        if not guard.enabled or guard.allowed:
+            return []
+        return list(guard.reasons)
+
+    def _record_auto_arbitration_decision(self, task, decision: dict[str, Any]) -> None:
+        self.store.append_event(task.task_id, "auto_arbitration_decision", decision)
+        if task.root_task_id and task.root_task_id != task.task_id:
+            self.store.append_event(task.root_task_id, "auto_arbitration_decision", decision)
+        if self.delivery_case_service is not None and decision.get("recommended_action") is not None:
+            self.delivery_case_service.record_auto_arbitration_evaluated(
+                task=task,
+                arbitration_summary=decision,
+                promoted=bool(decision.get("promoted")),
+            )
+        if self.case_memory_service is not None and task.root_task_id:
+            self.case_memory_service.record_decision(
+                task.root_task_id,
+                action="auto_arbitration_decision",
+                task_id=task.task_id,
+                details=decision,
+            )
+        self._log(
+            task,
+            TaskPhase.COMPLETED,
+            "Auto arbitration evaluated",
+            promoted=bool(decision.get("promoted")),
+            reason=decision.get("reason"),
+            recommended_task_id=decision.get("recommended_task_id"),
+            recommended_action=decision.get("recommended_action"),
+            selected_task_id=decision.get("selected_task_id"),
+        )
+
+    def _lineage_already_has_degraded_attempt(self, root_task_id: str) -> bool:
+        for lineage_task in self.store.list_lineage_tasks(root_task_id):
+            if lineage_task.parent_task_id is not None and lineage_task.completion_mode == "degraded":
+                return True
+        return False
+
+    @staticmethod
+    def _build_degraded_style_hints(style_hints: dict[str, Any] | None) -> dict[str, Any]:
+        return {
+            **(style_hints or {}),
+            "scene_complexity": "low",
+            "animation_density": "low",
+            "camera": "static",
+            "pace": "steady",
+        }
+
+    @staticmethod
+    def _build_degraded_output_profile(output_profile: dict[str, Any] | None) -> dict[str, Any]:
+        profile = dict(output_profile or {})
+        profile["quality_preset"] = "development"
+        return profile
+
+    @staticmethod
+    def _build_degraded_delivery_feedback(task, *, issue_code: str, generation_mode: str) -> str:
+        issue_label = issue_code or "unknown_failure"
+        return (
+            "Guaranteed delivery degraded fallback. "
+            f"Previous attempt failed with {issue_label}. "
+            f"Prefer generation mode {generation_mode}. "
+            "Produce the simplest playable video that still satisfies the core request. "
+            "Use a static camera, low animation density, one focal idea, and simple shapes or text. "
+            "Prioritize successful rendering over richness."
+        )
+
+    def _build_quality_challenger_feedback(self, task, scorecard: QualityScorecard) -> str:
+        score_text = f"{float(scorecard.total_score or 0.0):.2f}"
+        threshold_text = f"{float(self.runtime_service.settings.quality_gate_min_score):.2f}"
+        issue_codes = list(scorecard.must_fix_issues or scorecard.warning_codes or [])
+        issues = ", ".join(issue_codes[:3]) if issue_codes else "general quality improvements"
+        return (
+            "Auto challenger branch. "
+            "The current version delivered successfully but did not pass the quality gate. "
+            f"Current score {score_text} is below threshold {threshold_text}. "
+            f"Focus on {issues}. "
+            "Preserve the working render path, keep the core prompt intent, and produce a stronger alternative "
+            "with better motion, clarity, or prompt alignment while staying render-safe."
+        )
+
+    def _load_quality_scorecard_json(self, task_id: str) -> dict[str, Any] | None:
+        scorecard = self.store.get_task_quality_score(task_id)
+        if scorecard is not None:
+            return scorecard.model_dump(mode="json")
+        return self.artifact_store.read_quality_score(task_id)
+
+    def _record_case_memory_branch_state(self, task) -> None:
+        if self.case_memory_service is None:
+            return
+        root_task_id = task.root_task_id or task.task_id
+        delivery_case = self.store.get_delivery_case(root_task_id)
+        selected_task_id = None if delivery_case is None else delivery_case.selected_task_id
+        active_task_id = None if delivery_case is None else delivery_case.active_task_id
+        lineage = self.store.list_lineage_tasks(root_task_id)
+        branch_scoreboard = build_branch_scoreboard(
+            lineage_tasks=lineage,
+            scorecards_by_task_id={
+                lineage_task.task_id: self._load_quality_scorecard_json(lineage_task.task_id)
+                for lineage_task in lineage
+            },
+            selected_task_id=selected_task_id,
+            active_task_id=active_task_id,
+        )
+        arbitration_summary = build_arbitration_summary(
+            branch_scoreboard=branch_scoreboard,
+            selected_task_id=selected_task_id,
+            active_task_id=active_task_id,
+        )
+        self.case_memory_service.record_branch_state(
+            root_task_id,
+            branch_scoreboard=branch_scoreboard,
+            arbitration_summary=arbitration_summary,
+        )
+
+    def _finalize_guaranteed_delivery(self, task, delivery_decision) -> None:
+        artifact_path = Path(delivery_decision.video_path)
+        task.best_result_artifact_id = self.store.register_artifact(
+            task.task_id,
+            "final_video",
+            artifact_path,
+            metadata={"completion_mode": delivery_decision.completion_mode, "delivery_tier": delivery_decision.delivery_tier},
+        )
+        task.status = TaskStatus.COMPLETED
+        task.phase = TaskPhase.COMPLETED
+        task.delivery_status = "delivered"
+        task.resolved_task_id = task.task_id
+        task.completion_mode = delivery_decision.completion_mode
+        task.delivery_tier = delivery_decision.delivery_tier
+        task.delivery_stop_reason = None
+        self.store.update_task(task)
+        self.artifact_store.write_task_snapshot(task)
+        self._sync_root_delivery_resolution(task)
+        self.store.append_event(
+            task.task_id,
+            "task_finished",
+            {"status": task.status.value, "completion_mode": task.completion_mode},
+        )
+
+    def _mark_delivery_failed(self, task, *, stop_reason: str) -> None:
+        task.delivery_status = "failed"
+        task.delivery_stop_reason = stop_reason
+        self.store.update_task(task)
+        self.artifact_store.write_task_snapshot(task)
+
+        root_task_id = task.root_task_id or task.task_id
+        if root_task_id == task.task_id:
+            return
+
+        root_task = self.store.get_task(root_task_id)
+        if root_task is None:
+            return
+        root_task.delivery_status = "failed"
+        root_task.delivery_stop_reason = stop_reason
+        self.store.update_task(root_task)
+        self.artifact_store.write_task_snapshot(root_task)
+        if self.delivery_case_service is not None:
+            self.delivery_case_service.sync_case_for_root(root_task_id)
+
+    def _sync_root_delivery_resolution(self, task) -> None:
+        root_task_id = task.root_task_id or task.task_id
+        root_task = self.store.get_task(root_task_id)
+        if root_task is None:
+            return
+        if task.task_id != root_task_id and task.branch_kind == "challenger":
+            if self.delivery_case_service is not None:
+                self.delivery_case_service.sync_case_for_root(root_task_id)
+            return
+        root_task.delivery_status = "delivered"
+        root_task.resolved_task_id = task.task_id
+        root_task.completion_mode = task.completion_mode
+        root_task.delivery_tier = task.delivery_tier
+        root_task.delivery_stop_reason = None
+        root_task.status = TaskStatus.COMPLETED
+        root_task.phase = TaskPhase.COMPLETED
+        self.store.update_task(root_task)
+        self.artifact_store.write_task_snapshot(root_task)
+        if self.delivery_case_service is not None:
+            self.delivery_case_service.sync_case_for_root(root_task_id)
 
     def _resolve_render_profile(self, task) -> dict[str, Any]:
         settings = self.runtime_service.settings

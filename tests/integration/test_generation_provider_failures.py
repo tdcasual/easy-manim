@@ -21,6 +21,7 @@ def _settings(tmp_path, **overrides) -> Settings:
         "artifact_root": data_dir / "tasks",
         "llm_provider": "stub",
         "llm_model": "stub-manim-v1",
+        "delivery_guarantee_enabled": False,
     }
     values.update(overrides)
     return bootstrapped_settings(Settings(**values))

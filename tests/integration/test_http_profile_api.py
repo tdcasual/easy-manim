@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.strategy_models import StrategyProfile
 from video_agent.server.http_api import create_http_api
 from tests.support import bootstrapped_settings
 
@@ -142,3 +143,42 @@ def test_profile_endpoints_enforce_profile_scopes(tmp_path: Path) -> None:
     )
     assert denied_apply.status_code == 403
     assert denied_apply.json()["detail"] == "agent_scope_denied"
+
+
+def test_profile_strategies_endpoint_returns_routing_and_guarded_rollout_summary(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_profile_settings(tmp_path)))
+    _seed_agent_profile_and_token(client)
+    context = client.app.state.app_context
+    context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-geometry",
+            scope="global",
+            prompt_cluster="geometry",
+            status="active",
+            params={
+                "routing": {"keywords": ["triangle", "geometry"]},
+                "style_hints": {"tone": "teaching"},
+            },
+            metrics={
+                "guarded_rollout": {
+                    "consecutive_shadow_passes": 2,
+                    "rollback_armed": True,
+                },
+                "last_eval_run": {
+                    "promotion_mode": "guarded_auto_apply",
+                },
+            },
+        )
+    )
+
+    login = client.post("/api/sessions", json={"agent_token": "agent-a-secret"})
+    session_token = login.json()["session_token"]
+
+    response = client.get("/api/profile/strategies", headers={"Authorization": f"Bearer {session_token}"})
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["strategy_id"] == "strategy-geometry"
+    assert item["routing_keywords"] == ["triangle", "geometry"]
+    assert item["guarded_rollout"]["consecutive_shadow_passes"] == 2
+    assert item["last_eval_run"]["promotion_mode"] == "guarded_auto_apply"

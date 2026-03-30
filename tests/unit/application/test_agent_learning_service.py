@@ -77,6 +77,45 @@ def test_learning_service_builds_scorecard_from_recent_events() -> None:
     assert scorecard["recent_profile_digests"] == ["digest-3", "digest-2", "digest-1"]
 
 
+def test_learning_service_builds_scorecard_from_quality_passed_outcomes_only() -> None:
+    service = AgentLearningService(
+        write_event=lambda event: event,
+        list_events=lambda agent_id, limit=200: [
+            AgentLearningEvent(
+                event_id="evt-2",
+                agent_id=agent_id,
+                task_id="task-2",
+                session_id="sess-2",
+                status="completed",
+                issue_codes=[],
+                quality_score=0.6,
+                quality_passed=False,
+                profile_digest="digest-2",
+                memory_ids=[],
+            ),
+            AgentLearningEvent(
+                event_id="evt-1",
+                agent_id=agent_id,
+                task_id="task-1",
+                session_id="sess-1",
+                status="completed",
+                issue_codes=[],
+                quality_score=0.9,
+                quality_passed=True,
+                profile_digest="digest-1",
+                memory_ids=[],
+            ),
+        ],
+    )
+
+    scorecard = service.build_scorecard("agent-a")
+
+    assert scorecard["completed_count"] == 1
+    assert scorecard["quality_passed_count"] == 1
+    assert scorecard["failed_count"] == 0
+    assert scorecard["median_quality_score"] == 0.75
+
+
 def test_learning_service_accepts_quality_scorecard_total_score() -> None:
     written: list[AgentLearningEvent] = []
     service = AgentLearningService(write_event=lambda event: written.append(event) or event)
@@ -140,6 +179,19 @@ def test_quality_score_for_task_outcome_does_not_apply_scorecard_to_failed_statu
         status="failed",
         issue_codes=[],
         scorecard=scorecard,
+    )
+
+    assert score == 0.6
+
+
+def test_quality_score_for_task_outcome_does_not_apply_scorecard_to_delivery_only_completion() -> None:
+    scorecard = QualityScorecard(total_score=0.925, accepted=True)
+
+    score = quality_score_for_task_outcome(
+        status="completed",
+        issue_codes=[],
+        scorecard=scorecard,
+        quality_passed=False,
     )
 
     assert score == 0.6

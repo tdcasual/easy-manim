@@ -110,6 +110,7 @@ def _build_auto_repair_learning_settings(tmp_path: Path) -> Settings:
             ffprobe_command=str(fake_ffprobe),
             run_embedded_worker=False,
             auto_repair_enabled=True,
+            delivery_guarantee_enabled=False,
             auto_repair_max_children_per_root=1,
             auto_repair_retryable_issue_codes=["render_failed"],
         )

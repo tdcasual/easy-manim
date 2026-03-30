@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from video_agent.application.outcome_signals import item_quality_passed
+
 
 def build_live_report(items: list[dict[str, Any]]) -> dict[str, Any]:
     live_items = [item for item in items if "real-provider" in (item.get("tags") or [])]
@@ -10,14 +12,14 @@ def build_live_report(items: list[dict[str, Any]]) -> dict[str, Any]:
     domain_failures = Counter(
         domain
         for item in live_items
-        if item.get("status") != "completed"
+        if not item_quality_passed(item)
         for domain in item.get("risk_domains", [])
     )
     formula_items = [item for item in live_items if "formula" in (item.get("risk_domains") or [])]
-    failed_cases = [item.get("case_id") for item in live_items if item.get("status") != "completed"]
+    failed_cases = [item.get("case_id") for item in live_items if not item_quality_passed(item)]
     total = len(live_items)
-    completed = sum(1 for item in live_items if item.get("status") == "completed")
-    formula_completed = sum(1 for item in formula_items if item.get("status") == "completed")
+    completed = sum(1 for item in live_items if item_quality_passed(item))
+    formula_completed = sum(1 for item in formula_items if item_quality_passed(item))
     return {
         "case_count": total,
         "pass_rate": (completed / total) if total else 0.0,

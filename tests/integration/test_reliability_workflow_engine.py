@@ -78,7 +78,7 @@ def _build_preview_failure_settings(tmp_path: Path) -> Settings:
     _write_executable(
         fake_ffmpeg,
         "#!/bin/sh\n"
-        "python - \"$6\" <<'PY'\n"
+        "python3 - \"$6\" <<'PY'\n"
         "from pathlib import Path\n"
         "from PIL import Image\n"
         "import sys\n"

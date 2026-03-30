@@ -17,7 +17,7 @@ def _write_executable(path: Path, content: str) -> None:
 
 
 
-def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
+def _build_fake_pipeline_settings(tmp_path: Path, **overrides) -> Settings:
     data_dir = tmp_path / "data"
 
     fake_manim = tmp_path / "fake_manim.sh"
@@ -59,16 +59,17 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
         "printf 'frame1' > \"$(dirname \"$6\")/frame_001.png\"\n",
     )
 
-    return bootstrapped_settings(
-        Settings(
-            data_dir=data_dir,
-            database_path=data_dir / "video_agent.db",
-            artifact_root=data_dir / "tasks",
-            manim_command=str(fake_manim),
-            ffmpeg_command=str(fake_ffmpeg),
-            ffprobe_command=str(fake_ffprobe),
-        )
-    )
+    values = {
+        "data_dir": data_dir,
+        "database_path": data_dir / "video_agent.db",
+        "artifact_root": data_dir / "tasks",
+        "manim_command": str(fake_manim),
+        "ffmpeg_command": str(fake_ffmpeg),
+        "ffprobe_command": str(fake_ffprobe),
+        "delivery_guarantee_enabled": False,
+    }
+    values.update(overrides)
+    return bootstrapped_settings(Settings(**values))
 
 
 
@@ -82,6 +83,12 @@ def _load_event_payloads(database_path: Path, task_id: str, event_type: str) -> 
     finally:
         connection.close()
     return [json.loads(row[0]) for row in rows]
+
+
+def _write_delivery_canary_result(app_context, *, delivered: bool) -> None:
+    target = app_context.settings.eval_root / "delivery-canary" / "latest.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps({"task_id": "canary-task", "delivered": delivered}))
 
 
 class CapturingLLMClient:
@@ -133,6 +140,365 @@ def test_task_becomes_completed_only_after_validation_passes(tmp_path: Path) -> 
     assert snapshot.repair_state["child_count"] == 0
     assert snapshot.repair_state["last_issue_code"] is None
     assert snapshot.repair_state["stop_reason"] is None
+
+
+def test_quality_rejected_delivery_auto_queues_challenger_branch(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            multi_agent_workflow_enabled=True,
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    created = app_context.task_service.create_video_task(prompt="draw a circle", idempotency_key="auto-challenger")
+
+    processed = app_context.worker.run_once()
+    root_snapshot = app_context.task_service.get_video_task(created.task_id).model_dump(mode="json")
+    lineage = app_context.store.list_lineage_tasks(created.task_id)
+    case = app_context.store.get_delivery_case(created.task_id)
+    runs = app_context.store.list_agent_runs(created.task_id, role="orchestrator")
+
+    assert processed == 1
+    assert root_snapshot["status"] == "completed"
+    assert root_snapshot["delivery_status"] == "delivered"
+    assert root_snapshot["quality_gate_status"] == "needs_revision"
+    assert root_snapshot["resolved_task_id"] == created.task_id
+    assert len(lineage) == 2
+    assert lineage[-1].task_id != created.task_id
+    assert lineage[-1].parent_task_id == created.task_id
+    assert lineage[-1].status == "queued"
+    assert case is not None
+    assert case.status == "branching"
+    assert case.selected_task_id == created.task_id
+    assert case.active_task_id == lineage[-1].task_id
+    assert any(
+        run.decision.get("action") == "challenger_created"
+        and run.decision.get("challenger_task_id") == lineage[-1].task_id
+        for run in runs
+    )
+
+
+def test_auto_challenger_respects_role_governance_flag(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            multi_agent_workflow_enabled=True,
+            multi_agent_workflow_auto_challenger_enabled=False,
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="auto-challenger-governance-off",
+    )
+
+    processed = app_context.worker.run_once()
+    root_snapshot = app_context.task_service.get_video_task(created.task_id).model_dump(mode="json")
+    lineage = app_context.store.list_lineage_tasks(created.task_id)
+    case = app_context.store.get_delivery_case(created.task_id)
+    decisions = _load_event_payloads(app_context.settings.database_path, created.task_id, "auto_challenger_decision")
+
+    assert processed == 1
+    assert root_snapshot["status"] == "completed"
+    assert root_snapshot["delivery_status"] == "delivered"
+    assert root_snapshot["quality_gate_status"] == "needs_revision"
+    assert len(lineage) == 1
+    assert case is not None
+    assert case.status == "completed"
+    assert case.active_task_id == created.task_id
+    assert decisions[-1]["created"] is False
+    assert decisions[-1]["reason"] == "auto_challenger_governance_disabled"
+
+
+def test_guarded_rollout_blocks_auto_challenger_without_healthy_canary(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            capability_rollout_profile="autonomy-guarded",
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="guarded-rollout-no-canary",
+    )
+
+    app_context.worker.run_once()
+    lineage = app_context.store.list_lineage_tasks(created.task_id)
+    decisions = _load_event_payloads(app_context.settings.database_path, created.task_id, "auto_challenger_decision")
+
+    assert len(lineage) == 1
+    assert decisions[-1]["created"] is False
+    assert decisions[-1]["reason"] == "guarded_rollout_blocked"
+    assert decisions[-1]["blocked_reasons"] == ["delivery_canary_unavailable"]
+
+
+def test_guarded_rollout_blocks_auto_challenger_when_branch_rejection_rate_regresses(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            capability_rollout_profile="autonomy-guarded",
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+            multi_agent_workflow_guarded_max_branch_rejection_rate=0.25,
+        )
+    )
+    _write_delivery_canary_result(app_context, delivered=True)
+
+    historical = app_context.task_service.create_video_task(
+        prompt="draw a square",
+        idempotency_key="historical-branch-rejection",
+    )
+    historical_task = app_context.store.get_task(historical.task_id)
+    assert historical_task is not None
+    historical_task.status = historical_task.status.COMPLETED
+    historical_task.phase = historical_task.phase.COMPLETED
+    historical_task.delivery_status = "delivered"
+    historical_task.completion_mode = "primary"
+    historical_task.resolved_task_id = historical_task.task_id
+    app_context.store.update_task(historical_task)
+    historical_child = app_context.task_service.create_challenger_task(
+        historical.task_id,
+        feedback="raise quality",
+    )
+    historical_child_task = app_context.store.get_task(historical_child.task_id)
+    assert historical_child_task is not None
+    historical_child_task.status = historical_child_task.status.COMPLETED
+    historical_child_task.phase = historical_child_task.phase.COMPLETED
+    historical_child_task.delivery_status = "delivered"
+    historical_child_task.quality_gate_status = "accepted"
+    historical_child_task.completion_mode = "repaired"
+    app_context.store.update_task(historical_child_task)
+    app_context.delivery_case_service.record_auto_arbitration_evaluated(
+        task=historical_child_task,
+        arbitration_summary={
+            "recommended_task_id": historical.task_id,
+            "recommended_action": "keep_incumbent",
+            "selected_task_id": historical.task_id,
+            "candidate_count": 2,
+            "reason": "incumbent_has_best_accepted_score",
+        },
+        promoted=False,
+    )
+
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="guarded-rollout-branch-regression",
+    )
+
+    app_context.worker.run_once()
+    lineage = app_context.store.list_lineage_tasks(created.task_id)
+    decisions = _load_event_payloads(app_context.settings.database_path, created.task_id, "auto_challenger_decision")
+
+    assert len(lineage) == 1
+    assert decisions[-1]["created"] is False
+    assert decisions[-1]["reason"] == "guarded_rollout_blocked"
+    assert decisions[-1]["blocked_reasons"] == ["branch_rejection_rate_above_threshold"]
+
+
+def test_completed_challenger_does_not_replace_incumbent_until_accepted(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            multi_agent_workflow_enabled=True,
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="challenger-incumbent-guard",
+    )
+
+    app_context.worker.run_once()
+    app_context.worker.run_once()
+    root_snapshot = app_context.task_service.get_video_task(created.task_id).model_dump(mode="json")
+    result = app_context.task_service.get_video_result(created.task_id).model_dump(mode="json")
+    lineage = app_context.store.list_lineage_tasks(created.task_id)
+    challenger = lineage[-1]
+    case = app_context.store.get_delivery_case(created.task_id)
+
+    assert len(lineage) == 2
+    assert challenger.task_id != created.task_id
+    assert challenger.status.value == "completed"
+    assert root_snapshot["resolved_task_id"] == created.task_id
+    assert result["resolved_task_id"] == created.task_id
+    assert result["video_resource"] == f"video-task://{created.task_id}/artifacts/final_video.mp4"
+    assert case is not None
+    assert case.status == "completed"
+    assert case.selected_task_id == created.task_id
+
+
+def test_guarded_rollout_allows_auto_promotion_with_healthy_canary_and_slo(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            capability_rollout_profile="autonomy-guarded",
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    _write_delivery_canary_result(app_context, delivered=True)
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="guarded-rollout-green",
+    )
+
+    app_context.worker.run_once()
+    lineage_after_root = app_context.store.list_lineage_tasks(created.task_id)
+    challenger = lineage_after_root[-1]
+    app_context.workflow_engine.quality_judge_service.min_score = 0.90
+
+    app_context.worker.run_once()
+    root_snapshot = app_context.task_service.get_video_task(created.task_id).model_dump(mode="json")
+    decisions = _load_event_payloads(app_context.settings.database_path, created.task_id, "auto_arbitration_decision")
+
+    assert challenger.task_id != created.task_id
+    assert root_snapshot["resolved_task_id"] == challenger.task_id
+    assert decisions[-1]["promoted"] is True
+
+
+def test_auto_arbitration_respects_role_governance_flag(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            multi_agent_workflow_enabled=True,
+            multi_agent_workflow_auto_arbitration_enabled=False,
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="auto-arbitration-governance-off",
+    )
+
+    app_context.worker.run_once()
+    lineage_after_root = app_context.store.list_lineage_tasks(created.task_id)
+    challenger = lineage_after_root[-1]
+    app_context.workflow_engine.quality_judge_service.min_score = 0.90
+
+    app_context.worker.run_once()
+    root_snapshot = app_context.task_service.get_video_task(created.task_id).model_dump(mode="json")
+    case = app_context.store.get_delivery_case(created.task_id)
+    decisions = _load_event_payloads(app_context.settings.database_path, created.task_id, "auto_arbitration_decision")
+
+    assert challenger.task_id != created.task_id
+    assert root_snapshot["resolved_task_id"] == created.task_id
+    assert case is not None
+    assert case.status == "arbitrating"
+    assert case.selected_task_id == created.task_id
+    assert decisions[-1]["promoted"] is False
+    assert decisions[-1]["reason"] == "auto_arbitration_governance_disabled"
+    assert decisions[-1]["selected_task_id"] is None
+
+
+def test_guarded_rollout_blocks_auto_arbitration_when_delivery_rate_regresses(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            capability_rollout_profile="autonomy-guarded",
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+            multi_agent_workflow_guarded_min_delivery_rate=0.75,
+        )
+    )
+    _write_delivery_canary_result(app_context, delivered=True)
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="guarded-rollout-slo-regression",
+    )
+
+    app_context.worker.run_once()
+    degraded = app_context.task_service.create_video_task(prompt="draw a square", idempotency_key="degraded-slo-root")
+    degraded_task = app_context.store.get_task(degraded.task_id)
+    assert degraded_task is not None
+    degraded_task.status = degraded_task.status.FAILED
+    degraded_task.phase = degraded_task.phase.FAILED
+    degraded_task.delivery_status = "failed"
+    degraded_task.delivery_stop_reason = "runtime_unhealthy"
+    app_context.store.update_task(degraded_task)
+    app_context.workflow_engine.quality_judge_service.min_score = 0.90
+
+    app_context.worker.run_once()
+    root_snapshot = app_context.task_service.get_video_task(created.task_id).model_dump(mode="json")
+    decisions = _load_event_payloads(app_context.settings.database_path, created.task_id, "auto_arbitration_decision")
+
+    assert root_snapshot["resolved_task_id"] == created.task_id
+    assert decisions[-1]["promoted"] is False
+    assert decisions[-1]["reason"] == "guarded_rollout_blocked"
+    assert decisions[-1]["blocked_reasons"] == ["delivery_rate_below_threshold"]
+
+
+def test_completed_accepted_challenger_auto_promotes_to_winner(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            multi_agent_workflow_enabled=True,
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="challenger-auto-promote",
+    )
+
+    app_context.worker.run_once()
+    lineage_after_root = app_context.store.list_lineage_tasks(created.task_id)
+    challenger = lineage_after_root[-1]
+    app_context.workflow_engine.quality_judge_service.min_score = 0.90
+
+    app_context.worker.run_once()
+    root_snapshot = app_context.task_service.get_video_task(created.task_id).model_dump(mode="json")
+    result = app_context.task_service.get_video_result(created.task_id).model_dump(mode="json")
+    case = app_context.store.get_delivery_case(created.task_id)
+    runs = app_context.store.list_agent_runs(created.task_id, role="orchestrator")
+
+    assert challenger.task_id != created.task_id
+    assert root_snapshot["resolved_task_id"] == challenger.task_id
+    assert result["resolved_task_id"] == challenger.task_id
+    assert result["video_resource"] == f"video-task://{challenger.task_id}/artifacts/final_video.mp4"
+    assert case is not None
+    assert case.selected_task_id == challenger.task_id
+    assert any(
+        run.decision.get("action") == "auto_arbitration_evaluated"
+        and run.decision.get("recommended_action") == "promote_challenger"
+        and run.decision.get("recommended_task_id") == challenger.task_id
+        for run in runs
+    )
+    assert any(
+        run.decision.get("action") == "winner_selected"
+        and run.decision.get("selected_task_id") == challenger.task_id
+        for run in runs
+    )
+
+
+def test_auto_challenger_feedback_inherits_shared_case_memory_constraints(tmp_path: Path) -> None:
+    app_context = create_app_context(
+        _build_fake_pipeline_settings(
+            tmp_path,
+            multi_agent_workflow_enabled=True,
+            quality_gate_min_score=0.95,
+            multi_agent_workflow_max_child_attempts=1,
+        )
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        idempotency_key="challenger-feedback-shared-memory",
+    )
+
+    app_context.worker.run_once()
+    lineage = app_context.store.list_lineage_tasks(created.task_id)
+    challenger = lineage[-1]
+
+    assert challenger.task_id != created.task_id
+    assert challenger.feedback is not None
+    assert "Shared case constraints" in challenger.feedback
+    assert "Preserve core prompt intent" in challenger.feedback
 
 
 def test_completed_task_updates_session_memory_outcome(tmp_path: Path) -> None:

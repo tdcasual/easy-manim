@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import video_agent.server.app as app_module
@@ -90,6 +91,7 @@ def _build_failing_render_settings(tmp_path: Path, **overrides) -> Settings:
         "ffprobe_command": str(fake_ffprobe),
         "run_embedded_worker": False,
         "auto_repair_enabled": True,
+        "delivery_guarantee_enabled": False,
         "auto_repair_max_children_per_root": 1,
         "auto_repair_retryable_issue_codes": ["render_failed"],
     }
@@ -139,7 +141,7 @@ def _build_preview_sensitive_settings(tmp_path: Path, **overrides) -> Settings:
         "if [ \"$1\" != \"-y\" ]; then exit 20; fi\n"
         "if [ \"$2\" != \"-i\" ]; then exit 21; fi\n"
         "if [ \"$4\" != \"-vf\" ]; then exit 22; fi\n"
-        "python - \"$3\" \"$6\" <<'PY'\n"
+        f"\"{sys.executable}\" - \"$3\" \"$6\" <<'PY'\n"
         "from pathlib import Path\n"
         "from PIL import Image\n"
         "import sys\n"
@@ -169,6 +171,7 @@ def _build_preview_sensitive_settings(tmp_path: Path, **overrides) -> Settings:
         "ffprobe_command": str(fake_ffprobe),
         "run_embedded_worker": False,
         "auto_repair_enabled": True,
+        "delivery_guarantee_enabled": False,
         "auto_repair_retryable_issue_codes": Settings().auto_repair_retryable_issue_codes,
     }
     values.update(overrides)

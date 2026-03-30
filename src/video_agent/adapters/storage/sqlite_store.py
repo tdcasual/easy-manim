@@ -14,6 +14,7 @@ from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.agent_profile_revision_models import AgentProfileRevision
 from video_agent.domain.agent_profile_suggestion_models import AgentProfileSuggestion
 from video_agent.domain.agent_session_models import AgentSession
+from video_agent.domain.delivery_case_models import AgentRun, DeliveryCase
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
 from video_agent.domain.quality_models import QualityScorecard
@@ -37,6 +38,8 @@ def _canonical_json(data: Any) -> str:
 
 
 class SQLiteTaskStore:
+    STRATEGY_DECISION_TIMELINE_LIMIT = 5
+
     def __init__(self, database_path: Path) -> None:
         self.database_path = Path(database_path)
 
@@ -141,6 +144,129 @@ class SQLiteTaskStore:
                     task.task_id,
                 ),
             )
+
+    def upsert_delivery_case(self, delivery_case: DeliveryCase) -> DeliveryCase:
+        delivery_case.updated_at = _utcnow()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO delivery_cases (
+                    case_id, root_task_id, active_task_id, selected_task_id, selected_branch_id,
+                    status, delivery_status, completion_mode, stop_reason, case_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(case_id) DO UPDATE SET
+                    root_task_id = excluded.root_task_id,
+                    active_task_id = excluded.active_task_id,
+                    selected_task_id = excluded.selected_task_id,
+                    selected_branch_id = excluded.selected_branch_id,
+                    status = excluded.status,
+                    delivery_status = excluded.delivery_status,
+                    completion_mode = excluded.completion_mode,
+                    stop_reason = excluded.stop_reason,
+                    case_json = excluded.case_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    delivery_case.case_id,
+                    delivery_case.root_task_id,
+                    delivery_case.active_task_id,
+                    delivery_case.selected_task_id,
+                    delivery_case.selected_branch_id,
+                    delivery_case.status,
+                    delivery_case.delivery_status,
+                    delivery_case.completion_mode,
+                    delivery_case.stop_reason,
+                    delivery_case.model_dump_json(),
+                    delivery_case.created_at.isoformat(),
+                    delivery_case.updated_at.isoformat(),
+                ),
+            )
+        return delivery_case
+
+    def get_delivery_case(self, case_id: str) -> DeliveryCase | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT case_json FROM delivery_cases WHERE case_id = ?",
+                (case_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return DeliveryCase.model_validate_json(row["case_json"])
+
+    def get_delivery_case_by_root_task_id(self, root_task_id: str) -> DeliveryCase | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT case_json FROM delivery_cases WHERE root_task_id = ? ORDER BY created_at ASC LIMIT 1",
+                (root_task_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return DeliveryCase.model_validate_json(row["case_json"])
+
+    def create_agent_run(self, agent_run: AgentRun) -> AgentRun:
+        return self.upsert_agent_run(agent_run)
+
+    def upsert_agent_run(self, agent_run: AgentRun) -> AgentRun:
+        agent_run.updated_at = _utcnow()
+        with self._connect() as connection:
+            existing = connection.execute(
+                "SELECT created_at FROM agent_runs WHERE run_id = ?",
+                (agent_run.run_id,),
+            ).fetchone()
+            if existing is not None:
+                agent_run.created_at = datetime.fromisoformat(existing["created_at"])
+            connection.execute(
+                """
+                INSERT INTO agent_runs (
+                    run_id, case_id, root_task_id, task_id, role, status, phase, summary,
+                    run_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id) DO UPDATE SET
+                    case_id = excluded.case_id,
+                    root_task_id = excluded.root_task_id,
+                    task_id = excluded.task_id,
+                    role = excluded.role,
+                    status = excluded.status,
+                    phase = excluded.phase,
+                    summary = excluded.summary,
+                    run_json = excluded.run_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    agent_run.run_id,
+                    agent_run.case_id,
+                    agent_run.root_task_id,
+                    agent_run.task_id,
+                    agent_run.role,
+                    agent_run.status,
+                    agent_run.phase,
+                    agent_run.summary,
+                    agent_run.model_dump_json(),
+                    agent_run.created_at.isoformat(),
+                    agent_run.updated_at.isoformat(),
+                ),
+            )
+        return agent_run
+
+    def list_agent_runs(
+        self,
+        case_id: str,
+        *,
+        role: str | None = None,
+        task_id: str | None = None,
+    ) -> list[AgentRun]:
+        query = "SELECT run_json FROM agent_runs WHERE case_id = ?"
+        params: list[Any] = [case_id]
+        if role is not None:
+            query += " AND role = ?"
+            params.append(role)
+        if task_id is not None:
+            query += " AND task_id = ?"
+            params.append(task_id)
+        query += " ORDER BY updated_at ASC, created_at ASC, run_id ASC"
+        with self._connect() as connection:
+            rows = connection.execute(query, tuple(params)).fetchall()
+        return [AgentRun.model_validate_json(row["run_json"]) for row in rows]
 
     def upsert_agent_profile(self, profile: AgentProfile) -> None:
         profile.updated_at = _utcnow()
@@ -306,13 +432,14 @@ class SQLiteTaskStore:
             connection.execute(
                 """
                 INSERT INTO agent_learning_events (
-                    event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                    event_id, agent_id, task_id, session_id, status, quality_passed, issue_codes_json,
                     quality_score, profile_digest, memory_ids_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(task_id) DO UPDATE SET
                     agent_id = excluded.agent_id,
                     session_id = excluded.session_id,
                     status = excluded.status,
+                    quality_passed = excluded.quality_passed,
                     issue_codes_json = excluded.issue_codes_json,
                     quality_score = excluded.quality_score,
                     profile_digest = excluded.profile_digest,
@@ -324,6 +451,7 @@ class SQLiteTaskStore:
                     event.task_id,
                     event.session_id,
                     event.status,
+                    None if event.quality_passed is None else int(event.quality_passed),
                     json.dumps(event.issue_codes),
                     event.quality_score,
                     event.profile_digest,
@@ -334,7 +462,7 @@ class SQLiteTaskStore:
             row = connection.execute(
                 """
                 SELECT
-                    event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                    event_id, agent_id, task_id, session_id, status, quality_passed, issue_codes_json,
                     quality_score, profile_digest, memory_ids_json, created_at
                 FROM agent_learning_events
                 WHERE task_id = ?
@@ -350,7 +478,7 @@ class SQLiteTaskStore:
             rows = connection.execute(
                 """
                 SELECT
-                    event_id, agent_id, task_id, session_id, status, issue_codes_json,
+                    event_id, agent_id, task_id, session_id, status, quality_passed, issue_codes_json,
                     quality_score, profile_digest, memory_ids_json, created_at
                 FROM agent_learning_events
                 WHERE agent_id = ?
@@ -915,44 +1043,64 @@ class SQLiteTaskStore:
             return None
         return QualityScorecard.model_validate_json(row["scorecard_json"])
 
+    @staticmethod
+    def _row_to_strategy_profile(row: sqlite3.Row) -> StrategyProfile:
+        return StrategyProfile(
+            strategy_id=row["strategy_id"],
+            scope=row["scope"],
+            prompt_cluster=row["prompt_cluster"],
+            status=row["status"],
+            params=json.loads(row["params_json"]),
+            metrics=json.loads(row["metrics_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+        )
+
+    def _upsert_strategy_profile_in_connection(
+        self,
+        connection: sqlite3.Connection,
+        profile: StrategyProfile,
+    ) -> StrategyProfile:
+        existing = connection.execute(
+            """
+            SELECT strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
+            FROM strategy_profiles
+            WHERE strategy_id = ?
+            """,
+            (profile.strategy_id,),
+        ).fetchone()
+        profile.updated_at = _utcnow()
+        if existing is not None:
+            profile.created_at = datetime.fromisoformat(existing["created_at"])
+        connection.execute(
+            """
+            INSERT INTO strategy_profiles (
+                strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(strategy_id) DO UPDATE SET
+                scope = excluded.scope,
+                prompt_cluster = excluded.prompt_cluster,
+                status = excluded.status,
+                params_json = excluded.params_json,
+                metrics_json = excluded.metrics_json,
+                updated_at = excluded.updated_at
+            """,
+            (
+                profile.strategy_id,
+                profile.scope,
+                profile.prompt_cluster,
+                profile.status,
+                json.dumps(profile.params),
+                json.dumps(profile.metrics),
+                profile.created_at.isoformat(),
+                profile.updated_at.isoformat(),
+            ),
+        )
+        return profile
+
     def create_strategy_profile(self, profile: StrategyProfile) -> StrategyProfile:
         with self._connect() as connection:
-            existing = connection.execute(
-                """
-                SELECT strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
-                FROM strategy_profiles
-                WHERE strategy_id = ?
-                """,
-                (profile.strategy_id,),
-            ).fetchone()
-            profile.updated_at = _utcnow()
-            if existing is not None:
-                profile.created_at = datetime.fromisoformat(existing["created_at"])
-            connection.execute(
-                """
-                INSERT INTO strategy_profiles (
-                    strategy_id, scope, prompt_cluster, status, params_json, metrics_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(strategy_id) DO UPDATE SET
-                    scope = excluded.scope,
-                    prompt_cluster = excluded.prompt_cluster,
-                    status = excluded.status,
-                    params_json = excluded.params_json,
-                    metrics_json = excluded.metrics_json,
-                    updated_at = excluded.updated_at
-                """,
-                (
-                    profile.strategy_id,
-                    profile.scope,
-                    profile.prompt_cluster,
-                    profile.status,
-                    json.dumps(profile.params),
-                    json.dumps(profile.metrics),
-                    profile.created_at.isoformat(),
-                    profile.updated_at.isoformat(),
-                ),
-            )
-        return profile
+            return self._upsert_strategy_profile_in_connection(connection, profile)
 
     def get_strategy_profile(self, strategy_id: str) -> Optional[StrategyProfile]:
         with self._connect() as connection:
@@ -966,16 +1114,7 @@ class SQLiteTaskStore:
             ).fetchone()
         if row is None:
             return None
-        return StrategyProfile(
-            strategy_id=row["strategy_id"],
-            scope=row["scope"],
-            prompt_cluster=row["prompt_cluster"],
-            status=row["status"],
-            params=json.loads(row["params_json"]),
-            metrics=json.loads(row["metrics_json"]),
-            created_at=datetime.fromisoformat(row["created_at"]),
-            updated_at=datetime.fromisoformat(row["updated_at"]),
-        )
+        return self._row_to_strategy_profile(row)
 
     def list_strategy_profiles(self, status: str | None = None) -> list[StrategyProfile]:
         query = """
@@ -989,19 +1128,137 @@ class SQLiteTaskStore:
         query += " ORDER BY created_at ASC"
         with self._connect() as connection:
             rows = connection.execute(query, tuple(params)).fetchall()
-        return [
-            StrategyProfile(
-                strategy_id=row["strategy_id"],
-                scope=row["scope"],
-                prompt_cluster=row["prompt_cluster"],
-                status=row["status"],
-                params=json.loads(row["params_json"]),
-                metrics=json.loads(row["metrics_json"]),
-                created_at=datetime.fromisoformat(row["created_at"]),
-                updated_at=datetime.fromisoformat(row["updated_at"]),
-            )
-            for row in rows
-        ]
+        return [self._row_to_strategy_profile(row) for row in rows]
+
+    def get_active_strategy_profile(
+        self,
+        *,
+        scope: str,
+        prompt_cluster: str | None,
+        exclude_strategy_id: str | None = None,
+    ) -> Optional[StrategyProfile]:
+        candidates = self.list_strategy_profiles(status="active")
+        for profile in candidates:
+            if profile.scope != scope or profile.prompt_cluster != prompt_cluster:
+                continue
+            if exclude_strategy_id is not None and profile.strategy_id == exclude_strategy_id:
+                continue
+            return profile
+        return None
+
+    def activate_strategy_profile(
+        self,
+        strategy_id: str,
+        *,
+        applied_at: str | None = None,
+    ) -> tuple[StrategyProfile, StrategyProfile | None]:
+        target = self.get_strategy_profile(strategy_id)
+        if target is None:
+            raise ValueError(f"Unknown strategy profile: {strategy_id}")
+        timestamp = applied_at or _utcnow_iso()
+        previous_active = self.get_active_strategy_profile(
+            scope=target.scope,
+            prompt_cluster=target.prompt_cluster,
+            exclude_strategy_id=target.strategy_id,
+        )
+        target_guarded = (
+            dict(target.metrics.get("guarded_rollout", {}))
+            if isinstance(target.metrics.get("guarded_rollout"), dict)
+            else {}
+        )
+        target_guarded.update(
+            {
+                "last_applied_at": timestamp,
+                "rollback_target_strategy_id": None if previous_active is None else previous_active.strategy_id,
+                "rollback_armed": previous_active is not None,
+            }
+        )
+        target.metrics = {
+            **target.metrics,
+            "guarded_rollout": target_guarded,
+        }
+        target.status = "active"
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if previous_active is not None:
+                previous_guarded = (
+                    dict(previous_active.metrics.get("guarded_rollout", {}))
+                    if isinstance(previous_active.metrics.get("guarded_rollout"), dict)
+                    else {}
+                )
+                previous_guarded.update(
+                    {
+                        "superseded_at": timestamp,
+                        "superseded_by_strategy_id": target.strategy_id,
+                    }
+                )
+                previous_active.metrics = {
+                    **previous_active.metrics,
+                    "guarded_rollout": previous_guarded,
+                }
+                previous_active.status = "superseded"
+                self._upsert_strategy_profile_in_connection(connection, previous_active)
+            self._upsert_strategy_profile_in_connection(connection, target)
+        return target, previous_active
+
+    def rollback_strategy_profile(
+        self,
+        strategy_id: str,
+        *,
+        rolled_back_at: str | None = None,
+    ) -> tuple[StrategyProfile, StrategyProfile]:
+        target = self.get_strategy_profile(strategy_id)
+        if target is None:
+            raise ValueError(f"Unknown strategy profile: {strategy_id}")
+        target_guarded = (
+            dict(target.metrics.get("guarded_rollout", {}))
+            if isinstance(target.metrics.get("guarded_rollout"), dict)
+            else {}
+        )
+        rollback_target_strategy_id = target_guarded.get("rollback_target_strategy_id")
+        if not rollback_target_strategy_id:
+            raise ValueError(f"No guarded rollback target for strategy profile: {strategy_id}")
+        rollback_target = self.get_strategy_profile(str(rollback_target_strategy_id))
+        if rollback_target is None:
+            raise ValueError(f"Unknown rollback strategy profile: {rollback_target_strategy_id}")
+
+        timestamp = rolled_back_at or _utcnow_iso()
+        target_guarded.update(
+            {
+                "rollback_armed": False,
+                "consecutive_shadow_passes": 0,
+                "last_rolled_back_at": timestamp,
+            }
+        )
+        target.metrics = {
+            **target.metrics,
+            "guarded_rollout": target_guarded,
+        }
+        target.status = "rolled_back"
+
+        rollback_guarded = (
+            dict(rollback_target.metrics.get("guarded_rollout", {}))
+            if isinstance(rollback_target.metrics.get("guarded_rollout"), dict)
+            else {}
+        )
+        rollback_guarded.update(
+            {
+                "restored_at": timestamp,
+                "restored_from_strategy_id": target.strategy_id,
+            }
+        )
+        rollback_target.metrics = {
+            **rollback_target.metrics,
+            "guarded_rollout": rollback_guarded,
+        }
+        rollback_target.status = "active"
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self._upsert_strategy_profile_in_connection(connection, target)
+            self._upsert_strategy_profile_in_connection(connection, rollback_target)
+        return target, rollback_target
 
     def record_strategy_eval_run(
         self,
@@ -1015,12 +1272,71 @@ class SQLiteTaskStore:
         profile = self.get_strategy_profile(strategy_id)
         if profile is None:
             raise ValueError(f"Unknown strategy profile: {strategy_id}")
+        recorded_at = _utcnow_iso()
         if promotion_decision is None:
-            decision_payload: dict[str, Any] = {"approved": promotion_recommended, "reasons": [], "deltas": {}}
+            decision_payload = StrategyPromotionDecision(
+                approved=promotion_recommended,
+                reasons=[],
+                deltas={},
+                mode="shadow",
+                applied=False,
+                recorded_at=recorded_at,
+            ).model_dump(mode="json")
         elif isinstance(promotion_decision, StrategyPromotionDecision):
             decision_payload = promotion_decision.model_dump(mode="json")
         else:
-            decision_payload = dict(promotion_decision)
+            decision_payload = StrategyPromotionDecision.model_validate(
+                {
+                    "approved": promotion_recommended,
+                    "reasons": [],
+                    "deltas": {},
+                    "mode": "shadow",
+                    "applied": False,
+                    "recorded_at": recorded_at,
+                    **dict(promotion_decision),
+                }
+            ).model_dump(mode="json")
+
+        decision_payload["recorded_at"] = str(decision_payload.get("recorded_at") or recorded_at)
+        guarded_rollout = (
+            dict(profile.metrics.get("guarded_rollout", {}))
+            if isinstance(profile.metrics.get("guarded_rollout"), dict)
+            else {}
+        )
+        consecutive_shadow_passes = int(guarded_rollout.get("consecutive_shadow_passes", 0) or 0)
+        consecutive_shadow_passes = consecutive_shadow_passes + 1 if promotion_recommended else 0
+        guarded_rollout["consecutive_shadow_passes"] = consecutive_shadow_passes
+        if promotion_recommended:
+            guarded_rollout["last_shadow_pass_at"] = decision_payload["recorded_at"]
+        else:
+            guarded_rollout["last_shadow_failure_at"] = decision_payload["recorded_at"]
+
+        timeline_kind = "strategy_promotion_shadow"
+        if bool(decision_payload.get("applied")) and bool(decision_payload.get("approved")):
+            timeline_kind = "strategy_promotion_applied"
+        elif bool(decision_payload.get("applied")) and not bool(decision_payload.get("approved")):
+            timeline_kind = "strategy_promotion_rollback"
+        timeline = [
+            {
+                "kind": timeline_kind,
+                "recorded_at": decision_payload["recorded_at"],
+                "strategy_id": strategy_id,
+                "baseline_run_id": baseline_summary["run_id"],
+                "challenger_run_id": challenger_summary["run_id"],
+                "promotion_recommended": promotion_recommended,
+                "promotion_decision": decision_payload,
+            },
+            *[
+                item
+                for item in profile.metrics.get("decision_timeline", [])
+                if isinstance(item, dict)
+            ],
+        ]
+        timeline = sorted(
+            timeline,
+            key=lambda item: str(item.get("recorded_at") or ""),
+            reverse=True,
+        )[: self.STRATEGY_DECISION_TIMELINE_LIMIT]
 
         profile.metrics = {
             **profile.metrics,
@@ -1031,9 +1347,12 @@ class SQLiteTaskStore:
                 "challenger_success_rate": challenger_summary.get("report", {}).get("success_rate", 0.0),
                 "baseline_accepted_quality_rate": baseline_summary.get("report", {}).get("quality", {}).get("pass_rate", 0.0),
                 "challenger_accepted_quality_rate": challenger_summary.get("report", {}).get("quality", {}).get("pass_rate", 0.0),
+                "promotion_mode": str(decision_payload.get("mode") or "shadow"),
                 "promotion_recommended": promotion_recommended,
                 "promotion_decision": decision_payload,
             },
+            "decision_timeline": timeline,
+            "guarded_rollout": guarded_rollout,
         }
         return self.create_strategy_profile(profile)
 
@@ -1169,6 +1488,8 @@ class SQLiteTaskStore:
             connection.execute("DELETE FROM task_artifacts WHERE task_id = ?", (task_id,))
             connection.execute("DELETE FROM task_validations WHERE task_id = ?", (task_id,))
             connection.execute("DELETE FROM task_leases WHERE task_id = ?", (task_id,))
+            connection.execute("DELETE FROM agent_runs WHERE task_id = ? OR root_task_id = ?", (task_id, task_id))
+            connection.execute("DELETE FROM delivery_cases WHERE case_id = ? OR root_task_id = ?", (task_id, task_id))
             connection.execute("DELETE FROM video_tasks WHERE task_id = ?", (task_id,))
 
     def list_worker_heartbeats(self) -> list[dict[str, Any]]:
@@ -1283,6 +1604,7 @@ class SQLiteTaskStore:
             task_id=row["task_id"],
             session_id=row["session_id"],
             status=row["status"],
+            quality_passed=None if row["quality_passed"] is None else bool(row["quality_passed"]),
             issue_codes=json.loads(row["issue_codes_json"]),
             quality_score=float(row["quality_score"]),
             profile_digest=row["profile_digest"],

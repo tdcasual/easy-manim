@@ -11,6 +11,11 @@ export type TaskSnapshot = {
   status: string;
   phase: string;
   attempt_count?: number;
+  delivery_status?: string | null;
+  resolved_task_id?: string | null;
+  completion_mode?: string | null;
+  delivery_tier?: string | null;
+  delivery_stop_reason?: string | null;
   latest_validation_summary?: { summary?: string };
   artifact_summary?: Record<string, unknown>;
 };
@@ -19,6 +24,11 @@ export type TaskResult = {
   task_id: string;
   status: string;
   ready: boolean;
+  delivery_status?: string | null;
+  resolved_task_id?: string | null;
+  completion_mode?: string | null;
+  delivery_tier?: string | null;
+  delivery_stop_reason?: string | null;
   summary?: string | null;
   video_resource?: string | null;
   video_download_url?: string | null;

@@ -45,7 +45,7 @@ def render_reviewer_digest(summary: dict[str, Any]) -> str:
                 "",
                 "## Agent Slice",
                 f"- Agent ID: `{agent_report['agent_id']}`",
-                f"- Pass Rate: {agent_report['pass_rate']:.2%}",
+                f"- Quality Pass Rate: {agent_report['pass_rate']:.2%}",
                 f"- Median Quality Score: {agent_report['median_quality_score']}",
                 f"- Active Profile Digest: `{agent_report['active_profile_digest']}`",
             ]

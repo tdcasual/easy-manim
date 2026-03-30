@@ -10,10 +10,11 @@ def test_preference_resolver_uses_expected_precedence() -> None:
         system_defaults={"style_hints": {"tone": "clean"}},
         profile_json={"style_hints": {"tone": "teaching", "pace": "steady"}},
         token_override_json={"style_hints": {"pace": "brisk"}},
+        strategy_profile_json={"style_hints": {"tone": "coach", "camera": "static"}},
         request_overrides={"style_hints": {"tone": "dramatic"}},
     )
 
-    assert effective["style_hints"] == {"tone": "dramatic", "pace": "brisk"}
+    assert effective["style_hints"] == {"tone": "dramatic", "pace": "brisk", "camera": "static"}
 
 
 def test_compute_profile_digest_is_stable_for_same_content() -> None:

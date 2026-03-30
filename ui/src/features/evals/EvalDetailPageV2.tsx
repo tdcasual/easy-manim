@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, BarChart3, Clock, AlertCircle, ClipboardList } from "lucide-react";
 import { useSession } from "../auth/useSession";
-import { EvalRunSummary, getEval } from "../../lib/evalsApi";
+import {
+  EvalRunSummary,
+  getEval,
+  listStrategyDecisions,
+  readEvalDeliveryRate,
+  readEvalQualityPassRate,
+  StrategyDecisionTimelineItem,
+} from "../../lib/evalsApi";
 import { useI18n } from "../../app/locale";
 import { SkeletonCard } from "../../components/Skeleton";
 import { getStatusLabel } from "../../app/ui";
@@ -13,9 +20,11 @@ function formatPercent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
 
-function readSuccessRate(report?: Record<string, unknown>): number | null {
-  const raw = report?.success_rate;
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+function getRateTone(value: number | null): string {
+  if (value === null) return "";
+  if (value >= 0.8) return "success";
+  if (value >= 0.5) return "warning";
+  return "error";
 }
 
 export function EvalDetailPageV2() {
@@ -25,12 +34,16 @@ export function EvalDetailPageV2() {
   const { locale, t } = useI18n();
   const { showAuthModal, closeAuthModal } = useAuthGuard();
   const [run, setRun] = useState<EvalRunSummary | null>(null);
+  const [decisions, setDecisions] = useState<StrategyDecisionTimelineItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!runId || !sessionToken) return;
-    getEval(runId, sessionToken)
-      .then(setRun)
+    Promise.all([getEval(runId, sessionToken), listStrategyDecisions(sessionToken)])
+      .then(([nextRun, nextDecisions]) => {
+        setRun(nextRun);
+        setDecisions(Array.isArray(nextDecisions.items) ? nextDecisions.items : []);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : t("common.loadingFailed")));
   }, [runId, sessionToken, t]);
 
@@ -67,7 +80,11 @@ export function EvalDetailPageV2() {
   }
 
   const cases = Array.isArray(run.items) ? run.items : [];
-  const successRate = readSuccessRate(run.report);
+  const qualityPassRate = readEvalQualityPassRate(run.report);
+  const deliveryRate = readEvalDeliveryRate(run.report);
+  const matchingDecisions = decisions.filter(
+    (item) => item.challenger_run_id === run.run_id || item.baseline_run_id === run.run_id
+  );
 
   return (
     <div className="page-v2">
@@ -94,10 +111,14 @@ export function EvalDetailPageV2() {
           </div>
           <div className="eval-stat">
             <span className="stat-label">{t("evalDetail.passRate")}</span>
-            <span
-              className={`stat-value ${successRate && successRate >= 0.8 ? "success" : successRate && successRate >= 0.5 ? "warning" : "error"}`}
-            >
-              {formatPercent(successRate)}
+            <span className={`stat-value ${getRateTone(qualityPassRate)}`.trim()}>
+              {formatPercent(qualityPassRate)}
+            </span>
+          </div>
+          <div className="eval-stat">
+            <span className="stat-label">{t("evalDetail.deliveryRate")}</span>
+            <span className={`stat-value ${getRateTone(deliveryRate)}`.trim()}>
+              {formatPercent(deliveryRate)}
             </span>
           </div>
         </div>
@@ -114,6 +135,9 @@ export function EvalDetailPageV2() {
         <div className="case-list">
           {cases.length > 0 ? (
             cases.map((item) => {
+              const normalizedStatus = item.status.toLowerCase();
+              const deliveryPassed = item.delivery_passed ?? normalizedStatus === "completed";
+              const qualityPassed = item.quality_passed ?? normalizedStatus === "completed";
               const quality =
                 typeof item.quality_score === "number" ? item.quality_score.toFixed(2) : "—";
               const duration =
@@ -136,9 +160,16 @@ export function EvalDetailPageV2() {
                           {t("evalDetail.review")}
                         </span>
                       )}
-                      <span className={`case-badge ${item.status.toLowerCase()}`}>
+                      <span className={`case-badge ${normalizedStatus}`}>
                         {getStatusLabel(item.status, locale)}
                       </span>
+                      {qualityPassed ? (
+                        <span className="case-badge completed">{t("evalDetail.qualityPassed")}</span>
+                      ) : deliveryPassed ? (
+                        <span className="case-badge delivery-only">
+                          {t("evalDetail.deliveryOnly")}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="case-details">
@@ -161,6 +192,48 @@ export function EvalDetailPageV2() {
               <ClipboardList size={48} />
               <p>{t("evalDetail.noCases")}</p>
               <span>{t("evalDetail.noCasesHint")}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section-card-v2">
+        <div className="section-header-v2">
+          <h3 className="section-title-v2">
+            <ClipboardList size={20} />
+            Decision Timeline
+          </h3>
+        </div>
+
+        <div className="case-list">
+          {matchingDecisions.length > 0 ? (
+            matchingDecisions.map((item) => (
+              <div key={`${item.strategy_id}:${item.recorded_at}`} className="case-item">
+                <div className="case-header">
+                  <span className="case-id">{item.strategy_id}</span>
+                  <div className="case-badges">
+                    <span className="case-badge">{item.promotion_decision.mode ?? "shadow"}</span>
+                    <span className={`case-badge ${item.promotion_decision.approved ? "completed" : "failed"}`}>
+                      {item.promotion_decision.approved ? "approved" : "not approved"}
+                    </span>
+                  </div>
+                </div>
+                <div className="case-details">
+                  <div className="case-stat">{item.kind}</div>
+                  <div className="case-stat">
+                    Reasons: {item.promotion_decision.reasons.join(", ") || "no blockers"}
+                  </div>
+                  <div className="case-issues">
+                    Recorded at: {item.recorded_at}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-state-v2 case-empty">
+              <ClipboardList size={48} />
+              <p>No matching strategy decisions.</p>
+              <span>Shadow challenger runs linked to this eval will appear here.</span>
             </div>
           )}
         </div>

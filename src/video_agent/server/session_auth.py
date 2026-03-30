@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from mcp.server.fastmcp import Context
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from mcp.server.fastmcp import Context
+else:
+    try:
+        from mcp.server.fastmcp import Context
+    except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
+        Context = Any
 
 from video_agent.application.agent_identity_service import AgentPrincipal
 

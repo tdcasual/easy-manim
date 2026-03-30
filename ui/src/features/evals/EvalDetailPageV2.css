@@ -6,7 +6,7 @@
 
 .eval-detail-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-4);
 }
 
@@ -104,6 +104,11 @@
 .case-badge.failed {
   background: rgba(239, 68, 68, 0.15);
   color: var(--error);
+}
+
+.case-badge.delivery-only {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
 }
 
 .case-details {

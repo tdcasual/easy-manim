@@ -16,6 +16,7 @@ class AgentLearningEvent(BaseModel):
     task_id: str
     session_id: str | None = None
     status: str
+    quality_passed: bool | None = None
     issue_codes: list[str] = Field(default_factory=list)
     quality_score: float = 0.0
     profile_digest: str | None = None

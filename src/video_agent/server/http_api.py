@@ -51,6 +51,7 @@ class CreateTaskRequest(BaseModel):
     output_profile: dict[str, Any] | None = None
     style_hints: dict[str, Any] | None = None
     validation_profile: dict[str, Any] | None = None
+    strategy_prompt_cluster: str | None = None
     memory_ids: list[str] | None = None
 
 
@@ -168,6 +169,21 @@ def _allowed_task_artifact_resource_uri(task_id: str, artifact_path: str) -> str
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resource_not_found")
 
 
+def _download_url_from_resource_uri(resource_uri: str | None) -> str | None:
+    if resource_uri is None:
+        return None
+    prefix = "video-task://"
+    if not str(resource_uri).startswith(prefix):
+        return None
+    task_and_path = str(resource_uri)[len(prefix) :]
+    task_id, separator, relative_path = task_and_path.partition("/")
+    if not separator or not task_id or not relative_path:
+        return None
+    if relative_path.startswith("artifacts/"):
+        relative_path = relative_path.removeprefix("artifacts/")
+    return f"/api/tasks/{task_id}/artifacts/{relative_path}"
+
+
 def _strip_internal_session_fields(payload: dict[str, Any]) -> dict[str, Any]:
     sanitized = dict(payload)
     sanitized.pop("session_id", None)
@@ -191,6 +207,28 @@ def _suggestion_payload(suggestion: Any) -> dict[str, Any]:
         "status": suggestion.status,
         "created_at": suggestion.created_at.isoformat(),
         "applied_at": None if suggestion.applied_at is None else suggestion.applied_at.isoformat(),
+    }
+
+
+def _strategy_profile_payload(profile: Any) -> dict[str, Any]:
+    params = profile.params if isinstance(profile.params, dict) else {}
+    metrics = profile.metrics if isinstance(profile.metrics, dict) else {}
+    routing = params.get("routing") if isinstance(params.get("routing"), dict) else {}
+    raw_keywords = routing.get("keywords") if isinstance(routing.get("keywords"), list) else []
+    routing_keywords = [str(item) for item in raw_keywords if str(item).strip()]
+    guarded_rollout = metrics.get("guarded_rollout") if isinstance(metrics.get("guarded_rollout"), dict) else {}
+    last_eval_run = metrics.get("last_eval_run") if isinstance(metrics.get("last_eval_run"), dict) else {}
+    return {
+        "strategy_id": profile.strategy_id,
+        "scope": profile.scope,
+        "prompt_cluster": profile.prompt_cluster,
+        "status": profile.status,
+        "routing_keywords": routing_keywords,
+        "params": params,
+        "guarded_rollout": guarded_rollout,
+        "last_eval_run": last_eval_run,
+        "created_at": profile.created_at.isoformat(),
+        "updated_at": profile.updated_at.isoformat(),
     }
 
 
@@ -337,6 +375,60 @@ def create_http_api(settings: Settings) -> FastAPI:
         except PermissionError as exc:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
         return context.agent_learning_service.build_scorecard(resolved.agent_principal.agent_id)
+
+    @app.get("/api/profile/strategies")
+    def list_profile_strategies(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        items = [_strategy_profile_payload(profile) for profile in context.store.list_strategy_profiles()]
+        status_rank = {"active": 0, "candidate": 1, "superseded": 2, "rolled_back": 3}
+        items.sort(
+            key=lambda item: (
+                status_rank.get(str(item.get("status") or ""), 9),
+                str(item.get("updated_at") or ""),
+            ),
+            reverse=False,
+        )
+        active = [item for item in items if item.get("status") == "active"]
+        rest = [item for item in items if item.get("status") != "active"]
+        rest.sort(key=lambda item: str(item.get("updated_at") or ""), reverse=True)
+        return {"items": [*active, *rest]}
+
+    @app.get("/api/profile/evals")
+    def list_profile_evals(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        return {"items": context.artifact_store.list_eval_summaries()}
+
+    @app.get("/api/profile/evals/{run_id}")
+    def get_profile_eval(run_id: str, resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        payload = context.artifact_store.read_eval_summary(run_id)
+        if payload is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="eval_run_not_found")
+        return payload
+
+    @app.get("/api/profile/strategy-decisions")
+    def list_strategy_decisions(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
+        try:
+            context.agent_identity_service.require_action(resolved.agent_principal, "profile:read")
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        items: list[dict[str, Any]] = []
+        for profile in context.store.list_strategy_profiles():
+            for item in profile.metrics.get("decision_timeline", []) or []:
+                if not isinstance(item, dict):
+                    continue
+                items.append(item)
+        items.sort(key=lambda item: str(item.get("recorded_at") or ""), reverse=True)
+        return {"items": items}
 
     @app.post("/api/profile/apply")
     def apply_profile_patch(
@@ -698,6 +790,7 @@ def create_http_api(settings: Settings) -> FastAPI:
                     "output_profile": payload.output_profile,
                     "style_hints": payload.style_hints,
                     "validation_profile": payload.validation_profile,
+                    "strategy_prompt_cluster": payload.strategy_prompt_cluster,
                     "memory_ids": payload.memory_ids,
                     "session_id": current_internal_session_id(resolved),
                 },
@@ -771,41 +864,22 @@ def create_http_api(settings: Settings) -> FastAPI:
         except KeyError as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task_not_found") from exc
 
-        final_video_path = context.artifact_store.final_video_path(task_id)
-        script_path = context.artifact_store.script_path(task_id)
-        previews_dir = context.artifact_store.previews_dir(task_id)
-        validations_dir = context.artifact_store.task_dir(task_id) / "validations"
-
-        if final_video_path.exists():
-            payload["video_download_url"] = f"/api/tasks/{task_id}/artifacts/final_video.mp4"
+        payload["video_download_url"] = _download_url_from_resource_uri(payload.get("video_resource"))
 
         preview_resources = payload.get("preview_frame_resources") or []
         preview_urls: list[str] = []
         if preview_resources:
             for uri in preview_resources:
-                name = Path(str(uri)).name
-                candidate = previews_dir / name
-                if candidate.exists() and candidate.is_file():
-                    preview_urls.append(f"/api/tasks/{task_id}/artifacts/previews/{name}")
-        elif previews_dir.exists():
-            for frame in sorted(previews_dir.glob("*.png")):
-                if frame.is_file():
-                    preview_urls.append(f"/api/tasks/{task_id}/artifacts/previews/{frame.name}")
+                download_url = _download_url_from_resource_uri(str(uri))
+                if download_url is not None:
+                    preview_urls.append(download_url)
         if preview_urls:
             payload["preview_download_urls"] = preview_urls
 
-        if script_path.exists():
-            payload["script_download_url"] = f"/api/tasks/{task_id}/artifacts/current_script.py"
+        payload["script_download_url"] = _download_url_from_resource_uri(payload.get("script_resource"))
 
         if payload.get("validation_report_resource"):
-            report_rel = str(payload["validation_report_resource"]).replace(f"video-task://{task_id}/", "")
-            candidate = context.artifact_store.task_dir(task_id) / report_rel
-            if candidate.exists() and candidate.is_file():
-                payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/{report_rel}"
-        elif validations_dir.exists():
-            reports = [p for p in sorted(validations_dir.glob("*.json")) if p.is_file()]
-            if reports:
-                payload["validation_report_download_url"] = f"/api/tasks/{task_id}/artifacts/validations/{reports[-1].name}"
+            payload["validation_report_download_url"] = _download_url_from_resource_uri(payload["validation_report_resource"])
         return payload
 
     @app.get("/api/tasks/{task_id}/review-bundle")

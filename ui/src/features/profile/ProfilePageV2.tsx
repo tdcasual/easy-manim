@@ -22,8 +22,10 @@ import {
   getProfile,
   getProfileScorecard,
   listProfileSuggestions,
+  listProfileStrategies,
   ProfileSuggestion,
   ProfileScorecard,
+  StrategyProfileSummary,
 } from "../../lib/profileApi";
 import { getRuntimeStatus, RuntimeStatus } from "../../lib/runtimeApi";
 import { SkeletonMetricCard } from "../../components/Skeleton";
@@ -281,7 +283,11 @@ const capabilityLabels: Record<string, string> = {
   agent_learning_auto_apply_enabled: "Agent learning auto apply",
   auto_repair_enabled: "Auto repair",
   multi_agent_workflow_enabled: "Multi-agent workflow",
+  multi_agent_workflow_auto_challenger_enabled: "Auto challenger",
+  multi_agent_workflow_auto_arbitration_enabled: "Auto arbitration",
+  multi_agent_workflow_guarded_rollout_enabled: "Guarded rollout",
   strategy_promotion_enabled: "Strategy promotion",
+  strategy_promotion_guarded_auto_apply_enabled: "Guarded strategy promotion",
 };
 
 function formatCapabilityLabel(key: string) {
@@ -297,6 +303,18 @@ function formatSupportSummary(counts?: Record<string, number>) {
     .join(" | ");
 }
 
+function formatCountSummary(counts?: Record<string, number>) {
+  const entries = Object.entries(counts ?? {}).sort(([left], [right]) => left.localeCompare(right));
+  if (!entries.length) return "none";
+  return entries.map(([label, count]) => `${label} ${count}`).join(" | ");
+}
+
+function formatRoleStatusSummary(roleStatusCounts?: Record<string, Record<string, number>>) {
+  const entries = Object.entries(roleStatusCounts ?? {}).sort(([left], [right]) => left.localeCompare(right));
+  if (!entries.length) return "none";
+  return entries.map(([role, counts]) => `${role} [${formatCountSummary(counts)}]`).join(" | ");
+}
+
 // 主组件
 export function ProfilePageV2() {
   const { sessionToken } = useSession();
@@ -307,6 +325,7 @@ export function ProfilePageV2() {
   const [scorecard, setScorecard] = useState<ProfileScorecard | null>(null);
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
   const [suggestions, setSuggestions] = useState<ProfileSuggestion[]>([]);
+  const [strategies, setStrategies] = useState<StrategyProfileSummary[]>([]);
   const [scorecardHistory, setScorecardHistory] = useState<ProfileScorecard[]>([]);
   const { status, startLoading, setErrorState, succeed } = useAsyncStatus();
   const [patchText, setPatchText] = useState('{"style_hints": {}}');
@@ -374,16 +393,18 @@ export function ProfilePageV2() {
     if (!sessionToken) return;
     startLoading();
     try {
-      const [nextProfile, nextScorecard, nextRuntimeStatus, nextSuggestions] = await Promise.all([
+      const [nextProfile, nextScorecard, nextRuntimeStatus, nextSuggestions, nextStrategies] = await Promise.all([
         getProfile(sessionToken),
         getProfileScorecard(sessionToken),
         getRuntimeStatus(sessionToken),
         listProfileSuggestions(sessionToken),
+        listProfileStrategies(sessionToken),
       ]);
       setProfile(nextProfile);
       setScorecard(nextScorecard);
       setRuntimeStatus(nextRuntimeStatus);
       setSuggestions(Array.isArray(nextSuggestions.items) ? nextSuggestions.items : []);
+      setStrategies(Array.isArray(nextStrategies.items) ? nextStrategies.items : []);
       setScorecardHistory((prev) => [...prev.slice(-4), nextScorecard]);
 
       // 同步表单数据
@@ -468,6 +489,9 @@ export function ProfilePageV2() {
     if (scorecardHistory.length < 2) return undefined;
     return scorecardHistory[scorecardHistory.length - 2];
   }, [scorecardHistory]);
+  const qualityPassedCount = scorecard?.quality_passed_count ?? scorecard?.completed_count ?? 0;
+  const previousQualityPassedCount =
+    previousScorecard?.quality_passed_count ?? previousScorecard?.completed_count;
 
   if (!sessionToken) {
     return (
@@ -524,11 +548,8 @@ export function ProfilePageV2() {
             </div>
             <div className="metric-content">
               <p className="metric-label-v2">{t("profile.completed")}</p>
-              <h3 className="metric-value-v2">{scorecard.completed_count}</h3>
-              <TrendIndicator
-                current={scorecard.completed_count}
-                previous={previousScorecard?.completed_count}
-              />
+              <h3 className="metric-value-v2">{qualityPassedCount}</h3>
+              <TrendIndicator current={qualityPassedCount} previous={previousQualityPassedCount} />
             </div>
           </div>
           <div className="metric-card-v2 metric-card-pink">
@@ -623,6 +644,57 @@ export function ProfilePageV2() {
                         MathTeX: {runtimeStatus.features.mathtex?.available ? "available" : "missing"}
                       </span>
                     </div>
+                    {runtimeStatus.autonomy_guard?.enabled ? (
+                      <div className="memory-meta">
+                        <span>
+                          Guarded autonomy: {runtimeStatus.autonomy_guard.allowed ? "allowed" : "blocked"}
+                        </span>
+                        {runtimeStatus.autonomy_guard.reasons.length ? (
+                          <span>{runtimeStatus.autonomy_guard.reasons.join(", ")}</span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {runtimeStatus.delivery_summary ? (
+                      <>
+                        <div className="memory-meta">
+                          <span>
+                            Delivery rate: {(runtimeStatus.delivery_summary.delivery_rate * 100).toFixed(0)}%
+                          </span>
+                          <span>
+                            Cases: {formatCountSummary(runtimeStatus.delivery_summary.case_status_counts)}
+                          </span>
+                        </div>
+                        <div className="memory-meta">
+                          <span>
+                            Agent runs: {formatCountSummary(runtimeStatus.delivery_summary.agent_run_status_counts)}
+                          </span>
+                          <span>
+                            Agent roles:{" "}
+                            {formatRoleStatusSummary(
+                              runtimeStatus.delivery_summary.agent_run_role_status_counts
+                            )}
+                          </span>
+                        </div>
+                        <div className="memory-meta">
+                          <span>
+                            Agent stop reasons:{" "}
+                            {formatCountSummary(
+                              runtimeStatus.delivery_summary.agent_run_stop_reason_counts
+                            )}
+                          </span>
+                        </div>
+                        <div className="memory-meta">
+                          <span>
+                            Completion modes: {formatCountSummary(runtimeStatus.delivery_summary.completion_modes)}
+                          </span>
+                        </div>
+                        <div className="memory-meta">
+                          <span>
+                            Arbitration success: {(runtimeStatus.delivery_summary.arbitration_success_rate * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      </>
+                    ) : null}
                     <ul>
                       {Object.entries(runtimeStatus.capabilities.effective).map(([key, enabled]) => (
                         <li key={key}>
@@ -686,6 +758,49 @@ export function ProfilePageV2() {
                     </div>
                   ) : (
                     <p>No pending profile suggestions.</p>
+                  )}
+                </div>
+
+                <div className="profile-json">
+                  <label>
+                    <span className="label-icon">🧭</span>
+                    Strategy Routing
+                  </label>
+                  {strategies.length ? (
+                    <div className="memory-list">
+                      {strategies.slice(0, 4).map((strategy) => {
+                        const guardedRollout = strategy.guarded_rollout ?? {};
+                        const lastEvalRun = strategy.last_eval_run ?? {};
+                        const shadowPasses = Number(guardedRollout["consecutive_shadow_passes"] ?? 0);
+                        const rollbackArmed = Boolean(guardedRollout["rollback_armed"] ?? false);
+                        const promotionMode = String(lastEvalRun["promotion_mode"] ?? "shadow");
+                        return (
+                          <div key={strategy.strategy_id} className="memory-item">
+                            <div className="memory-item-header">
+                              <span className="memory-id">{strategy.strategy_id}</span>
+                              <span className={`memory-status ${strategy.status.toLowerCase()}`}>
+                                {strategy.status}
+                              </span>
+                            </div>
+                            <p className="memory-text">
+                              Cluster: {strategy.prompt_cluster ?? "global"} | Mode: {promotionMode}
+                            </p>
+                            <div className="memory-meta">
+                              <span>
+                                Routing keywords:{" "}
+                                {strategy.routing_keywords.length
+                                  ? strategy.routing_keywords.join(", ")
+                                  : "none"}
+                              </span>
+                              <span>Shadow passes: {shadowPasses}</span>
+                              <span>Rollback armed: {rollbackArmed ? "yes" : "no"}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p>No strategy routing profiles configured.</p>
                   )}
                 </div>
 

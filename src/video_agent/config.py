@@ -9,20 +9,46 @@ CAPABILITY_ROLLOUT_PROFILES: dict[str, dict[str, bool]] = {
     "conservative": {
         "agent_learning_auto_apply_enabled": False,
         "auto_repair_enabled": False,
+        "delivery_guarantee_enabled": False,
         "multi_agent_workflow_enabled": False,
+        "multi_agent_workflow_auto_challenger_enabled": False,
+        "multi_agent_workflow_auto_arbitration_enabled": False,
+        "multi_agent_workflow_guarded_rollout_enabled": False,
         "strategy_promotion_enabled": False,
+        "strategy_promotion_guarded_auto_apply_enabled": False,
     },
     "supervised": {
         "agent_learning_auto_apply_enabled": False,
         "auto_repair_enabled": True,
+        "delivery_guarantee_enabled": True,
         "multi_agent_workflow_enabled": True,
+        "multi_agent_workflow_auto_challenger_enabled": True,
+        "multi_agent_workflow_auto_arbitration_enabled": True,
+        "multi_agent_workflow_guarded_rollout_enabled": False,
         "strategy_promotion_enabled": False,
+        "strategy_promotion_guarded_auto_apply_enabled": False,
     },
     "autonomy-lite": {
         "agent_learning_auto_apply_enabled": True,
         "auto_repair_enabled": True,
+        "delivery_guarantee_enabled": True,
         "multi_agent_workflow_enabled": True,
+        "multi_agent_workflow_auto_challenger_enabled": True,
+        "multi_agent_workflow_auto_arbitration_enabled": True,
+        "multi_agent_workflow_guarded_rollout_enabled": False,
         "strategy_promotion_enabled": True,
+        "strategy_promotion_guarded_auto_apply_enabled": True,
+    },
+    "autonomy-guarded": {
+        "agent_learning_auto_apply_enabled": True,
+        "auto_repair_enabled": True,
+        "delivery_guarantee_enabled": True,
+        "multi_agent_workflow_enabled": True,
+        "multi_agent_workflow_auto_challenger_enabled": True,
+        "multi_agent_workflow_auto_arbitration_enabled": True,
+        "multi_agent_workflow_guarded_rollout_enabled": True,
+        "strategy_promotion_enabled": True,
+        "strategy_promotion_guarded_auto_apply_enabled": True,
     },
 }
 
@@ -72,7 +98,7 @@ class Settings(BaseModel):
     persistent_memory_enable_embeddings: bool = False
     persistent_memory_embedding_provider: str | None = None
     persistent_memory_embedding_model: str | None = None
-    capability_rollout_profile: str = "conservative"
+    capability_rollout_profile: str = "supervised"
     agent_learning_auto_apply_enabled: bool = False
     agent_learning_auto_apply_min_completed_tasks: int = 5
     agent_learning_auto_apply_min_quality_score: float = 0.9
@@ -83,6 +109,12 @@ class Settings(BaseModel):
         default_factory=lambda: list(DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES)
     )
     multi_agent_workflow_enabled: bool = False
+    multi_agent_workflow_auto_challenger_enabled: bool = False
+    multi_agent_workflow_auto_arbitration_enabled: bool = False
+    multi_agent_workflow_guarded_rollout_enabled: bool = False
+    multi_agent_workflow_guarded_min_delivery_rate: float = 0.9
+    multi_agent_workflow_guarded_max_emergency_fallback_rate: float = 0.10
+    multi_agent_workflow_guarded_max_branch_rejection_rate: float = 0.50
     multi_agent_workflow_max_child_attempts: int = 3
     multi_agent_workflow_require_completed_for_accept: bool = True
     preview_gate_enabled: bool = True
@@ -90,10 +122,15 @@ class Settings(BaseModel):
     quality_gate_min_score: float = 0.75
     risk_routing_enabled: bool = True
     strategy_promotion_enabled: bool = False
+    strategy_promotion_guarded_auto_apply_enabled: bool = False
+    strategy_promotion_guarded_auto_apply_min_shadow_passes: int = 3
+    strategy_promotion_guarded_auto_rollback_enabled: bool = True
     strategy_promotion_max_success_regression: float = 0.0
     strategy_promotion_min_quality_gain: float = 0.01
     strategy_promotion_max_must_fix_issue_rate: float = 0.10
     strategy_promotion_max_repair_rate_regression: float = 0.05
+    delivery_guarantee_enabled: bool = False
+    delivery_guarantee_allow_emergency_video: bool = True
 
     @model_validator(mode="after")
     def derive_paths(self) -> "Settings":
@@ -105,6 +142,21 @@ class Settings(BaseModel):
         for flag_name, enabled in CAPABILITY_ROLLOUT_PROFILES[profile_name].items():
             if flag_name not in self.model_fields_set:
                 setattr(self, flag_name, enabled)
+        if (
+            not self.multi_agent_workflow_enabled
+            and "multi_agent_workflow_auto_challenger_enabled" not in self.model_fields_set
+        ):
+            self.multi_agent_workflow_auto_challenger_enabled = False
+        if (
+            not self.multi_agent_workflow_enabled
+            and "multi_agent_workflow_auto_arbitration_enabled" not in self.model_fields_set
+        ):
+            self.multi_agent_workflow_auto_arbitration_enabled = False
+        if (
+            not self.multi_agent_workflow_enabled
+            and "multi_agent_workflow_guarded_rollout_enabled" not in self.model_fields_set
+        ):
+            self.multi_agent_workflow_guarded_rollout_enabled = False
         if self.database_path is None:
             self.database_path = self.data_dir / "video_agent.db"
         if self.artifact_root is None:
@@ -123,4 +175,18 @@ class Settings(BaseModel):
             self.default_pixel_width = None
         if self.default_pixel_height is not None and self.default_pixel_height <= 0:
             self.default_pixel_height = None
+        if self.strategy_promotion_guarded_auto_apply_min_shadow_passes <= 0:
+            self.strategy_promotion_guarded_auto_apply_min_shadow_passes = 1
+        self.multi_agent_workflow_guarded_min_delivery_rate = min(
+            max(self.multi_agent_workflow_guarded_min_delivery_rate, 0.0),
+            1.0,
+        )
+        self.multi_agent_workflow_guarded_max_emergency_fallback_rate = min(
+            max(self.multi_agent_workflow_guarded_max_emergency_fallback_rate, 0.0),
+            1.0,
+        )
+        self.multi_agent_workflow_guarded_max_branch_rejection_rate = min(
+            max(self.multi_agent_workflow_guarded_max_branch_rejection_rate, 0.0),
+            1.0,
+        )
         return self

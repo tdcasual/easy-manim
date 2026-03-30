@@ -9,6 +9,9 @@ from pydantic import BaseModel, Field
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_authorization_service import AgentAuthorizationService
+from video_agent.application.case_memory_service import CaseMemoryService
+from video_agent.application.delivery_case_service import DeliveryCaseService
+from video_agent.application.branch_arbitration import build_arbitration_summary, build_branch_scoreboard
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.agent_learning_service import AgentLearningService
 from video_agent.application.errors import AdmissionControlError
@@ -25,6 +28,7 @@ from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
+from video_agent.domain.strategy_models import StrategyProfile
 
 
 _DISPLAY_TITLE_SPLIT_REGEX = re.compile(r"[\n\r，,.;:：；？！!?]+")
@@ -60,6 +64,7 @@ class CreateVideoTaskResult(BaseModel):
 class VideoTaskSnapshot(BaseModel):
     task_id: str
     agent_id: Optional[str] = None
+    strategy_profile_id: Optional[str] = None
     display_title: Optional[str] = None
     title_source: Optional[str] = None
     risk_level: Optional[str] = None
@@ -78,6 +83,11 @@ class VideoTaskSnapshot(BaseModel):
     repair_state: dict[str, Any] = Field(default_factory=dict)
     auto_repair_summary: dict[str, Any] = Field(default_factory=dict)
     failure_contract: dict[str, Any] | None = None
+    delivery_status: str | None = None
+    resolved_task_id: str | None = None
+    completion_mode: str | None = None
+    delivery_tier: str | None = None
+    delivery_stop_reason: str | None = None
 
 
 class VideoResult(BaseModel):
@@ -89,6 +99,11 @@ class VideoResult(BaseModel):
     script_resource: Optional[str] = None
     validation_report_resource: Optional[str] = None
     summary: Optional[str] = None
+    delivery_status: str | None = None
+    resolved_task_id: str | None = None
+    completion_mode: str | None = None
+    delivery_tier: str | None = None
+    delivery_stop_reason: str | None = None
 
 
 class TaskService:
@@ -102,6 +117,8 @@ class TaskService:
         agent_learning_service: AgentLearningService | None = None,
         session_memory_service: SessionMemoryService | None = None,
         persistent_memory_service: PersistentMemoryService | None = None,
+        delivery_case_service: DeliveryCaseService | None = None,
+        case_memory_service: CaseMemoryService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
@@ -111,6 +128,8 @@ class TaskService:
         self.agent_learning_service = agent_learning_service
         self.session_memory_service = session_memory_service
         self.persistent_memory_service = persistent_memory_service
+        self.delivery_case_service = delivery_case_service
+        self.case_memory_service = case_memory_service
 
     def create_video_task(
         self,
@@ -119,6 +138,7 @@ class TaskService:
         output_profile: Optional[dict[str, Any]] = None,
         style_hints: Optional[dict[str, Any]] = None,
         validation_profile: Optional[dict[str, Any]] = None,
+        strategy_prompt_cluster: str | None = None,
         feedback: Optional[str] = None,
         session_id: Optional[str] = None,
         memory_ids: list[str] | None = None,
@@ -128,6 +148,10 @@ class TaskService:
         principal = self._resolve_agent_principal(agent_principal)
         self._authorize_action(principal, "task:create")
         persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
+        active_strategy = self._resolve_active_strategy_profile(
+            strategy_prompt_cluster=strategy_prompt_cluster,
+            prompt=prompt,
+        )
         system_defaults = build_system_default_request_config(
             default_quality_preset=self.settings.default_quality_preset,
             default_frame_rate=self.settings.default_frame_rate,
@@ -138,6 +162,7 @@ class TaskService:
             system_defaults=system_defaults,
             profile_json=principal.profile.profile_json,
             token_override_json=principal.token.override_json,
+            strategy_profile_json=None if active_strategy is None else self._strategy_request_profile(active_strategy),
             request_overrides=self._build_request_overrides(
                 output_profile=output_profile,
                 style_hints=style_hints,
@@ -162,11 +187,19 @@ class TaskService:
             effective_policy_flags=dict(principal.profile.policy_json),
             display_title=display_title,
             title_source=title_source,
+            strategy_profile_id=None if active_strategy is None else active_strategy.strategy_id,
+            delivery_status="pending",
         )
         persisted = self.store.create_task(task, idempotency_key=idempotency_key)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
         self.artifact_store.write_task_snapshot(persisted)
         self.store.append_event(persisted.task_id, "task_created", {"status": persisted.status.value})
+        if self.delivery_case_service is not None:
+            _, created_case = self.delivery_case_service.ensure_case_for_task(persisted)
+            if created_case:
+                self.delivery_case_service.record_case_created(persisted)
+            self.delivery_case_service.queue_generator_run(task=persisted)
+            self.delivery_case_service.sync_case_for_root(persisted.root_task_id or persisted.task_id)
         if self.session_memory_service is not None:
             self.session_memory_service.record_task_created(persisted, attempt_kind="create")
         return CreateVideoTaskResult(
@@ -239,7 +272,24 @@ class TaskService:
         if accepted_task.status is not TaskStatus.COMPLETED:
             raise ValueError("accept_best_requires_completed_task")
 
-        lineage = self.store.list_lineage_tasks(accepted_task.root_task_id or accepted_task.task_id)
+        root_task_id = accepted_task.root_task_id or accepted_task.task_id
+        lineage = self.store.list_lineage_tasks(root_task_id)
+        root_task = self._require_task(root_task_id)
+        delivery_case = self.store.get_delivery_case(root_task_id)
+        previous_selected_task_id = root_task.resolved_task_id
+        arbitration_summary = build_arbitration_summary(
+            branch_scoreboard=build_branch_scoreboard(
+                lineage_tasks=lineage,
+                scorecards_by_task_id={
+                    candidate.task_id: self.get_quality_score(candidate.task_id)
+                    for candidate in lineage
+                },
+                selected_task_id=previous_selected_task_id,
+                active_task_id=delivery_case.active_task_id if delivery_case is not None else accepted_task.task_id,
+            ),
+            selected_task_id=previous_selected_task_id,
+            active_task_id=delivery_case.active_task_id if delivery_case is not None else accepted_task.task_id,
+        )
         accepted_rank = 1
         for index, candidate in enumerate(lineage, start=1):
             is_selected = candidate.task_id == accepted_task.task_id
@@ -250,12 +300,56 @@ class TaskService:
             self.store.update_task(candidate)
             self.artifact_store.write_task_snapshot(candidate)
 
+        root_task.status = TaskStatus.COMPLETED
+        root_task.phase = TaskPhase.COMPLETED
+        root_task.delivery_status = "delivered"
+        root_task.resolved_task_id = accepted_task.task_id
+        root_task.completion_mode = accepted_task.completion_mode
+        root_task.delivery_tier = accepted_task.delivery_tier
+        root_task.delivery_stop_reason = None
+        root_task.accepted_as_best = accepted_task.task_id == root_task.task_id
+        root_task.accepted_version_rank = accepted_rank if root_task.accepted_as_best else None
+        self.store.update_task(root_task)
+        self.artifact_store.write_task_snapshot(root_task)
+
         self.store.append_event(
             task_id,
             "task_accepted_as_best",
             {
-                "root_task_id": accepted_task.root_task_id or accepted_task.task_id,
+                "root_task_id": root_task_id,
                 "accepted_version_rank": accepted_rank,
+                "previous_selected_task_id": previous_selected_task_id,
+                "arbitration_summary": arbitration_summary,
+            },
+        )
+        if self.delivery_case_service is not None:
+            self.delivery_case_service.sync_case_for_root(root_task_id)
+            self.delivery_case_service.record_winner_selected(
+                selected_task=accepted_task,
+                previous_selected_task_id=previous_selected_task_id,
+                arbitration_summary=arbitration_summary,
+            )
+        self._record_case_memory_branch_state(
+            root_task_id=root_task_id,
+            branch_scoreboard=build_branch_scoreboard(
+                lineage_tasks=self.store.list_lineage_tasks(root_task_id),
+                scorecards_by_task_id={
+                    candidate.task_id: self.get_quality_score(candidate.task_id)
+                    for candidate in self.store.list_lineage_tasks(root_task_id)
+                },
+                selected_task_id=accepted_task.task_id,
+                active_task_id=accepted_task.task_id,
+            ),
+            arbitration_summary=arbitration_summary,
+        )
+        self._record_case_memory_decision(
+            root_task_id=root_task_id,
+            action="winner_selected",
+            task_id=accepted_task.task_id,
+            details={
+                "previous_selected_task_id": previous_selected_task_id,
+                "recommended_action": arbitration_summary.get("recommended_action"),
+                "recommended_task_id": arbitration_summary.get("recommended_task_id"),
             },
         )
         return self.get_video_task(task_id)
@@ -284,6 +378,7 @@ class TaskService:
         return VideoTaskSnapshot(
             task_id=task.task_id,
             agent_id=task.agent_id,
+            strategy_profile_id=task.strategy_profile_id,
             display_title=task.display_title,
             title_source=task.title_source,
             risk_level=task.risk_level,
@@ -302,28 +397,61 @@ class TaskService:
             repair_state=repair_state.model_dump(mode="json"),
             auto_repair_summary=self._build_auto_repair_summary(root_task_id, repair_children),
             failure_contract=failure_contract,
+            delivery_status=task.delivery_status,
+            resolved_task_id=task.resolved_task_id,
+            completion_mode=task.completion_mode,
+            delivery_tier=task.delivery_tier,
+            delivery_stop_reason=task.delivery_stop_reason,
         )
 
     def get_video_result(self, task_id: str) -> VideoResult:
         task = self._require_task(task_id)
         latest_validation = self.store.get_latest_validation(task_id)
-        if task.status is not TaskStatus.COMPLETED:
-            return VideoResult(task_id=task.task_id, status=task.status, ready=False)
+        resolved_task = self._resolved_result_task(task)
+        if resolved_task is None:
+            return VideoResult(
+                task_id=task.task_id,
+                status=task.status,
+                ready=False,
+                delivery_status=task.delivery_status,
+                resolved_task_id=task.resolved_task_id,
+                completion_mode=task.completion_mode,
+                delivery_tier=task.delivery_tier,
+                delivery_stop_reason=task.delivery_stop_reason,
+            )
 
-        video_artifacts = self.store.list_artifacts(task_id, "final_video")
-        preview_artifacts = self.store.list_artifacts(task_id, "preview_frame")
-        script_artifacts = self.store.list_artifacts(task_id, "current_script")
-        validation_artifacts = self.store.list_artifacts(task_id, "validation_report")
+        result_task_id = resolved_task.task_id
+        result_validation = self.store.get_latest_validation(result_task_id)
+        video_artifacts = self.store.list_artifacts(result_task_id, "final_video")
+        preview_artifacts = self.store.list_artifacts(result_task_id, "preview_frame")
+        script_artifacts = self.store.list_artifacts(result_task_id, "current_script")
+        validation_artifacts = self.store.list_artifacts(result_task_id, "validation_report")
+
+        video_resource = None
+        if video_artifacts:
+            video_resource = self._resource_ref(result_task_id, Path(video_artifacts[-1]["path"]))
+        preview_frame_resources = [self._resource_ref(result_task_id, Path(item["path"])) for item in preview_artifacts]
+        script_resource = None
+        if script_artifacts:
+            script_resource = self._resource_ref(result_task_id, Path(script_artifacts[-1]["path"]))
+        validation_report_resource = None
+        if validation_artifacts:
+            validation_report_resource = self._resource_ref(result_task_id, Path(validation_artifacts[-1]["path"]))
 
         return VideoResult(
             task_id=task.task_id,
-            status=task.status,
+            status=resolved_task.status,
             ready=True,
-            video_resource=self._resource_ref(task_id, Path(video_artifacts[-1]["path"])),
-            preview_frame_resources=[self._resource_ref(task_id, Path(item["path"])) for item in preview_artifacts],
-            script_resource=self._resource_ref(task_id, Path(script_artifacts[-1]["path"])),
-            validation_report_resource=self._resource_ref(task_id, Path(validation_artifacts[-1]["path"])),
-            summary=(latest_validation.summary if latest_validation else None),
+            video_resource=video_resource,
+            preview_frame_resources=preview_frame_resources,
+            script_resource=script_resource,
+            validation_report_resource=validation_report_resource,
+            summary=(result_validation.summary if result_validation else latest_validation.summary if latest_validation else None),
+            delivery_status=task.delivery_status,
+            resolved_task_id=task.resolved_task_id,
+            completion_mode=task.completion_mode,
+            delivery_tier=task.delivery_tier,
+            delivery_stop_reason=task.delivery_stop_reason,
         )
 
     def revise_video_task(
@@ -339,6 +467,14 @@ class TaskService:
         self._authorize_action(principal, "task:mutate")
         base_task = self._require_authorized_task(base_task_id, principal)
         persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
+        if self._is_completed_delivery_candidate(base_task):
+            return self._create_challenger_child_task(
+                base_task=base_task,
+                feedback=feedback,
+                session_id=session_id,
+                persistent_memory=persistent_memory,
+            )
+        effective_feedback = self._augment_feedback_with_case_memory(base_task, feedback)
         metadata = self.revision_service.build_metadata(
             base_task,
             revision_mode="preserve_context_revision" if preserve_working_parts else "full_regeneration",
@@ -346,7 +482,7 @@ class TaskService:
         )
         child_task = self.revision_service.create_revision(
             base_task=base_task,
-            feedback=feedback,
+            feedback=effective_feedback,
             preserve_working_parts=preserve_working_parts,
         )
         return self._persist_child_task(
@@ -355,8 +491,28 @@ class TaskService:
             attempt_kind="revise",
             session_id=session_id,
             event_type="revision_created",
-            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
+            event_payload={
+                "parent_task_id": base_task.task_id,
+                "feedback": feedback,
+                "effective_feedback": effective_feedback,
+                **metadata,
+            },
             persistent_memory=persistent_memory,
+        )
+
+    def create_challenger_task(
+        self,
+        task_id: str,
+        *,
+        feedback: str,
+        session_id: Optional[str] = None,
+    ) -> CreateVideoTaskResult:
+        base_task = self._require_task(task_id)
+        return self._create_challenger_child_task(
+            base_task=base_task,
+            feedback=feedback,
+            session_id=session_id,
+            persistent_memory=self._inherit_persistent_memory_context(base_task),
         )
 
     def retry_video_task(
@@ -392,20 +548,83 @@ class TaskService:
         if base_task.status is not TaskStatus.FAILED:
             raise ValueError("create_auto_repair_task requires a failed parent task")
         self._enforce_attempt_limit(base_task.root_task_id)
+        effective_feedback = self._augment_feedback_with_case_memory(base_task, feedback)
 
         metadata = self.revision_service.build_metadata(
             base_task,
             revision_mode="targeted_repair",
             preserve_working_parts=True,
         )
-        child_task = self.revision_service.create_auto_repair(base_task, feedback=feedback)
+        child_task = self.revision_service.create_auto_repair(base_task, feedback=effective_feedback)
+        child_task.completion_mode = "repaired"
+        child_task.delivery_status = "pending"
         return self._persist_child_task(
             base_task=base_task,
             child_task=child_task,
             attempt_kind="auto_repair",
             session_id=session_id,
             event_type="auto_repair_created",
-            event_payload={"parent_task_id": base_task.task_id, "feedback": feedback, **metadata},
+            event_payload={
+                "parent_task_id": base_task.task_id,
+                "feedback": feedback,
+                "effective_feedback": effective_feedback,
+                **metadata,
+            },
+        )
+
+    def create_degraded_delivery_task(
+        self,
+        task_id: str,
+        *,
+        feedback: str,
+        generation_mode: str | None = None,
+        style_hints: dict[str, Any] | None = None,
+        output_profile: dict[str, Any] | None = None,
+        validation_profile: dict[str, Any] | None = None,
+        session_id: Optional[str] = None,
+    ) -> CreateVideoTaskResult:
+        base_task = self._require_task(task_id)
+        if base_task.status is not TaskStatus.FAILED:
+            raise ValueError("create_degraded_delivery_task requires a failed parent task")
+        self._enforce_attempt_limit(base_task.root_task_id)
+        effective_feedback = self._augment_feedback_with_case_memory(base_task, feedback)
+
+        metadata = self.revision_service.build_metadata(
+            base_task,
+            revision_mode="delivery_degrade",
+            preserve_working_parts=False,
+        )
+        child_task = self.revision_service.create_revision(
+            base_task,
+            feedback=effective_feedback,
+            preserve_working_parts=False,
+        )
+        child_task.completion_mode = "degraded"
+        child_task.delivery_status = "pending"
+        if generation_mode is not None:
+            child_task.generation_mode = generation_mode
+            child_task.delivery_tier = generation_mode
+        if style_hints:
+            child_task.style_hints = {**child_task.style_hints, **style_hints}
+        if output_profile:
+            child_task.output_profile = {**child_task.output_profile, **output_profile}
+        if validation_profile:
+            child_task.validation_profile = {**child_task.validation_profile, **validation_profile}
+        return self._persist_child_task(
+            base_task=base_task,
+            child_task=child_task,
+            attempt_kind="delivery_degrade",
+            session_id=session_id,
+            event_type="delivery_degraded_created",
+            event_payload={
+                "parent_task_id": base_task.task_id,
+                "feedback": feedback,
+                "effective_feedback": effective_feedback,
+                "generation_mode": generation_mode,
+                "style_hints": style_hints or {},
+                "output_profile": output_profile or {},
+                **metadata,
+            },
         )
 
     def cancel_video_task(self, task_id: str, agent_principal: AgentPrincipal | None = None) -> None:
@@ -531,6 +750,66 @@ class TaskService:
             overrides["validation_profile"] = validation_profile
         return overrides
 
+    @staticmethod
+    def _strategy_request_profile(strategy: StrategyProfile) -> dict[str, Any]:
+        overrides: dict[str, Any] = {}
+        for key in ("output_profile", "style_hints", "validation_profile"):
+            value = strategy.params.get(key)
+            if isinstance(value, dict) and value:
+                overrides[key] = value
+        return overrides
+
+    @staticmethod
+    def _strategy_routing_keywords(strategy: StrategyProfile) -> list[str]:
+        routing = strategy.params.get("routing")
+        if not isinstance(routing, dict):
+            return []
+        keywords = routing.get("keywords")
+        if not isinstance(keywords, list):
+            return []
+        normalized: list[str] = []
+        for item in keywords:
+            text = str(item).strip().casefold()
+            if text and text not in normalized:
+                normalized.append(text)
+        return normalized
+
+    def _route_active_strategy_profile(self, prompt: str) -> StrategyProfile | None:
+        normalized_prompt = prompt.casefold()
+        candidates: list[tuple[int, int, str, StrategyProfile]] = []
+        for strategy in self.store.list_strategy_profiles(status="active"):
+            if strategy.scope != "global" or strategy.prompt_cluster is None:
+                continue
+            matched_keywords = [
+                keyword for keyword in self._strategy_routing_keywords(strategy) if keyword in normalized_prompt
+            ]
+            if not matched_keywords:
+                continue
+            candidates.append(
+                (
+                    len(matched_keywords),
+                    max(len(keyword) for keyword in matched_keywords),
+                    strategy.strategy_id,
+                    strategy,
+                )
+            )
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: (-item[0], -item[1], item[2]))
+        return candidates[0][3]
+
+    def _resolve_active_strategy_profile(self, strategy_prompt_cluster: str | None, *, prompt: str) -> StrategyProfile | None:
+        normalized_cluster = (strategy_prompt_cluster or "").strip() or None
+        if normalized_cluster is not None:
+            strategy = self.store.get_active_strategy_profile(scope="global", prompt_cluster=normalized_cluster)
+            if strategy is not None:
+                return strategy
+            return self.store.get_active_strategy_profile(scope="global", prompt_cluster=None)
+        routed = self._route_active_strategy_profile(prompt)
+        if routed is not None:
+            return routed
+        return self.store.get_active_strategy_profile(scope="global", prompt_cluster=None)
+
     def _enforce_queue_capacity(self) -> None:
         active_count = self.store.count_tasks([TaskStatus.QUEUED.value, TaskStatus.RUNNING.value, TaskStatus.REVISING.value])
         if active_count >= self.settings.max_queued_tasks:
@@ -547,6 +826,17 @@ class TaskService:
                 message=(
                     f"Retry limit reached for root task {root_task_id}: "
                     f"{lineage_count} tasks, limit is {self.settings.max_attempts_per_root_task}"
+                ),
+            )
+
+    def _enforce_workflow_child_budget(self, root_task_id: str) -> None:
+        child_count = max(0, self.store.count_lineage_tasks(root_task_id) - 1)
+        if child_count >= self.settings.multi_agent_workflow_max_child_attempts:
+            raise AdmissionControlError(
+                code="workflow_budget_exhausted",
+                message=(
+                    f"Workflow child budget exhausted for root task {root_task_id}: "
+                    f"{child_count} children, limit is {self.settings.multi_agent_workflow_max_child_attempts}"
                 ),
             )
 
@@ -585,6 +875,89 @@ class TaskService:
                 return event["payload"]
         return None
 
+    def _resolved_result_task(self, task: VideoTask) -> VideoTask | None:
+        if task.delivery_status == "delivered":
+            resolved_task_id = task.resolved_task_id or task.task_id
+            resolved_task = self._require_task(resolved_task_id)
+            if self._task_has_valid_final_video(resolved_task_id):
+                return resolved_task
+            return None
+        if task.status is TaskStatus.COMPLETED:
+            if self._task_has_valid_final_video(task.task_id):
+                return task
+            return None
+        return None
+
+    def _task_has_valid_final_video(self, task_id: str) -> bool:
+        artifacts = self.store.list_artifacts(task_id, "final_video")
+        for artifact in reversed(artifacts):
+            if Path(artifact["path"]).exists():
+                return True
+        return self.artifact_store.final_video_path(task_id).exists()
+
+    @staticmethod
+    def _is_completed_delivery_candidate(task: VideoTask) -> bool:
+        return task.status is TaskStatus.COMPLETED and task.delivery_status == "delivered"
+
+    @staticmethod
+    def _inherit_persistent_memory_context(base_task: VideoTask) -> PersistentMemoryContext | None:
+        if not (
+            base_task.selected_memory_ids
+            or base_task.persistent_memory_context_summary
+            or base_task.persistent_memory_context_digest
+        ):
+            return None
+        return PersistentMemoryContext(
+            memory_ids=list(base_task.selected_memory_ids),
+            summary_text=base_task.persistent_memory_context_summary,
+            summary_digest=base_task.persistent_memory_context_digest,
+        )
+
+    def _create_challenger_child_task(
+        self,
+        *,
+        base_task: VideoTask,
+        feedback: str,
+        session_id: Optional[str],
+        persistent_memory: PersistentMemoryContext | None,
+    ) -> CreateVideoTaskResult:
+        if not self._is_completed_delivery_candidate(base_task):
+            raise ValueError("create_challenger_task requires a completed delivered parent task")
+        root_task_id = base_task.root_task_id or base_task.task_id
+        self._enforce_attempt_limit(root_task_id)
+        self._enforce_workflow_child_budget(root_task_id)
+        effective_feedback = self._augment_feedback_with_case_memory(base_task, feedback)
+        metadata = self.revision_service.build_metadata(
+            base_task,
+            revision_mode="quality_challenger",
+            preserve_working_parts=True,
+        )
+        child_task = self.revision_service.create_revision(
+            base_task=base_task,
+            feedback=effective_feedback,
+            preserve_working_parts=True,
+        )
+        child_task.branch_kind = "challenger"
+        child_task.delivery_status = "pending"
+        child_task.resolved_task_id = None
+        child_task.completion_mode = None
+        child_task.delivery_tier = None
+        child_task.delivery_stop_reason = None
+        return self._persist_child_task(
+            base_task=base_task,
+            child_task=child_task,
+            attempt_kind="challenger",
+            session_id=session_id,
+            event_type="challenger_created",
+            event_payload={
+                "parent_task_id": base_task.task_id,
+                "feedback": feedback,
+                "effective_feedback": effective_feedback,
+                **metadata,
+            },
+            persistent_memory=persistent_memory,
+        )
+
     def _persist_child_task(
         self,
         base_task: VideoTask,
@@ -605,6 +978,15 @@ class TaskService:
         self.artifact_store.ensure_task_dirs(persisted.task_id)
         self.artifact_store.write_task_snapshot(persisted)
         self.store.append_event(persisted.task_id, event_type, event_payload)
+        if self.delivery_case_service is not None:
+            self.delivery_case_service.ensure_case_for_task(persisted)
+            self.delivery_case_service.queue_generator_run(task=persisted)
+            self.delivery_case_service.sync_case_for_root(persisted.root_task_id or persisted.task_id)
+            if base_task.status is TaskStatus.COMPLETED and base_task.delivery_status == "delivered":
+                self.delivery_case_service.record_branch_spawned(
+                    incumbent_task=base_task,
+                    challenger_task=persisted,
+                )
         if self.session_memory_service is not None:
             self.session_memory_service.record_task_created(persisted, attempt_kind=attempt_kind)
         return CreateVideoTaskResult(
@@ -639,6 +1021,44 @@ class TaskService:
         child_task.selected_memory_ids = list(persistent_memory.memory_ids)
         child_task.persistent_memory_context_summary = persistent_memory.summary_text
         child_task.persistent_memory_context_digest = persistent_memory.summary_digest
+
+    def _augment_feedback_with_case_memory(self, base_task: VideoTask, feedback: str) -> str:
+        if self.case_memory_service is None:
+            return feedback
+        root_task_id = base_task.root_task_id or base_task.task_id
+        return self.case_memory_service.augment_feedback(root_task_id, feedback)
+
+    def _record_case_memory_branch_state(
+        self,
+        *,
+        root_task_id: str,
+        branch_scoreboard: list[dict[str, Any]],
+        arbitration_summary: dict[str, Any],
+    ) -> None:
+        if self.case_memory_service is None:
+            return
+        self.case_memory_service.record_branch_state(
+            root_task_id,
+            branch_scoreboard=branch_scoreboard,
+            arbitration_summary=arbitration_summary,
+        )
+
+    def _record_case_memory_decision(
+        self,
+        *,
+        root_task_id: str,
+        action: str,
+        task_id: str | None,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        if self.case_memory_service is None:
+            return
+        self.case_memory_service.record_decision(
+            root_task_id,
+            action=action,
+            task_id=task_id,
+            details=details,
+        )
 
     def _resolve_persistent_memory_context(
         self,

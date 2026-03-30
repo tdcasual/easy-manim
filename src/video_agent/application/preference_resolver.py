@@ -28,10 +28,11 @@ def resolve_effective_request_config(
     system_defaults: dict[str, Any] | None = None,
     profile_json: dict[str, Any] | None = None,
     token_override_json: dict[str, Any] | None = None,
+    strategy_profile_json: dict[str, Any] | None = None,
     request_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     effective: dict[str, Any] = {}
-    for layer in (system_defaults, profile_json, token_override_json, request_overrides):
+    for layer in (system_defaults, profile_json, token_override_json, strategy_profile_json, request_overrides):
         effective = _deep_merge(effective, layer or {})
     return effective
 

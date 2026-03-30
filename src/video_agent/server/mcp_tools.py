@@ -94,6 +94,7 @@ def create_video_task_tool(
             output_profile=payload.get("output_profile"),
             style_hints=payload.get("style_hints"),
             validation_profile=payload.get("validation_profile"),
+            strategy_prompt_cluster=payload.get("strategy_prompt_cluster"),
             feedback=payload.get("feedback"),
             session_id=payload.get("session_id"),
             memory_ids=payload.get("memory_ids"),

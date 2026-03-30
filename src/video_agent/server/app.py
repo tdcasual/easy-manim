@@ -14,7 +14,10 @@ from video_agent.application.agent_learning_service import AgentLearningService
 from video_agent.application.agent_identity_service import AgentIdentityService
 from video_agent.application.agent_session_service import AgentSessionService
 from video_agent.application.auto_repair_service import AutoRepairService
+from video_agent.application.case_reliability_service import CaseReliabilityService
+from video_agent.application.case_memory_service import CaseMemoryService
 from video_agent.application.capability_gate_service import CapabilityGateService
+from video_agent.application.delivery_case_service import DeliveryCaseService
 from video_agent.application.multi_agent_workflow_service import MultiAgentWorkflowService
 from video_agent.application.persistent_memory_service import PersistentMemoryService, build_persistent_memory_enhancer
 from video_agent.application.quality_judge_service import QualityJudgeService
@@ -24,6 +27,7 @@ from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.scene_spec_service import SceneSpecService
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_risk_service import TaskRiskService
+from video_agent.application.task_reliability_service import TaskReliabilityService
 from video_agent.application.task_service import TaskService
 from video_agent.application.workflow_loop_policy import WorkflowLoopPolicy
 from video_agent.application.workflow_engine import WorkflowEngine
@@ -50,8 +54,12 @@ class AppContext:
     session_memory_service: SessionMemoryService
     persistent_memory_service: PersistentMemoryService
     agent_learning_service: AgentLearningService
+    delivery_case_service: DeliveryCaseService
+    case_memory_service: CaseMemoryService
     task_service: TaskService
     task_risk_service: TaskRiskService
+    case_reliability_service: CaseReliabilityService
+    task_reliability_service: TaskReliabilityService
     scene_spec_service: SceneSpecService
     capability_gate_service: CapabilityGateService
     recovery_policy_service: RecoveryPolicyService
@@ -124,6 +132,11 @@ def create_app_context(settings: Settings) -> AppContext:
         disable_record=store.disable_agent_memory,
         enhancer=persistent_memory_enhancer,
     )
+    delivery_case_service = DeliveryCaseService(
+        store=store,
+        artifact_store=artifact_store,
+    )
+    case_memory_service = CaseMemoryService(artifact_store=artifact_store)
     agent_learning_service = AgentLearningService(
         write_event=store.create_agent_learning_event,
         list_events=store.list_agent_learning_events,
@@ -134,6 +147,8 @@ def create_app_context(settings: Settings) -> AppContext:
         settings=settings,
         session_memory_service=session_memory_service,
         persistent_memory_service=persistent_memory_service,
+        delivery_case_service=delivery_case_service,
+        case_memory_service=case_memory_service,
     )
     task_risk_service = TaskRiskService()
     scene_spec_service = SceneSpecService()
@@ -144,6 +159,7 @@ def create_app_context(settings: Settings) -> AppContext:
         task_service=task_service,
         store=store,
         session_memory_service=session_memory_service,
+        case_memory_service=case_memory_service,
     )
     multi_agent_workflow_service = MultiAgentWorkflowService(
         enabled=settings.multi_agent_workflow_enabled,
@@ -181,6 +197,8 @@ def create_app_context(settings: Settings) -> AppContext:
         capability_gate_service=capability_gate_service,
         recovery_policy_service=recovery_policy_service,
         quality_judge_service=quality_judge_service,
+        delivery_case_service=delivery_case_service,
+        case_memory_service=case_memory_service,
     )
     workflow_engine.auto_repair_service = AutoRepairService(
         store=store,
@@ -189,13 +207,26 @@ def create_app_context(settings: Settings) -> AppContext:
         task_service=task_service,
         recovery_policy_service=recovery_policy_service,
     )
+    case_reliability_service = CaseReliabilityService(
+        settings=settings,
+        store=store,
+        artifact_store=artifact_store,
+        runtime_service=runtime_service,
+        workflow_engine=workflow_engine,
+        metrics=metrics,
+    )
+    task_reliability_service = TaskReliabilityService(
+        case_reliability_service=case_reliability_service,
+    )
     worker = WorkerLoop(
         store=store,
         workflow_engine=workflow_engine,
+        task_reliability_service=case_reliability_service,
         worker_id=settings.worker_id,
         lease_seconds=settings.worker_lease_seconds,
         recovery_grace_seconds=settings.worker_recovery_grace_seconds,
     )
+    case_reliability_service.reconcile_startup()
     return AppContext(
         settings=settings,
         store=store,
@@ -207,8 +238,12 @@ def create_app_context(settings: Settings) -> AppContext:
         session_memory_service=session_memory_service,
         persistent_memory_service=persistent_memory_service,
         agent_learning_service=agent_learning_service,
+        delivery_case_service=delivery_case_service,
+        case_memory_service=case_memory_service,
         task_service=task_service,
         task_risk_service=task_risk_service,
+        case_reliability_service=case_reliability_service,
+        task_reliability_service=task_reliability_service,
         scene_spec_service=scene_spec_service,
         capability_gate_service=capability_gate_service,
         recovery_policy_service=recovery_policy_service,

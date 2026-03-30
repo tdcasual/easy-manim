@@ -33,12 +33,15 @@ def quality_score_for_task_outcome(
     status: str,
     issue_codes: list[str],
     scorecard: QualityScorecard | None,
+    quality_passed: bool | None = None,
 ) -> float:
-    # Only completed outcomes should inherit persisted scorecard totals.
-    # Failed/cancelled paths must keep heuristic penalties.
-    if scorecard is not None and status == "completed":
+    # Only quality-passed completed outcomes should inherit persisted
+    # scorecard totals. Delivery-only or failed outcomes should keep
+    # heuristic penalties.
+    if scorecard is not None and status == "completed" and quality_passed is not False:
         return quality_score_from_scorecard(scorecard)
-    return compute_quality_score(status, issue_codes)
+    heuristic_status = "completed" if status == "completed" and quality_passed is not False else "failed"
+    return compute_quality_score(heuristic_status, issue_codes)
 
 
 class AgentLearningService:
@@ -58,6 +61,7 @@ class AgentLearningService:
         task_id: str,
         session_id: str | None,
         status: str,
+        quality_passed: bool | None = None,
         issue_codes: list[str],
         quality_score: float,
         profile_digest: str | None,
@@ -68,6 +72,7 @@ class AgentLearningService:
             task_id=task_id,
             session_id=session_id,
             status=status,
+            quality_passed=quality_passed,
             issue_codes=list(issue_codes),
             quality_score=quality_score,
             profile_digest=profile_digest,
@@ -86,8 +91,10 @@ class AgentLearningService:
         profile_digest_stability = 0.0
         if profile_digests:
             profile_digest_stability = round(max(digest_counts.values()) / len(profile_digests), 4)
+        quality_passed_count = sum(1 for event in events if _event_quality_passed(event))
         return {
-            "completed_count": sum(1 for event in events if event.status == "completed"),
+            "completed_count": quality_passed_count,
+            "quality_passed_count": quality_passed_count,
             "failed_count": sum(1 for event in events if event.status == "failed"),
             "median_quality_score": median_quality_score,
             "quality_score": median_quality_score,
@@ -98,3 +105,9 @@ class AgentLearningService:
             "recent_profile_digests": recent_profile_digests[:5],
             "profile_digest_stability": profile_digest_stability,
         }
+
+
+def _event_quality_passed(event: AgentLearningEvent) -> bool:
+    if event.quality_passed is None:
+        return event.status == "completed"
+    return event.quality_passed

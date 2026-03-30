@@ -118,6 +118,9 @@ def test_http_review_bundle_and_decision_flow(tmp_path: Path) -> None:
     assert bundle.json()["collaboration"]["planner_recommendation"]["role"] == "planner"
     assert bundle.json()["collaboration"]["reviewer_decision"]["role"] == "reviewer"
     assert bundle.json()["collaboration"]["repairer_execution_hint"]["role"] == "repairer"
+    assert bundle.json()["branch_scoreboard"][0]["task_id"] == task_id
+    assert bundle.json()["arbitration_summary"]["recommended_task_id"] == task_id
+    assert bundle.json()["arbitration_summary"]["recommended_action"] == "wait_for_completion"
 
     decision = client.post(
         f"/api/tasks/{task_id}/review-decision",

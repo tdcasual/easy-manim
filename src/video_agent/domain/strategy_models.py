@@ -32,3 +32,6 @@ class StrategyPromotionDecision(BaseModel):
     approved: bool
     reasons: list[str] = Field(default_factory=list)
     deltas: dict[str, float] = Field(default_factory=dict)
+    mode: str = "shadow"
+    applied: bool = False
+    recorded_at: str | None = None

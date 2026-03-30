@@ -47,12 +47,13 @@ class MultiAgentWorkflowService:
         action = self.policy.choose_action(bundle, review_decision)
 
         if action == "accept":
+            self.task_service.accept_best_version(task_id, agent_principal=agent_principal)
             return ReviewDecisionOutcome(
                 task_id=task_id,
                 root_task_id=bundle.root_task_id,
                 action="accept",
                 created_task_id=None,
-                reason="accepted",
+                reason="winner_selected",
             )
 
         if action == "retry":
@@ -93,7 +94,13 @@ class MultiAgentWorkflowService:
                 root_task_id=bundle.root_task_id,
                 action="revise",
                 created_task_id=created.task_id,
-                reason="revision_created_from_repair_hint" if from_repair_hint else "revision_created",
+                reason=(
+                    "challenger_created"
+                    if bundle.status == "completed" and bundle.selected_task_id == task_id
+                    else "revision_created_from_repair_hint"
+                    if from_repair_hint
+                    else "revision_created"
+                ),
             )
 
         return ReviewDecisionOutcome(

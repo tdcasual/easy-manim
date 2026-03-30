@@ -225,3 +225,25 @@ def test_review_bundle_builder_derives_acceptance_blockers_and_trace(tmp_path: P
     assert "must_fix_issue_codes" in bundle.acceptance_blockers
     assert bundle.decision_trace["quality_gate_status"] == "needs_revision"
     assert bundle.decision_trace["recovery_selected_action"] == "repair"
+
+
+def test_review_bundle_builder_exposes_shared_case_memory(tmp_path: Path) -> None:
+    settings = _build_fake_pipeline_settings(tmp_path)
+    settings.quality_gate_min_score = 0.95
+    settings.multi_agent_workflow_enabled = True
+    app_context = _with_temporary_mcp_shim(lambda: _create_app_context(settings))
+    created = app_context.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+
+    app_context.worker.run_once()
+
+    builder = ReviewBundleBuilder(
+        task_service=app_context.task_service,
+        store=app_context.store,
+        session_memory_service=app_context.session_memory_service,
+    )
+    bundle = builder.build(task_id=created.task_id, agent_principal=None)
+
+    assert bundle.case_memory["planner_notes"]
+    assert bundle.case_memory["review_findings"]
+    assert bundle.case_memory["repair_constraints"]
+    assert bundle.case_memory["delivery_invariants"]

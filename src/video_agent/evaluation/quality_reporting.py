@@ -4,6 +4,8 @@ from collections import Counter
 from statistics import median
 from typing import Any
 
+from video_agent.application.outcome_signals import item_quality_passed
+
 
 def build_quality_report(items: list[dict[str, Any]]) -> dict[str, Any]:
     quality_items = [item for item in items if "quality" in (item.get("tags") or [])]
@@ -13,7 +15,7 @@ def build_quality_report(items: list[dict[str, Any]]) -> dict[str, Any]:
         for item in quality_items
         for code in item.get("quality_issue_codes", [])
     )
-    passed = sum(1 for item in quality_items if item.get("status") == "completed")
+    passed = sum(1 for item in quality_items if item_quality_passed(item))
     total = len(quality_items)
     return {
         "case_count": total,

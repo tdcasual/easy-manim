@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from video_agent.application.agent_identity_service import AgentPrincipal
+from video_agent.application.branch_arbitration import build_arbitration_summary, build_branch_scoreboard
+from video_agent.application.case_memory_service import CaseMemoryService
 from video_agent.application.session_memory_service import SessionMemoryService
 from video_agent.application.task_service import TaskService
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
@@ -16,10 +18,12 @@ class ReviewBundleBuilder:
         task_service: TaskService,
         store: SQLiteTaskStore,
         session_memory_service: SessionMemoryService | None,
+        case_memory_service: CaseMemoryService | None = None,
     ) -> None:
         self.task_service = task_service
         self.store = store
         self.session_memory_service = session_memory_service
+        self.case_memory_service = case_memory_service or getattr(task_service, "case_memory_service", None)
 
     def build(self, task_id: str, agent_principal: AgentPrincipal | None = None) -> ReviewBundle:
         if agent_principal is None:
@@ -43,6 +47,50 @@ class ReviewBundleBuilder:
         child_attempt_count = 0
         if snapshot.root_task_id is not None:
             child_attempt_count = max(0, self.store.count_lineage_tasks(snapshot.root_task_id) - 1)
+        root_task_id = snapshot.root_task_id or snapshot.task_id
+        delivery_case = self.store.get_delivery_case_by_root_task_id(root_task_id)
+        lineage_tasks = self.store.list_lineage_tasks(root_task_id)
+        branch_candidates = [
+            {
+                "task_id": lineage_task.task_id,
+                "parent_task_id": lineage_task.parent_task_id,
+                "branch_kind": lineage_task.branch_kind,
+                "status": lineage_task.status.value,
+                "phase": lineage_task.phase.value,
+                "delivery_status": lineage_task.delivery_status,
+                "quality_gate_status": lineage_task.quality_gate_status,
+                "accepted_as_best": lineage_task.accepted_as_best,
+                "accepted_version_rank": lineage_task.accepted_version_rank,
+                "completion_mode": lineage_task.completion_mode,
+            }
+            for lineage_task in lineage_tasks
+        ]
+        selected_task_id = None if delivery_case is None else delivery_case.selected_task_id
+        active_task_id = None if delivery_case is None else delivery_case.active_task_id
+        scorecards_by_task_id = {
+            lineage_task.task_id: self._get_quality_scorecard_json(lineage_task.task_id, agent_principal)
+            for lineage_task in lineage_tasks
+        }
+        branch_scoreboard = build_branch_scoreboard(
+            lineage_tasks=lineage_tasks,
+            scorecards_by_task_id=scorecards_by_task_id,
+            selected_task_id=selected_task_id,
+            active_task_id=active_task_id,
+        )
+        arbitration_summary = build_arbitration_summary(
+            branch_scoreboard=branch_scoreboard,
+            selected_task_id=selected_task_id,
+            active_task_id=active_task_id,
+        )
+        recent_agent_runs: list[dict[str, Any]] = []
+        if delivery_case is not None:
+            recent_agent_runs = [
+                run.model_dump(mode="json")
+                for run in self.store.list_agent_runs(delivery_case.case_id)[-10:]
+            ]
+        case_memory = {}
+        if self.case_memory_service is not None:
+            case_memory = self.case_memory_service.get_case_memory(root_task_id)
 
         recovery_plan = self.task_service.get_recovery_plan(snapshot.task_id)
         planner_summary = ""
@@ -57,13 +105,7 @@ class ReviewBundleBuilder:
             repair_hint = str(recovery_plan.get("repair_recipe") or "").strip() or None
         if not repair_hint and snapshot.failure_contract:
             repair_hint = str(snapshot.failure_contract.get("repair_strategy") or "").strip() or None
-        quality_scorecard = self.task_service.get_quality_score(snapshot.task_id)
-        if quality_scorecard is None:
-            quality_scorecard_json = None
-        elif isinstance(quality_scorecard, dict):
-            quality_scorecard_json = dict(quality_scorecard)
-        else:
-            quality_scorecard_json = quality_scorecard.model_dump(mode="json")
+        quality_scorecard_json = self._get_quality_scorecard_json(snapshot.task_id, agent_principal)
         must_fix_issue_codes = self._must_fix_issue_codes(quality_scorecard_json)
         acceptance_blockers = self._acceptance_blockers(
             status=snapshot.status.value,
@@ -102,6 +144,14 @@ class ReviewBundleBuilder:
             decision_trace=decision_trace,
             task_events=events,
             session_memory_summary=session_memory_summary or "",
+            case_memory=case_memory,
+            case_status=None if delivery_case is None else delivery_case.status,
+            active_task_id=active_task_id,
+            selected_task_id=selected_task_id,
+            branch_candidates=branch_candidates,
+            branch_scoreboard=branch_scoreboard,
+            arbitration_summary=arbitration_summary,
+            recent_agent_runs=recent_agent_runs,
             video_resource=result.video_resource,
             preview_frame_resources=result.preview_frame_resources,
             script_resource=result.script_resource,
@@ -121,6 +171,21 @@ class ReviewBundleBuilder:
                 ),
             ),
         )
+
+    def _get_quality_scorecard_json(
+        self,
+        task_id: str,
+        agent_principal: AgentPrincipal | None,
+    ) -> dict[str, Any] | None:
+        if agent_principal is None:
+            quality_scorecard = self.task_service.get_quality_score(task_id)
+        else:
+            quality_scorecard = self.task_service.get_quality_score_for_agent(task_id, agent_principal.agent_id)
+        if quality_scorecard is None:
+            return None
+        if isinstance(quality_scorecard, dict):
+            return dict(quality_scorecard)
+        return quality_scorecard.model_dump(mode="json")
 
     @staticmethod
     def _must_fix_issue_codes(quality_scorecard: dict[str, Any] | None) -> list[str]:

@@ -12,7 +12,14 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useSession } from "../auth/useSession";
-import { EvalRunSummary, listEvals } from "../../lib/evalsApi";
+import {
+  EvalRunSummary,
+  listEvals,
+  listStrategyDecisions,
+  readEvalDeliveryRate,
+  readEvalQualityPassRate,
+  StrategyDecisionTimelineItem,
+} from "../../lib/evalsApi";
 import { useI18n } from "../../app/locale";
 import { SkeletonMetricCard, SkeletonCard } from "../../components/Skeleton";
 import { useARIAMessage } from "../../components/useARIAMessage";
@@ -23,16 +30,12 @@ function formatPercent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
 
-function readSuccessRate(report?: Record<string, unknown>): number | null {
-  const raw = report?.success_rate;
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
-}
-
 export function EvalsPageV2() {
   const { sessionToken } = useSession();
   const { t } = useI18n();
   const { showAuthModal, closeAuthModal } = useAuthGuard();
   const [items, setItems] = useState<EvalRunSummary[]>([]);
+  const [decisions, setDecisions] = useState<StrategyDecisionTimelineItem[]>([]);
   const { status, error, startLoading, setErrorState, succeed } = useAsyncStatus();
   const { ARIALiveRegion, announcePolite } = useARIAMessage();
 
@@ -40,10 +43,14 @@ export function EvalsPageV2() {
     if (!sessionToken) return;
     startLoading();
     try {
-      const response = await listEvals(sessionToken);
-      setItems(Array.isArray(response.items) ? response.items : []);
+      const [evalResponse, decisionResponse] = await Promise.all([
+        listEvals(sessionToken),
+        listStrategyDecisions(sessionToken),
+      ]);
+      setItems(Array.isArray(evalResponse.items) ? evalResponse.items : []);
+      setDecisions(Array.isArray(decisionResponse.items) ? decisionResponse.items : []);
       succeed();
-      announcePolite(t("evals.loaded", { count: response.items?.length || 0 }));
+      announcePolite(t("evals.loaded", { count: evalResponse.items?.length || 0 }));
     } catch {
       setErrorState(t("evals.loadFailed"));
       announcePolite(t("evals.loadFailedShort"));
@@ -54,10 +61,18 @@ export function EvalsPageV2() {
     refresh();
   }, [refresh]);
 
-  const rates = items
-    .map((item) => readSuccessRate(item.report))
+  const qualityRates = items
+    .map((item) => readEvalQualityPassRate(item.report))
     .filter((v): v is number => v !== null);
-  const averageSuccess = rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : null;
+  const deliveryRates = items
+    .map((item) => readEvalDeliveryRate(item.report))
+    .filter((v): v is number => v !== null);
+  const averageQualityPassRate = qualityRates.length
+    ? qualityRates.reduce((a, b) => a + b, 0) / qualityRates.length
+    : null;
+  const averageDeliveryRate = deliveryRates.length
+    ? deliveryRates.reduce((a, b) => a + b, 0) / deliveryRates.length
+    : null;
 
   if (!sessionToken) {
     return (
@@ -95,6 +110,7 @@ export function EvalsPageV2() {
           <SkeletonMetricCard />
           <SkeletonMetricCard />
           <SkeletonMetricCard />
+          <SkeletonMetricCard />
         </div>
       ) : (
         <div className="metrics-grid-v2">
@@ -125,7 +141,7 @@ export function EvalsPageV2() {
             </div>
             <div className="metric-content">
               <p className="metric-label-v2">{t("evals.averagePassRate")}</p>
-              <h3 className="metric-value-v2">{formatPercent(averageSuccess)}</h3>
+              <h3 className="metric-value-v2">{formatPercent(averageQualityPassRate)}</h3>
             </div>
           </div>
           <div
@@ -137,6 +153,21 @@ export function EvalsPageV2() {
               style={{ background: "rgba(0, 212, 255, 0.15)", color: "var(--accent-cyan)" }}
             >
               <BarChart3 size={20} />
+            </div>
+            <div className="metric-content">
+              <p className="metric-label-v2">{t("evals.averageDeliveryRate")}</p>
+              <h3 className="metric-value-v2">{formatPercent(averageDeliveryRate)}</h3>
+            </div>
+          </div>
+          <div
+            className="metric-card-v2"
+            style={{ "--card-color": "var(--accent-cyan)" } as React.CSSProperties}
+          >
+            <div
+              className="metric-icon-wrapper"
+              style={{ background: "rgba(0, 212, 255, 0.15)", color: "var(--accent-cyan)" }}
+            >
+              <ClipboardList size={20} />
             </div>
             <div className="metric-content">
               <p className="metric-label-v2">{t("evals.visibleCases")}</p>
@@ -165,7 +196,8 @@ export function EvalsPageV2() {
             </>
           ) : items.length > 0 ? (
             items.map((run, index) => {
-              const rate = readSuccessRate(run.report);
+              const qualityRate = readEvalQualityPassRate(run.report);
+              const deliveryRate = readEvalDeliveryRate(run.report);
               return (
                 <Link
                   key={run.run_id}
@@ -181,23 +213,25 @@ export function EvalsPageV2() {
                   </div>
                   <div className="eval-stats">
                     <div className="eval-rate">
-                      {rate !== null ? (
+                      {qualityRate !== null ? (
                         <>
-                          {rate >= 0.8 ? (
+                          {qualityRate >= 0.8 ? (
                             <CheckCircle2 size={16} color="#10b981" />
-                          ) : rate >= 0.5 ? (
+                          ) : qualityRate >= 0.5 ? (
                             <BarChart3 size={16} color="#f59e0b" />
                           ) : (
                             <XCircle size={16} color="#ef4444" />
                           )}
-                          {formatPercent(rate)}
+                          {formatPercent(qualityRate)}
                         </>
                       ) : (
                         "—"
                       )}
                     </div>
                     <div className="eval-cases">
-                      {t("evals.casesCount", { count: run.total_cases })}
+                      {deliveryRate !== null
+                        ? `${t("evals.deliveryRateInline", { rate: formatPercent(deliveryRate) })} · ${t("evals.casesCount", { count: run.total_cases })}`
+                        : t("evals.casesCount", { count: run.total_cases })}
                     </div>
                   </div>
                   <ArrowRight size={16} className="eval-arrow" />
@@ -215,6 +249,48 @@ export function EvalsPageV2() {
               <ClipboardList size={48} />
               <p>{t("evals.empty")}</p>
               <span>{t("evals.emptyHint")}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section-card-v2">
+        <div className="section-header-v2">
+          <h3 className="section-title-v2">
+            <ClipboardList size={20} />
+            Recent Shadow Decisions
+          </h3>
+        </div>
+
+        <div className="eval-list">
+          {decisions.length > 0 ? (
+            decisions.slice(0, 5).map((decision, index) => (
+              <div
+                key={`${decision.strategy_id}:${decision.recorded_at}:${index}`}
+                className="eval-row"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="eval-info">
+                  <div className="eval-id">{decision.strategy_id}</div>
+                  <div className="eval-meta">
+                    {decision.kind} · {decision.promotion_decision.mode ?? "shadow"}
+                  </div>
+                </div>
+                <div className="eval-stats">
+                  <div className="eval-rate">
+                    {decision.promotion_decision.approved ? "approved" : "not approved"}
+                  </div>
+                  <div className="eval-cases">
+                    {decision.promotion_decision.reasons.join(", ") || "no blockers"}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-state-v2 eval-empty">
+              <ClipboardList size={48} />
+              <p>No shadow decisions yet.</p>
+              <span>Run a strategy challenger evaluation to populate the decision timeline.</span>
             </div>
           )}
         </div>

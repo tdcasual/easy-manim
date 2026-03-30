@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import time
 from contextlib import contextmanager
-from typing import Any
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 from video_agent.adapters.llm.client import StubLLMClient
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.agent_learning_service import quality_score_for_task_outcome, select_quality_issue_codes
+from video_agent.application.outcome_signals import is_delivery_passed, is_quality_passed
 from video_agent.application.policy_promotion_service import PolicyPromotionService
 from video_agent.evaluation.corpus import load_prompt_suite
 from video_agent.evaluation.live_reporting import build_live_report
@@ -20,7 +22,9 @@ from video_agent.evaluation.reviewer_digest import render_reviewer_digest
 from video_agent.evaluation.reporting import build_eval_report, render_eval_report_markdown
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.strategy_models import StrategyProfile
-from video_agent.server.app import AppContext
+
+if TYPE_CHECKING:
+    from video_agent.server.app import AppContext
 
 
 GOOD_REPAIR_SCRIPT = (
@@ -42,6 +46,8 @@ class EvaluationCaseResult(BaseModel):
     task_id: str
     root_task_id: str
     status: str
+    delivery_passed: bool = False
+    quality_passed: bool = False
     duration_seconds: float
     tags: list[str] = Field(default_factory=list)
     issue_codes: list[str] = Field(default_factory=list)
@@ -177,23 +183,35 @@ class EvaluationService:
         terminal_task = self.context.store.get_task(terminal_snapshot.task_id)
         task_quality_scorecard = self.context.store.get_task_quality_score(terminal_snapshot.task_id)
         scene_spec_payload = self.context.artifact_store.read_scene_spec(terminal_snapshot.task_id) or {}
+        delivery_passed = is_delivery_passed(
+            status=terminal_snapshot.status,
+            delivery_status=terminal_snapshot.delivery_status,
+        )
+        quality_passed = is_quality_passed(
+            status=terminal_snapshot.status,
+            quality_gate_status=terminal_snapshot.quality_gate_status,
+            completion_mode=terminal_snapshot.completion_mode,
+        )
         return EvaluationCaseResult(
             case_id=case.case_id,
             task_id=terminal_snapshot.task_id,
             root_task_id=root_task_id,
             status=terminal_snapshot.status,
+            delivery_passed=delivery_passed,
+            quality_passed=quality_passed,
             duration_seconds=round(time.monotonic() - started, 4),
             tags=list(case.tags),
             issue_codes=issues,
             repair_attempted=bool(root_snapshot.repair_state.get("attempted")),
             repair_children=int(root_snapshot.repair_state.get("child_count", 0) or 0),
-            repair_success=bool(root_snapshot.repair_state.get("attempted")) and terminal_snapshot.status == "completed",
+            repair_success=bool(root_snapshot.repair_state.get("attempted")) and quality_passed,
             repair_stop_reason=root_snapshot.repair_state.get("stop_reason"),
             quality_issue_codes=quality_issue_codes,
             quality_score=quality_score_for_task_outcome(
                 status=terminal_snapshot.status,
                 issue_codes=issues,
                 scorecard=task_quality_scorecard,
+                quality_passed=quality_passed,
             ),
             risk_domains=list(case.risk_domains),
             review_focus=list(case.review_focus),
@@ -233,21 +251,63 @@ class EvaluationService:
 
         baseline_metrics = self._promotion_metrics_from_summary(baseline_summary)
         challenger_metrics = self._promotion_metrics_from_summary(challenger_summary)
-        promotion_decision = self.policy_promotion_service.evaluate_promotion(
+        recorded_at = datetime.now(timezone.utc).isoformat()
+        current_profile = self.context.store.get_strategy_profile(challenger_profile.strategy_id) or challenger_profile
+        guarded_rollout = (
+            dict(current_profile.metrics.get("guarded_rollout", {}))
+            if isinstance(current_profile.metrics.get("guarded_rollout"), dict)
+            else {}
+        )
+        prior_shadow_passes = int(guarded_rollout.get("consecutive_shadow_passes", 0) or 0)
+        base_promotion_decision = self.policy_promotion_service.evaluate_promotion(
             baseline=baseline_metrics,
             challenger=challenger_metrics,
         )
-        promotion_recommended = promotion_decision.approved
+        promotion_recommended = base_promotion_decision.approved
+        next_shadow_passes = prior_shadow_passes + 1 if promotion_recommended else 0
+        decision_mode = "shadow"
+        decision_applied = False
+        if (
+            self.context.settings.strategy_promotion_enabled
+            and self.context.settings.strategy_promotion_guarded_auto_apply_enabled
+            and promotion_recommended
+            and current_profile.status != "active"
+            and next_shadow_passes >= self.context.settings.strategy_promotion_guarded_auto_apply_min_shadow_passes
+        ):
+            decision_mode = "guarded_auto_apply"
+            decision_applied = True
+        elif (
+            self.context.settings.strategy_promotion_enabled
+            and self.context.settings.strategy_promotion_guarded_auto_rollback_enabled
+            and not promotion_recommended
+            and current_profile.status == "active"
+            and bool(guarded_rollout.get("rollback_armed"))
+            and bool(guarded_rollout.get("rollback_target_strategy_id"))
+        ):
+            decision_mode = "guarded_auto_rollback"
+            decision_applied = True
+        promotion_decision = base_promotion_decision.model_copy(
+            update={
+                "mode": decision_mode,
+                "applied": decision_applied,
+                "recorded_at": recorded_at,
+            }
+        )
         self.context.store.record_strategy_eval_run(
-            challenger_profile.strategy_id,
+            current_profile.strategy_id,
             baseline_summary=baseline_summary.model_dump(mode="json"),
             challenger_summary=challenger_summary.model_dump(mode="json"),
             promotion_recommended=promotion_recommended,
             promotion_decision=promotion_decision,
         )
+        if decision_mode == "guarded_auto_apply" and decision_applied:
+            self.context.store.activate_strategy_profile(current_profile.strategy_id, applied_at=recorded_at)
+        elif decision_mode == "guarded_auto_rollback" and decision_applied:
+            self.context.store.rollback_strategy_profile(current_profile.strategy_id, rolled_back_at=recorded_at)
         return {
             "baseline": baseline_summary.model_dump(mode="json"),
             "challenger": challenger_summary.model_dump(mode="json"),
+            "promotion_mode": decision_mode,
             "promotion_recommended": promotion_recommended,
             "promotion_decision": promotion_decision.model_dump(mode="json"),
         }
@@ -288,8 +348,14 @@ class EvaluationService:
             processed = self.context.worker.run_once()
             root_snapshot = self.context.task_service.get_video_task(root_task_id)
             latest_child_id = root_snapshot.auto_repair_summary.get("latest_child_task_id")
-            terminal_task_id = latest_child_id or root_task_id
+            terminal_task_id = root_snapshot.resolved_task_id or latest_child_id or root_task_id
             terminal_snapshot = self.context.task_service.get_video_task(terminal_task_id)
+            if root_snapshot.delivery_status == "pending":
+                if processed == 0:
+                    time.sleep(self.context.settings.worker_poll_interval_seconds)
+                continue
+            if root_snapshot.delivery_status in {"delivered", "failed"} and terminal_snapshot.status in terminal_statuses:
+                return root_snapshot, terminal_snapshot
             if terminal_snapshot.status in terminal_statuses:
                 if latest_child_id is None or terminal_snapshot.task_id == latest_child_id:
                     return root_snapshot, terminal_snapshot

@@ -92,19 +92,28 @@ def test_settings_define_persistent_memory_defaults() -> None:
 def test_settings_define_multi_agent_workflow_defaults() -> None:
     settings = Settings()
 
-    assert settings.multi_agent_workflow_enabled is False
+    assert settings.multi_agent_workflow_enabled is True
+    assert settings.multi_agent_workflow_auto_challenger_enabled is True
+    assert settings.multi_agent_workflow_auto_arbitration_enabled is True
+    assert settings.multi_agent_workflow_guarded_rollout_enabled is False
     assert settings.multi_agent_workflow_max_child_attempts == 3
     assert settings.multi_agent_workflow_require_completed_for_accept is True
 
 
 def test_build_settings_reads_multi_agent_workflow_env(monkeypatch) -> None:
     monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", "true")
+    monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_CHALLENGER_ENABLED", "false")
+    monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_ARBITRATION_ENABLED", "false")
+    monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_GUARDED_ROLLOUT_ENABLED", "true")
     monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_MAX_CHILD_ATTEMPTS", "6")
     monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_REQUIRE_COMPLETED_FOR_ACCEPT", "false")
 
     settings = build_settings(Path("data"))
 
     assert settings.multi_agent_workflow_enabled is True
+    assert settings.multi_agent_workflow_auto_challenger_enabled is False
+    assert settings.multi_agent_workflow_auto_arbitration_enabled is False
+    assert settings.multi_agent_workflow_guarded_rollout_enabled is True
     assert settings.multi_agent_workflow_max_child_attempts == 6
     assert settings.multi_agent_workflow_require_completed_for_accept is False
 
@@ -117,6 +126,9 @@ def test_settings_expose_reliability_defaults() -> None:
     assert settings.quality_gate_min_score == 0.75
     assert settings.risk_routing_enabled is True
     assert settings.strategy_promotion_enabled is False
+    assert settings.strategy_promotion_guarded_auto_apply_enabled is False
+    assert settings.strategy_promotion_guarded_auto_apply_min_shadow_passes == 3
+    assert settings.strategy_promotion_guarded_auto_rollback_enabled is True
 
 
 def test_build_settings_reads_reliability_env(monkeypatch) -> None:
@@ -135,13 +147,16 @@ def test_build_settings_reads_reliability_env(monkeypatch) -> None:
     assert settings.strategy_promotion_enabled is True
 
 
-def test_settings_default_to_conservative_rollout_profile() -> None:
+def test_settings_default_to_supervised_rollout_profile() -> None:
     settings = Settings()
 
-    assert settings.capability_rollout_profile == "conservative"
+    assert settings.capability_rollout_profile == "supervised"
     assert settings.agent_learning_auto_apply_enabled is False
-    assert settings.auto_repair_enabled is False
-    assert settings.multi_agent_workflow_enabled is False
+    assert settings.auto_repair_enabled is True
+    assert settings.delivery_guarantee_enabled is True
+    assert settings.multi_agent_workflow_enabled is True
+    assert settings.multi_agent_workflow_auto_challenger_enabled is True
+    assert settings.multi_agent_workflow_auto_arbitration_enabled is True
     assert settings.strategy_promotion_enabled is False
 
 
@@ -149,22 +164,32 @@ def test_build_settings_reads_capability_rollout_profile(monkeypatch) -> None:
     monkeypatch.setenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "autonomy-lite")
     monkeypatch.delenv("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED", raising=False)
     monkeypatch.delenv("EASY_MANIM_AUTO_REPAIR_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_DELIVERY_GUARANTEE_ENABLED", raising=False)
     monkeypatch.delenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_CHALLENGER_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_ARBITRATION_ENABLED", raising=False)
     monkeypatch.delenv("EASY_MANIM_STRATEGY_PROMOTION_ENABLED", raising=False)
+    monkeypatch.delenv("EASY_MANIM_STRATEGY_PROMOTION_GUARDED_AUTO_APPLY_ENABLED", raising=False)
 
     settings = build_settings(Path("data"))
 
     assert settings.capability_rollout_profile == "autonomy-lite"
     assert settings.agent_learning_auto_apply_enabled is True
     assert settings.auto_repair_enabled is True
+    assert settings.delivery_guarantee_enabled is True
     assert settings.multi_agent_workflow_enabled is True
+    assert settings.multi_agent_workflow_auto_challenger_enabled is True
+    assert settings.multi_agent_workflow_auto_arbitration_enabled is True
     assert settings.strategy_promotion_enabled is True
+    assert settings.strategy_promotion_guarded_auto_apply_enabled is True
 
 
 def test_build_settings_keeps_explicit_capability_flag_overrides(monkeypatch) -> None:
     monkeypatch.setenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "autonomy-lite")
     monkeypatch.setenv("EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED", "false")
     monkeypatch.setenv("EASY_MANIM_STRATEGY_PROMOTION_ENABLED", "false")
+    monkeypatch.setenv("EASY_MANIM_DELIVERY_GUARANTEE_ENABLED", "false")
+    monkeypatch.setenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_CHALLENGER_ENABLED", "false")
     monkeypatch.delenv("EASY_MANIM_AUTO_REPAIR_ENABLED", raising=False)
     monkeypatch.delenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED", raising=False)
 
@@ -173,8 +198,24 @@ def test_build_settings_keeps_explicit_capability_flag_overrides(monkeypatch) ->
     assert settings.capability_rollout_profile == "autonomy-lite"
     assert settings.agent_learning_auto_apply_enabled is False
     assert settings.auto_repair_enabled is True
+    assert settings.delivery_guarantee_enabled is False
     assert settings.multi_agent_workflow_enabled is True
+    assert settings.multi_agent_workflow_auto_challenger_enabled is False
+    assert settings.multi_agent_workflow_auto_arbitration_enabled is True
     assert settings.strategy_promotion_enabled is False
+
+
+def test_autonomy_guarded_rollout_profile_enables_guarded_multi_agent_mode(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "autonomy-guarded")
+    monkeypatch.delenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_GUARDED_ROLLOUT_ENABLED", raising=False)
+
+    settings = build_settings(Path("data"))
+
+    assert settings.capability_rollout_profile == "autonomy-guarded"
+    assert settings.multi_agent_workflow_enabled is True
+    assert settings.multi_agent_workflow_auto_challenger_enabled is True
+    assert settings.multi_agent_workflow_auto_arbitration_enabled is True
+    assert settings.multi_agent_workflow_guarded_rollout_enabled is True
 
 
 def test_build_settings_rejects_unknown_capability_rollout_profile(monkeypatch) -> None:
@@ -182,3 +223,13 @@ def test_build_settings_rejects_unknown_capability_rollout_profile(monkeypatch) 
 
     with pytest.raises(ValueError, match="Unsupported capability rollout profile"):
         build_settings(Path("data"))
+
+
+def test_supervised_rollout_enables_delivery_guarantee(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "supervised")
+    monkeypatch.delenv("EASY_MANIM_DELIVERY_GUARANTEE_ENABLED", raising=False)
+
+    settings = build_settings(Path("data"))
+
+    assert settings.capability_rollout_profile == "supervised"
+    assert settings.delivery_guarantee_enabled is True

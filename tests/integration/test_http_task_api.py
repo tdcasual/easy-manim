@@ -9,6 +9,7 @@ from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.quality_models import QualityScorecard
+from video_agent.domain.strategy_models import StrategyProfile
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from tests.support import bootstrapped_settings
 
@@ -132,11 +133,115 @@ def test_task_create_list_get_result_roundtrip(tmp_path: Path) -> None:
     assert snapshot_payload["quality_gate_status"] is None
     assert snapshot_payload["accepted_as_best"] is False
     assert snapshot_payload["accepted_version_rank"] is None
+    assert snapshot_payload["delivery_status"] == "pending"
+    assert snapshot_payload["resolved_task_id"] is None
+    assert snapshot_payload["completion_mode"] is None
+    assert snapshot_payload["delivery_tier"] is None
+    assert snapshot_payload["delivery_stop_reason"] is None
 
     result = client.get(f"/api/tasks/{task_id}/result", headers={"Authorization": f"Bearer {login_token}"})
     assert result.status_code == 200
-    assert result.json()["task_id"] == task_id
-    assert result.json()["ready"] is False
+    result_payload = result.json()
+    assert result_payload["task_id"] == task_id
+    assert result_payload["ready"] is False
+    assert result_payload["delivery_status"] == "pending"
+    assert result_payload["completion_mode"] is None
+    assert result_payload["delivery_tier"] is None
+    assert result_payload["resolved_task_id"] is None
+    assert result_payload["delivery_stop_reason"] is None
+
+
+def test_task_create_applies_cluster_strategy_when_requested(tmp_path: Path) -> None:
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    login_token = _login(client, "agent-a-secret")
+    context = client.app.state.app_context
+    strategy = context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-beta",
+            scope="global",
+            prompt_cluster="beta",
+            status="active",
+            params={"style_hints": {"tone": "teaching", "pace": "steady"}},
+        )
+    )
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "draw a circle", "strategy_prompt_cluster": "beta"},
+        headers={"Authorization": f"Bearer {login_token}"},
+    )
+
+    assert created.status_code == 200
+    task_id = created.json()["task_id"]
+    stored = context.store.get_task(task_id)
+    assert stored is not None
+    assert stored.strategy_profile_id == strategy.strategy_id
+    assert stored.style_hints["tone"] == "teaching"
+    assert stored.style_hints["pace"] == "steady"
+
+    snapshot = client.get(f"/api/tasks/{task_id}", headers={"Authorization": f"Bearer {login_token}"})
+    assert snapshot.status_code == 200
+    assert snapshot.json()["strategy_profile_id"] == strategy.strategy_id
+
+
+def test_task_create_does_not_apply_cluster_strategy_without_cluster_hint(tmp_path: Path) -> None:
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    login_token = _login(client, "agent-a-secret")
+    context = client.app.state.app_context
+    context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-beta",
+            scope="global",
+            prompt_cluster="beta",
+            status="active",
+            params={"style_hints": {"tone": "teaching"}},
+        )
+    )
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "draw a circle"},
+        headers={"Authorization": f"Bearer {login_token}"},
+    )
+
+    assert created.status_code == 200
+    stored = context.store.get_task(created.json()["task_id"])
+    assert stored is not None
+    assert stored.strategy_profile_id is None
+    assert stored.style_hints["tone"] == "agent-a-tone"
+
+
+def test_task_create_auto_routes_cluster_strategy_from_prompt_keywords(tmp_path: Path) -> None:
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    login_token = _login(client, "agent-a-secret")
+    context = client.app.state.app_context
+    strategy = context.store.create_strategy_profile(
+        StrategyProfile(
+            strategy_id="strategy-geometry",
+            scope="global",
+            prompt_cluster="geometry",
+            status="active",
+            params={
+                "routing": {"keywords": ["triangle", "geometry"]},
+                "style_hints": {"tone": "teaching"},
+            },
+        )
+    )
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "Explain triangle area proof"},
+        headers={"Authorization": f"Bearer {login_token}"},
+    )
+
+    assert created.status_code == 200
+    stored = context.store.get_task(created.json()["task_id"])
+    assert stored is not None
+    assert stored.strategy_profile_id == strategy.strategy_id
+    assert stored.style_hints["tone"] == "teaching"
 
 
 def test_task_revise_retry_cancel_endpoints_are_agent_scoped(tmp_path: Path) -> None:

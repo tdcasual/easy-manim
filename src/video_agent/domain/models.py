@@ -18,6 +18,7 @@ class VideoTask(BaseModel):
     root_task_id: Optional[str] = None
     parent_task_id: Optional[str] = None
     inherited_from_task_id: Optional[str] = None
+    branch_kind: Optional[str] = None
     agent_id: Optional[str] = None
     session_id: Optional[str] = None
     status: TaskStatus = TaskStatus.QUEUED
@@ -52,6 +53,11 @@ class VideoTask(BaseModel):
     quality_gate_status: Optional[str] = None
     accepted_as_best: bool = False
     accepted_version_rank: Optional[int] = None
+    delivery_status: Optional[str] = None
+    resolved_task_id: Optional[str] = None
+    completion_mode: Optional[str] = None
+    delivery_tier: Optional[str] = None
+    delivery_stop_reason: Optional[str] = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
 
@@ -72,6 +78,7 @@ class VideoTask(BaseModel):
             root_task_id=parent.root_task_id,
             parent_task_id=parent.task_id,
             inherited_from_task_id=parent.task_id,
+            branch_kind=None,
             agent_id=parent.agent_id,
             session_id=parent.session_id,
             prompt=parent.prompt,
@@ -97,4 +104,9 @@ class VideoTask(BaseModel):
             strategy_profile_id=parent.strategy_profile_id,
             scene_spec_id=parent.scene_spec_id,
             quality_gate_status=parent.quality_gate_status,
+            delivery_status="pending",
+            resolved_task_id=None,
+            completion_mode=None,
+            delivery_tier=None,
+            delivery_stop_reason=None,
         )

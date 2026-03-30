@@ -65,7 +65,9 @@ export function TaskDetailPageV2() {
         if (cancelled) return;
         setResult(nextResult);
 
-        if (!TERMINAL.has(String(nextSnapshot.status))) {
+        const shouldContinuePolling =
+          !TERMINAL.has(String(nextSnapshot.status)) || nextSnapshot.delivery_status === "pending";
+        if (shouldContinuePolling) {
           const delay = Math.min(250 * 2 ** attempt, 5000);
           attempt += 1;
           timer = window.setTimeout(loadOnce, delay);
@@ -212,10 +214,18 @@ export function TaskDetailPageV2() {
   }
 
   const status = String(snapshot.status);
-  const terminal = TERMINAL.has(status);
+  const deliveryMode = result?.completion_mode ?? snapshot.completion_mode ?? null;
+  const deliveryPending = snapshot.delivery_status === "pending";
+  const terminal = TERMINAL.has(status) && !deliveryPending;
   const videoUrl = resolveApiUrl(result?.video_download_url);
   const previewPosterUrl = resolveApiUrl(result?.preview_download_urls?.[0]);
   const displayTitle = snapshot.display_title ?? taskId;
+  const deliveryBannerText =
+    deliveryMode === "degraded"
+      ? t("taskDetail.deliveryDegraded")
+      : deliveryMode === "emergency_fallback"
+        ? t("taskDetail.deliveryEmergency")
+        : null;
 
   const statusConfig: Record<string, { icon: React.ElementType; colorVar: string; label: string }> =
     {
@@ -301,6 +311,11 @@ export function TaskDetailPageV2() {
           {t("taskDetail.attemptCount", { count: snapshot.attempt_count ?? 0 })}
         </div>
       </div>
+      {deliveryBannerText && (
+        <div className="task-detail-error" role="status">
+          {t("taskDetail.deliveryGuaranteed")} · {deliveryBannerText}
+        </div>
+      )}
 
       {/* 主内容 */}
       <div className="content-grid-v2">
@@ -351,7 +366,7 @@ export function TaskDetailPageV2() {
             </div>
 
             <div className="quick-actions">
-              {status.toLowerCase() === "failed" && (
+              {status.toLowerCase() === "failed" && !deliveryPending && (
                 <button
                   type="button"
                   className="action-btn secondary"

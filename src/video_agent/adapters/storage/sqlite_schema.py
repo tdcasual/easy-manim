@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS agent_learning_events (
     task_id TEXT NOT NULL,
     session_id TEXT,
     status TEXT NOT NULL,
+    quality_passed INTEGER,
     issue_codes_json TEXT NOT NULL,
     quality_score REAL NOT NULL,
     profile_digest TEXT,
@@ -276,6 +277,57 @@ def apply_strategy_profiles(connection: sqlite3.Connection) -> None:
     )
 
 
+def apply_agent_learning_quality_split(connection: sqlite3.Connection) -> None:
+    ensure_column(connection, "agent_learning_events", "quality_passed", "INTEGER")
+
+
+def apply_delivery_case_scaffold(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS delivery_cases (
+            case_id TEXT PRIMARY KEY,
+            root_task_id TEXT NOT NULL,
+            active_task_id TEXT,
+            selected_task_id TEXT,
+            selected_branch_id TEXT,
+            status TEXT NOT NULL,
+            delivery_status TEXT NOT NULL,
+            completion_mode TEXT,
+            stop_reason TEXT,
+            case_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS agent_runs (
+            run_id TEXT PRIMARY KEY,
+            case_id TEXT NOT NULL,
+            root_task_id TEXT NOT NULL,
+            task_id TEXT,
+            role TEXT NOT NULL,
+            status TEXT NOT NULL,
+            phase TEXT,
+            summary TEXT,
+            run_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_delivery_cases_root_task_id ON delivery_cases (root_task_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_agent_runs_case_created_at ON agent_runs (case_id, created_at ASC)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_agent_runs_case_role_created_at ON agent_runs (case_id, role, created_at ASC)"
+    )
+
+
 SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
     SQLiteMigration(
         migration_id="001_initial_schema",
@@ -316,5 +368,15 @@ SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
         migration_id="008_strategy_profiles",
         description="create a table for strategy profiles",
         apply=apply_strategy_profiles,
+    ),
+    SQLiteMigration(
+        migration_id="009_agent_learning_quality_split",
+        description="persist quality-passed flags for agent learning events",
+        apply=apply_agent_learning_quality_split,
+    ),
+    SQLiteMigration(
+        migration_id="010_delivery_case_scaffold",
+        description="persist delivery cases and agent runs for native orchestration scaffolding",
+        apply=apply_delivery_case_scaffold,
     ),
 )

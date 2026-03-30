@@ -166,6 +166,7 @@ def _build_auto_repair_settings(tmp_path: Path) -> Settings:
             ffprobe_command=str(fake_ffprobe),
             run_embedded_worker=False,
             auto_repair_enabled=True,
+            delivery_guarantee_enabled=False,
             auto_repair_max_children_per_root=1,
             auto_repair_retryable_issue_codes=["render_failed"],
         )
@@ -247,6 +248,11 @@ def test_get_video_task_tool_returns_snapshot(temp_settings) -> None:
     created = create_video_task_tool(app_context, {"prompt": "draw a circle"})
     snapshot = get_video_task_tool(app_context, {"task_id": created["task_id"]})
     assert snapshot["task_id"] == created["task_id"]
+    assert snapshot["delivery_status"] == "pending"
+    assert snapshot["resolved_task_id"] is None
+    assert snapshot["completion_mode"] is None
+    assert snapshot["delivery_tier"] is None
+    assert snapshot["delivery_stop_reason"] is None
 
 
 def test_create_video_task_tool_accepts_style_hints(temp_settings) -> None:

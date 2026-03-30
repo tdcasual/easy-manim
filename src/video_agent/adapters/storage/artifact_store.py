@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from video_agent.domain.models import VideoTask
+from video_agent.domain.case_memory_models import CaseMemorySnapshot
 from video_agent.domain.validation_models import ValidationReport
 from video_agent.observability.logging import serialize_log_event
 
@@ -119,6 +120,23 @@ class ArtifactStore:
 
     def read_failure_contract(self, task_id: str) -> dict[str, Any] | None:
         target = self.failure_contract_path(task_id)
+        if not target.exists():
+            return None
+        return json.loads(target.read_text())
+
+    def case_memory_path(self, root_task_id: str) -> Path:
+        return self.task_dir(root_task_id) / "artifacts" / "case_memory.json"
+
+    def write_case_memory(self, root_task_id: str, payload: CaseMemorySnapshot | dict[str, Any]) -> Path:
+        target = self.ensure_task_dirs(root_task_id) / "artifacts" / "case_memory.json"
+        if isinstance(payload, CaseMemorySnapshot):
+            target.write_text(payload.model_dump_json(indent=2))
+        else:
+            target.write_text(json.dumps(payload, indent=2))
+        return target
+
+    def read_case_memory(self, root_task_id: str) -> dict[str, Any] | None:
+        target = self.case_memory_path(root_task_id)
         if not target.exists():
             return None
         return json.loads(target.read_text())

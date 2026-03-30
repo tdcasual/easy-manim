@@ -85,12 +85,37 @@ def _env_path(name: str) -> Path | None:
 
 
 def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings:
-    rollout_profile = os.getenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "conservative")
+    rollout_profile = os.getenv("EASY_MANIM_CAPABILITY_ROLLOUT_PROFILE", "supervised")
     normalized_rollout_profile = rollout_profile.strip().lower()
     if normalized_rollout_profile not in CAPABILITY_ROLLOUT_PROFILES:
         supported = ", ".join(sorted(CAPABILITY_ROLLOUT_PROFILES))
         raise ValueError(f"Unsupported capability rollout profile '{rollout_profile}'. Expected one of: {supported}")
     profile_defaults = CAPABILITY_ROLLOUT_PROFILES[normalized_rollout_profile]
+    multi_agent_workflow_enabled = _env_bool(
+        "EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED",
+        profile_defaults["multi_agent_workflow_enabled"],
+    )
+    auto_challenger_env = os.getenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_CHALLENGER_ENABLED")
+    multi_agent_workflow_auto_challenger_enabled = _env_bool(
+        "EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_CHALLENGER_ENABLED",
+        profile_defaults["multi_agent_workflow_auto_challenger_enabled"],
+    )
+    if auto_challenger_env is None and not multi_agent_workflow_enabled:
+        multi_agent_workflow_auto_challenger_enabled = False
+    auto_arbitration_env = os.getenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_ARBITRATION_ENABLED")
+    multi_agent_workflow_auto_arbitration_enabled = _env_bool(
+        "EASY_MANIM_MULTI_AGENT_WORKFLOW_AUTO_ARBITRATION_ENABLED",
+        profile_defaults["multi_agent_workflow_auto_arbitration_enabled"],
+    )
+    if auto_arbitration_env is None and not multi_agent_workflow_enabled:
+        multi_agent_workflow_auto_arbitration_enabled = False
+    guarded_rollout_env = os.getenv("EASY_MANIM_MULTI_AGENT_WORKFLOW_GUARDED_ROLLOUT_ENABLED")
+    multi_agent_workflow_guarded_rollout_enabled = _env_bool(
+        "EASY_MANIM_MULTI_AGENT_WORKFLOW_GUARDED_ROLLOUT_ENABLED",
+        profile_defaults["multi_agent_workflow_guarded_rollout_enabled"],
+    )
+    if guarded_rollout_env is None and not multi_agent_workflow_enabled:
+        multi_agent_workflow_guarded_rollout_enabled = False
     return Settings(
         data_dir=data_dir,
         database_path=data_dir / "video_agent.db",
@@ -141,14 +166,30 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
             "EASY_MANIM_AUTO_REPAIR_ENABLED",
             profile_defaults["auto_repair_enabled"],
         ),
+        delivery_guarantee_enabled=_env_bool(
+            "EASY_MANIM_DELIVERY_GUARANTEE_ENABLED",
+            profile_defaults["delivery_guarantee_enabled"],
+        ),
         auto_repair_max_children_per_root=_env_int("EASY_MANIM_AUTO_REPAIR_MAX_CHILDREN_PER_ROOT", 2),
         auto_repair_retryable_issue_codes=_env_csv(
             "EASY_MANIM_AUTO_REPAIR_RETRYABLE_ISSUE_CODES",
             DEFAULT_AUTO_REPAIR_RETRYABLE_ISSUE_CODES,
         ),
-        multi_agent_workflow_enabled=_env_bool(
-            "EASY_MANIM_MULTI_AGENT_WORKFLOW_ENABLED",
-            profile_defaults["multi_agent_workflow_enabled"],
+        multi_agent_workflow_enabled=multi_agent_workflow_enabled,
+        multi_agent_workflow_auto_challenger_enabled=multi_agent_workflow_auto_challenger_enabled,
+        multi_agent_workflow_auto_arbitration_enabled=multi_agent_workflow_auto_arbitration_enabled,
+        multi_agent_workflow_guarded_rollout_enabled=multi_agent_workflow_guarded_rollout_enabled,
+        multi_agent_workflow_guarded_min_delivery_rate=_env_float(
+            "EASY_MANIM_MULTI_AGENT_WORKFLOW_GUARDED_MIN_DELIVERY_RATE",
+            0.9,
+        ),
+        multi_agent_workflow_guarded_max_emergency_fallback_rate=_env_float(
+            "EASY_MANIM_MULTI_AGENT_WORKFLOW_GUARDED_MAX_EMERGENCY_FALLBACK_RATE",
+            0.10,
+        ),
+        multi_agent_workflow_guarded_max_branch_rejection_rate=_env_float(
+            "EASY_MANIM_MULTI_AGENT_WORKFLOW_GUARDED_MAX_BRANCH_REJECTION_RATE",
+            0.50,
         ),
         multi_agent_workflow_max_child_attempts=_env_int("EASY_MANIM_MULTI_AGENT_WORKFLOW_MAX_CHILD_ATTEMPTS", 3),
         multi_agent_workflow_require_completed_for_accept=_env_bool(
@@ -162,6 +203,18 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         strategy_promotion_enabled=_env_bool(
             "EASY_MANIM_STRATEGY_PROMOTION_ENABLED",
             profile_defaults["strategy_promotion_enabled"],
+        ),
+        strategy_promotion_guarded_auto_apply_enabled=_env_bool(
+            "EASY_MANIM_STRATEGY_PROMOTION_GUARDED_AUTO_APPLY_ENABLED",
+            profile_defaults["strategy_promotion_guarded_auto_apply_enabled"],
+        ),
+        strategy_promotion_guarded_auto_apply_min_shadow_passes=_env_int(
+            "EASY_MANIM_STRATEGY_PROMOTION_GUARDED_AUTO_APPLY_MIN_SHADOW_PASSES",
+            3,
+        ),
+        strategy_promotion_guarded_auto_rollback_enabled=_env_bool(
+            "EASY_MANIM_STRATEGY_PROMOTION_GUARDED_AUTO_ROLLBACK_ENABLED",
+            True,
         ),
     )
 

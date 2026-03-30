@@ -35,3 +35,23 @@ def test_render_reviewer_digest_prioritizes_manual_review_failures() -> None:
     assert "Review First" in content
     assert "unsafe_transformmatchingtex_slice" in content
     assert "formula legibility" in content
+
+
+def test_render_reviewer_digest_labels_agent_pass_rate_as_quality_pass_rate() -> None:
+    content = render_reviewer_digest(
+        {
+            "run_id": "run-123",
+            "items": [],
+            "report": {
+                "agent": {
+                    "agent_id": "agent-a",
+                    "pass_rate": 0.75,
+                    "median_quality_score": 0.91,
+                    "active_profile_digest": "digest-1",
+                }
+            },
+        }
+    )
+
+    assert "- Quality Pass Rate: 75.00%" in content
+    assert "\n- Pass Rate: 75.00%" not in content

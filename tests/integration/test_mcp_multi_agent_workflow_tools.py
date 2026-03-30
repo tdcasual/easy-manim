@@ -125,6 +125,9 @@ def test_apply_review_decision_tool_creates_revision_for_revise_decision(tmp_pat
     assert bundle["collaboration"]["planner_recommendation"]["role"] == "planner"
     assert bundle["collaboration"]["reviewer_decision"]["role"] == "reviewer"
     assert bundle["collaboration"]["repairer_execution_hint"]["role"] == "repairer"
+    assert bundle["branch_scoreboard"][0]["task_id"] == created["task_id"]
+    assert bundle["arbitration_summary"]["recommended_task_id"] == created["task_id"]
+    assert bundle["arbitration_summary"]["recommended_action"] == "wait_for_completion"
 
     payload = apply_review_decision_tool(
         app_context,

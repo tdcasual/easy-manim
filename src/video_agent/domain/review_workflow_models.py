@@ -83,6 +83,14 @@ class ReviewBundle(BaseModel):
     decision_trace: dict[str, Any] = Field(default_factory=dict)
     task_events: list[dict[str, Any]] = Field(default_factory=list)
     session_memory_summary: str = ""
+    case_memory: dict[str, Any] = Field(default_factory=dict)
+    case_status: str | None = None
+    active_task_id: str | None = None
+    selected_task_id: str | None = None
+    branch_candidates: list[dict[str, Any]] = Field(default_factory=list)
+    branch_scoreboard: list[dict[str, Any]] = Field(default_factory=list)
+    arbitration_summary: dict[str, Any] = Field(default_factory=dict)
+    recent_agent_runs: list[dict[str, Any]] = Field(default_factory=list)
     video_resource: str | None = None
     preview_frame_resources: list[str] = Field(default_factory=list)
     script_resource: str | None = None

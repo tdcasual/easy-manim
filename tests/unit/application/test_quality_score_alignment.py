@@ -2,6 +2,24 @@
 # cross-surface behavior through public service entry points.
 import json
 from pathlib import Path
+import sys
+import types
+from collections.abc import Callable
+
+if "mcp.server.fastmcp" not in sys.modules:
+    mcp_module = types.ModuleType("mcp")
+    mcp_server_module = types.ModuleType("mcp.server")
+    mcp_fastmcp_module = types.ModuleType("mcp.server.fastmcp")
+
+    class _ImportContext:  # pragma: no cover - test import shim
+        pass
+
+    mcp_fastmcp_module.Context = _ImportContext
+    mcp_server_module.fastmcp = mcp_fastmcp_module
+    mcp_module.server = mcp_server_module
+    sys.modules["mcp"] = mcp_module
+    sys.modules["mcp.server"] = mcp_server_module
+    sys.modules["mcp.server.fastmcp"] = mcp_fastmcp_module
 
 from fastapi.testclient import TestClient
 
@@ -11,9 +29,69 @@ from video_agent.application.eval_service import EvaluationService
 from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
-from video_agent.server.app import create_app_context
-from video_agent.server.http_api import create_http_api
 from tests.support import bootstrapped_settings
+
+
+def _with_temporary_mcp_shim(fn: Callable[[], object]) -> object:
+    if "mcp.server.fastmcp" in sys.modules:
+        return fn()
+
+    injected: dict[str, types.ModuleType] = {}
+    original: dict[str, types.ModuleType] = {}
+    module_names = ("mcp", "mcp.server", "mcp.server.fastmcp")
+    for name in module_names:
+        module = sys.modules.get(name)
+        if module is not None:
+            original[name] = module
+
+    mcp_module = types.ModuleType("mcp")
+    mcp_server_module = types.ModuleType("mcp.server")
+    mcp_fastmcp_module = types.ModuleType("mcp.server.fastmcp")
+
+    class _Context:  # pragma: no cover - test import shim
+        pass
+
+    mcp_fastmcp_module.Context = _Context
+    mcp_server_module.fastmcp = mcp_fastmcp_module
+    mcp_module.server = mcp_server_module
+
+    injected["mcp"] = mcp_module
+    injected["mcp.server"] = mcp_server_module
+    injected["mcp.server.fastmcp"] = mcp_fastmcp_module
+
+    try:
+        sys.modules.update(injected)
+        return fn()
+    finally:
+        for name in module_names:
+            previous = original.get(name)
+            if previous is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
+
+
+def _load_server_app_module():
+    def _load():
+        import video_agent.server.app as app_module
+
+        return app_module
+
+    return _with_temporary_mcp_shim(_load)
+
+
+def _create_app_context(settings: Settings):
+    app_module = _load_server_app_module()
+    return app_module.create_app_context(settings)
+
+
+def _create_http_api(settings: Settings):
+    def _load():
+        from video_agent.server.http_api import create_http_api
+
+        return create_http_api(settings)
+
+    return _with_temporary_mcp_shim(_load)
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -143,8 +221,76 @@ def _build_quality_alignment_settings(
     )
 
 
+def _build_degraded_quality_alignment_settings(tmp_path: Path) -> Settings:
+    data_dir = tmp_path / "data"
+
+    fake_manim = tmp_path / "fake_manim_degraded_success.sh"
+    _write_executable(
+        fake_manim,
+        "#!/bin/sh\n"
+        "script_path=\"$2\"\n"
+        "script_name=$(basename \"$script_path\" .py)\n"
+        "mkdir -p \"$5/videos/$script_name/480p15\"\n"
+        "if grep -q \"GUARANTEED_DELIVERY_DEGRADED\" \"$script_path\"; then\n"
+        "  printf 'degraded-video' > \"$5/videos/$script_name/480p15/$7\"\n"
+        "  exit 0\n"
+        "fi\n"
+        "printf 'simulated render failure\\n' >&2\n"
+        "exit 17\n",
+    )
+
+    fake_ffprobe = tmp_path / "fake_ffprobe.sh"
+    probe_json = json.dumps(
+        {
+            "streams": [{"codec_type": "video", "width": 1280, "height": 720}],
+            "format": {"duration": "2.5"},
+        }
+    )
+    _write_executable(fake_ffprobe, f"#!/bin/sh\nprintf '%s' '{probe_json}'\n")
+
+    fake_ffmpeg = tmp_path / "fake_ffmpeg.sh"
+    _write_executable(
+        fake_ffmpeg,
+        "#!/bin/sh\n"
+        "mkdir -p \"$2\"\n"
+        "printf 'frame1' > \"$2/frame_001.png\"\n",
+    )
+
+    return bootstrapped_settings(
+        Settings(
+            data_dir=data_dir,
+            database_path=data_dir / "video_agent.db",
+            artifact_root=data_dir / "tasks",
+            eval_root=data_dir / "evals",
+            manim_command=str(fake_manim),
+            ffmpeg_command=str(fake_ffmpeg),
+            ffprobe_command=str(fake_ffprobe),
+            run_embedded_worker=False,
+            auth_mode="optional",
+            auto_repair_enabled=True,
+            auto_repair_max_children_per_root=1,
+            auto_repair_retryable_issue_codes=["render_failed"],
+            delivery_guarantee_enabled=True,
+        )
+    )
+
+
+class _DegradedSuccessLLMClient:
+    def generate_script(self, prompt_text: str) -> str:
+        marker = ""
+        if "Guaranteed delivery degraded fallback" in prompt_text:
+            marker = "\n# GUARANTEED_DELIVERY_DEGRADED\n"
+        return (
+            "from manim import Scene\n\n"
+            "class GeneratedScene(Scene):\n"
+            "    def construct(self):\n"
+            "        pass\n"
+            f"{marker}"
+        )
+
+
 def test_completed_eval_task_quality_score_aligns_runtime_learning_profile_and_eval(tmp_path: Path) -> None:
-    app_context = create_app_context(_build_quality_alignment_settings(tmp_path))
+    app_context = _create_app_context(_build_quality_alignment_settings(tmp_path))
     suite_path = tmp_path / "quality_suite.json"
     suite_path.write_text(
         json.dumps(
@@ -181,8 +327,42 @@ def test_completed_eval_task_quality_score_aligns_runtime_learning_profile_and_e
     assert summary.report["quality"]["median_quality_score"] == expected_score
 
 
+def test_degraded_delivery_counts_as_delivery_but_not_quality_success(tmp_path: Path, monkeypatch) -> None:
+    app_module = _load_server_app_module()
+    monkeypatch.setattr(app_module, "_build_llm_client", lambda settings: _DegradedSuccessLLMClient(), raising=False)
+    app_context = _create_app_context(_build_degraded_quality_alignment_settings(tmp_path))
+    suite_path = tmp_path / "quality_suite.json"
+    suite_path.write_text(
+        json.dumps(
+            {
+                "suite_id": "quality-alignment",
+                "cases": [{"case_id": "case-1", "prompt": "draw a circle", "tags": ["quality"]}],
+            }
+        )
+    )
+
+    summary = EvaluationService(app_context).run_suite(suite_path=str(suite_path))
+
+    result = summary.items[0]
+    events = app_context.store.list_agent_learning_events("local-anonymous")
+    profile_scorecard = app_context.agent_learning_service.build_scorecard("local-anonymous")
+
+    assert result.status == "completed"
+    assert result.delivery_passed is True
+    assert result.quality_passed is False
+    assert result.quality_score == 0.6
+    assert summary.report["success_rate"] == 0.0
+    assert summary.report["delivery_rate"] == 1.0
+    assert summary.report["quality"]["pass_rate"] == 0.0
+    assert app_context.metrics.counters.get("tasks_completed", 0) == 0
+    assert app_context.metrics.counters.get("deliveries_completed", 0) == 1
+    assert len(events) == 1
+    assert events[0].quality_passed is False
+    assert profile_scorecard["completed_count"] == 0
+
+
 def test_profile_auto_apply_threshold_uses_scorecard_derived_median(tmp_path: Path) -> None:
-    app = create_http_api(
+    app = _create_http_api(
         _build_quality_alignment_settings(
             tmp_path,
             auth_mode="required",
