@@ -34,6 +34,8 @@ export type TaskResult = {
   summary?: string | null;
   video_resource?: string | null;
   video_download_url?: string | null;
+  script_download_url?: string | null;
+  validation_report_download_url?: string | null;
   preview_download_urls?: string[] | null;
 };
 

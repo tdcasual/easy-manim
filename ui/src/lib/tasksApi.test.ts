@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { getReviewBundle } from "./tasksApi";
+import { getReviewBundle, getTaskResult } from "./tasksApi";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -125,4 +125,33 @@ test("getReviewBundle no longer exposes the legacy task discussion surface", asy
 
   expect(bundle.task_id).toBe("task-legacy");
   expect("video_discussion_surface" in bundle).toBe(false);
+});
+
+test("getTaskResult exposes task artifact download urls", async () => {
+  globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+    const path = new URL(String(input), "http://example.test").pathname;
+    expect(path).toBe("/api/tasks/task-2/result");
+
+    return new Response(
+      JSON.stringify({
+        task_id: "task-2",
+        status: "completed",
+        ready: true,
+        summary: "Selected cut with a slower title entrance.",
+        video_download_url: "/api/tasks/task-2/artifacts/final_video.mp4",
+        script_download_url: "/api/tasks/task-2/artifacts/current_script.py",
+        validation_report_download_url:
+          "/api/tasks/task-2/artifacts/validations/validation_report_v1.json",
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }) as typeof fetch;
+
+  const result = await getTaskResult("task-2", "sess-token-1");
+
+  expect(result.video_download_url).toBe("/api/tasks/task-2/artifacts/final_video.mp4");
+  expect(result.script_download_url).toBe("/api/tasks/task-2/artifacts/current_script.py");
+  expect(result.validation_report_download_url).toBe(
+    "/api/tasks/task-2/artifacts/validations/validation_report_v1.json"
+  );
 });

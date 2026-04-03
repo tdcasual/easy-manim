@@ -704,6 +704,21 @@ test("video thread page renders the collaboration workbench from thread surface"
         { status: 200, headers: { "content-type": "application/json" } }
       );
     }
+    if (path === "/api/tasks/task-2/result" && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify({
+          task_id: "task-2",
+          status: "completed",
+          ready: true,
+          summary: "Selected cut with a slower title entrance.",
+          video_download_url: "/api/tasks/task-2/artifacts/final_video.mp4",
+          script_download_url: "/api/tasks/task-2/artifacts/current_script.py",
+          validation_report_download_url:
+            "/api/tasks/task-2/artifacts/validations/validation_report_v1.json",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
     if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
       return new Response(
         JSON.stringify({
@@ -764,6 +779,21 @@ test("video thread page renders the collaboration workbench from thread surface"
   );
 
   expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Selected version" })).toBeInTheDocument();
+  expect(screen.getByText("Selected result: result-2")).toBeInTheDocument();
+  expect(screen.getByText("Selected iteration: iter-2")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Download video" })).toHaveAttribute(
+    "href",
+    "/api/tasks/task-2/artifacts/final_video.mp4"
+  );
+  expect(screen.getByRole("link", { name: "Download script" })).toHaveAttribute(
+    "href",
+    "/api/tasks/task-2/artifacts/current_script.py"
+  );
+  expect(screen.getByRole("link", { name: "Download validation report" })).toHaveAttribute(
+    "href",
+    "/api/tasks/task-2/artifacts/validations/validation_report_v1.json"
+  );
   expect(screen.getByText("Selected result with current focus")).toBeInTheDocument();
   expect(
     screen.getAllByText("Slow the opener and make the title entrance more deliberate.").length

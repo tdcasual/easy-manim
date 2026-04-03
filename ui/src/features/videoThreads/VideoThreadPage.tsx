@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 
 import { useSession } from "../auth/useSession";
 import { VideoThreadWorkbench } from "./VideoThreadWorkbench";
+import { SelectedVersionHero } from "./SelectedVersionHero";
+import { useTaskArtifactDownloads } from "./useTaskArtifactDownloads";
 import {
   appendVideoTurn,
   getVideoThreadIteration,
@@ -14,6 +16,39 @@ import {
   type VideoThreadIterationDetail,
   type VideoThreadSurface,
 } from "../../lib/videoThreadsApi";
+
+function taskIdFromVideoResource(resource: string | null | undefined): string | null {
+  if (!resource) {
+    return null;
+  }
+  const match = /^video-task:\/\/([^/]+)\//.exec(resource);
+  return match?.[1] ?? null;
+}
+
+function selectedTaskIdFromSurface(surface: VideoThreadSurface | null, iterationId: string | null): string | null {
+  if (!surface) {
+    return null;
+  }
+
+  const activeIterationId = iterationId ?? surface.current_focus.current_iteration_id ?? null;
+  if (activeIterationId) {
+    const processRunTaskId =
+      surface.process.runs.find((run) => run.iteration_id === activeIterationId && run.task_id)?.task_id ?? null;
+    if (processRunTaskId) {
+      return processRunTaskId;
+    }
+
+    const journalTaskId =
+      surface.production_journal.entries.find(
+        (entry) => entry.iteration_id === activeIterationId && entry.task_id
+      )?.task_id ?? null;
+    if (journalTaskId) {
+      return journalTaskId;
+    }
+  }
+
+  return null;
+}
 
 export function VideoThreadPage() {
   const { threadId } = useParams();
@@ -33,6 +68,16 @@ export function VideoThreadPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const activeComposerTarget = iterationDetail?.composer_target ?? surface?.composer.target ?? null;
+  const selectedResult =
+    iterationDetail?.results.find((result) => result.selected) ??
+    iterationDetail?.results.find((result) => result.result_id === surface?.current_focus.current_result_id) ??
+    null;
+  const selectedTaskId =
+    selectedTaskIdFromSurface(surface, selectedIterationId) ??
+    iterationDetail?.runs.find((run) => run.task_id)?.task_id ??
+    taskIdFromVideoResource(selectedResult?.video_resource) ??
+    null;
+  const { downloads, error: downloadError } = useTaskArtifactDownloads(selectedTaskId, sessionToken);
 
   useEffect(() => {
     if (!threadId || !sessionToken) {
@@ -260,6 +305,14 @@ export function VideoThreadPage() {
         </div>
       </div>
       {error ? <div role="alert">{error}</div> : null}
+      <SelectedVersionHero
+        surface={surface}
+        selectedIterationId={selectedIterationId}
+        selectedResult={selectedResult}
+        selectedTaskId={selectedTaskId}
+        downloads={downloads}
+        downloadError={downloadError}
+      />
       <VideoThreadWorkbench
         surface={surface}
         iterationDetail={iterationDetail}
