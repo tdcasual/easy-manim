@@ -1,0 +1,277 @@
+.video-thread-workbench {
+  display: grid;
+  gap: 1rem;
+}
+
+.video-thread-workbench--attention .video-thread-workbench__hero {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.video-thread-workbench--high .video-thread-workbench__hero {
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
+}
+
+.video-thread-workbench__hero,
+.video-thread-workbench__panel {
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.16));
+  border-radius: 1rem;
+  background: rgba(11, 20, 31, 0.82);
+  padding: 1rem 1.2rem;
+}
+
+.video-thread-workbench__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.video-thread-workbench__title {
+  margin: 0;
+}
+
+.video-thread-workbench__summary {
+  margin: 0.5rem 0 0;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.72));
+}
+
+.video-thread-workbench__status {
+  display: grid;
+  gap: 0.25rem;
+  text-align: right;
+}
+
+.video-thread-workbench__layout,
+.video-thread-workbench__focus-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.video-thread-workbench__layout {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.video-thread-workbench__panel--tone-attention {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.video-thread-workbench__panel--tone-accent {
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.video-thread-workbench__panel--emphasis-primary {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.video-thread-workbench__panel--open {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.video-thread-workbench__focus-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-top: 0.75rem;
+}
+
+.video-thread-workbench__label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.72));
+  font-size: 0.9rem;
+}
+
+.video-thread-workbench__iteration-list,
+.video-thread-workbench__conversation,
+.video-thread-workbench__process {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.video-thread-workbench__iteration,
+.video-thread-workbench__turn,
+.video-thread-workbench__run,
+.video-thread-workbench__journal-entry,
+.video-thread-workbench__discussion-group,
+.video-thread-workbench__reply,
+.video-thread-workbench__participant-management {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.85rem;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.video-thread-workbench__discussion-group {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.video-thread-workbench__journal-entry,
+.video-thread-workbench__resource-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.video-thread-workbench__reply-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.video-thread-workbench__chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.video-thread-workbench__chip {
+  border: 1px solid rgba(94, 234, 212, 0.22);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: rgba(94, 234, 212, 0.08);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.88));
+  font-size: 0.88rem;
+}
+
+.video-thread-workbench__reply {
+  margin-left: 0.5rem;
+  border-style: dashed;
+}
+
+.video-thread-workbench__iteration--selected {
+  border-color: rgba(94, 234, 212, 0.45);
+}
+
+.video-thread-workbench__iteration-button {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.video-thread-workbench__history-card--primary {
+  border-color: rgba(94, 234, 212, 0.42);
+  background: rgba(94, 234, 212, 0.08);
+}
+
+.video-thread-workbench__history-card--context {
+  border-style: dashed;
+}
+
+.video-thread-workbench__iteration-row,
+.video-thread-workbench__turn-row,
+.video-thread-workbench__composer-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.video-thread-workbench__meta {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.72));
+  font-size: 0.92rem;
+}
+
+.video-thread-workbench__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.video-thread-workbench__action {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  padding: 0.45rem 0.85rem;
+}
+
+.video-thread-workbench__action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.video-thread-workbench__action--selected {
+  border-color: rgba(94, 234, 212, 0.55);
+  background: rgba(94, 234, 212, 0.12);
+}
+
+.video-thread-workbench__composer {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  padding: 0.85rem;
+}
+
+.video-thread-workbench__participant-form {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.video-thread-workbench__input {
+  width: 100%;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  padding: 0.75rem 0.85rem;
+}
+
+.video-thread-workbench__inline-button {
+  margin-top: 0.65rem;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  padding: 0;
+}
+
+.video-thread-workbench__inline-button:disabled {
+  opacity: 0.65;
+}
+
+.video-thread-workbench__composer-strategy {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.92rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.72));
+}
+
+.video-thread-workbench__history-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.video-thread-workbench__intent-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.video-thread-workbench__submit {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  color: #08111c;
+  background: rgba(191, 219, 254, 0.9);
+}
+
+.video-thread-workbench__submit--strong {
+  background: rgba(251, 191, 36, 0.95);
+}
+
+.video-thread-workbench__submit--normal {
+  background: rgba(94, 234, 212, 0.9);
+}
+
+.video-thread-workbench__submit--subtle {
+  background: rgba(191, 219, 254, 0.9);
+}

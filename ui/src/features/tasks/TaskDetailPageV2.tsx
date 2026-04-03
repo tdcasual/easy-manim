@@ -1,6 +1,6 @@
 // TaskDetailPage V2 - 占位符实现
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   RefreshCw,
@@ -14,22 +14,79 @@ import { useSession } from "../auth/useSession";
 import {
   getTask,
   getTaskResult,
+  getReviewBundle,
+  applyReviewDecision,
   reviseTask,
   retryTask,
   cancelTask,
   TaskSnapshot,
   TaskResult,
+  ReviewBundle,
+  WorkflowReviewActionCard,
+  ApplyReviewDecisionRequest,
+  WorkflowReviewDecisionKind,
 } from "../../lib/tasksApi";
 import { resolveApiUrl } from "../../lib/api";
 import { useI18n } from "../../app/locale";
 import { SkeletonCard } from "../../components/Skeleton";
 import { useARIAMessage } from "../../components/useARIAMessage";
 import { useConfirm } from "../../components/useConfirm";
+import { useToast } from "../../components/useToast";
 import { getStatusLabel } from "../../app/ui";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
+import { TaskReviewPanel } from "./TaskReviewPanel";
 import "./TaskDetailPageV2.css";
 
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
+
+function asStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const items = value.map((item) => String(item).trim()).filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function toApplyReviewDecisionRequest(payload: Record<string, unknown>): ApplyReviewDecisionRequest | null {
+  const reviewDecision = asRecord(payload.review_decision);
+  const decision = reviewDecision?.decision;
+  const summary = reviewDecision?.summary;
+
+  if (typeof decision !== "string" || typeof summary !== "string") {
+    return null;
+  }
+
+  const normalizedDecision = decision as WorkflowReviewDecisionKind;
+  return {
+    review_decision: {
+      decision: normalizedDecision,
+      summary,
+      feedback: typeof reviewDecision?.feedback === "string" ? reviewDecision.feedback : null,
+      preserve_working_parts:
+        typeof reviewDecision?.preserve_working_parts === "boolean"
+          ? reviewDecision.preserve_working_parts
+          : undefined,
+      decision_role: typeof reviewDecision?.decision_role === "string" ? reviewDecision.decision_role : null,
+      confidence:
+        typeof reviewDecision?.confidence === "number" ? reviewDecision.confidence : undefined,
+      issues: Array.isArray(reviewDecision?.issues)
+        ? (reviewDecision.issues as Array<Record<string, unknown>>)
+        : undefined,
+      stop_reason: typeof reviewDecision?.stop_reason === "string" ? reviewDecision.stop_reason : null,
+      collaboration: asRecord(reviewDecision?.collaboration),
+    },
+    memory_ids: asStringArray(payload.memory_ids),
+    pin_workflow_memory_ids: asStringArray(payload.pin_workflow_memory_ids),
+    unpin_workflow_memory_ids: asStringArray(payload.unpin_workflow_memory_ids),
+  };
+}
 
 export function TaskDetailPageV2() {
   const { taskId } = useParams();
@@ -39,12 +96,41 @@ export function TaskDetailPageV2() {
   const { locale, t } = useI18n();
   const [snapshot, setSnapshot] = useState<TaskSnapshot | null>(null);
   const [result, setResult] = useState<TaskResult | null>(null);
+  const [reviewBundle, setReviewBundle] = useState<ReviewBundle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [actionState, setActionState] = useState<"idle" | "revise" | "retry" | "cancel">("idle");
+  const [workflowActionId, setWorkflowActionId] = useState<string | null>(null);
   const { ARIALiveRegion, announcePolite } = useARIAMessage();
   const { confirm, ConfirmDialog } = useConfirm();
+  const { success: toastSuccess, error: toastError } = useToast();
+
+  async function refreshTaskDetail(currentTaskId: string, token: string): Promise<boolean> {
+    try {
+      const [nextSnapshot, nextResult, nextReviewBundle] = await Promise.all([
+        getTask(currentTaskId, token),
+        getTaskResult(currentTaskId, token),
+        getReviewBundle(currentTaskId, token).catch(() => null),
+      ]);
+      setSnapshot(nextSnapshot);
+      setResult(nextResult);
+      setReviewBundle(nextReviewBundle);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function refreshPanelData(currentTaskId: string, token: string): Promise<boolean> {
+    try {
+      const nextReviewBundle = await getReviewBundle(currentTaskId, token);
+      setReviewBundle(nextReviewBundle);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   useEffect(() => {
     if (!taskId || !sessionToken) return;
@@ -57,13 +143,15 @@ export function TaskDetailPageV2() {
     async function loadOnce() {
       try {
         setError(null);
-        const nextSnapshot = await getTask(currentTaskId, token);
+        const [nextSnapshot, nextResult, nextReviewBundle] = await Promise.all([
+          getTask(currentTaskId, token),
+          getTaskResult(currentTaskId, token),
+          getReviewBundle(currentTaskId, token).catch(() => null),
+        ]);
         if (cancelled) return;
         setSnapshot(nextSnapshot);
-
-        const nextResult = await getTaskResult(currentTaskId, token);
-        if (cancelled) return;
         setResult(nextResult);
+        setReviewBundle(nextReviewBundle);
 
         const shouldContinuePolling =
           !TERMINAL.has(String(nextSnapshot.status)) || nextSnapshot.delivery_status === "pending";
@@ -85,6 +173,30 @@ export function TaskDetailPageV2() {
     };
   }, [taskId, sessionToken, reloadTick, t]);
 
+  async function handleRefreshAfterOutcome(
+    refreshScope: "panel_only" | "task_and_panel" | "navigate",
+    refreshTaskId: string,
+    token: string
+  ) {
+    if (refreshScope === "navigate") {
+      navigate(`/tasks/${refreshTaskId}`);
+      return;
+    }
+
+    if (refreshScope === "task_and_panel") {
+      const refreshed = await refreshTaskDetail(refreshTaskId, token);
+      if (!refreshed) {
+        setReloadTick((tick) => tick + 1);
+      }
+      return;
+    }
+
+    const refreshed = await refreshPanelData(refreshTaskId, token);
+    if (!refreshed) {
+      setReloadTick((tick) => tick + 1);
+    }
+  }
+
   async function onRevise() {
     if (!taskId || !sessionToken) return;
     const trimmed = feedback.trim();
@@ -103,6 +215,38 @@ export function TaskDetailPageV2() {
       announcePolite(t("taskDetail.revisionFailed", { error: errorMsg }));
     } finally {
       setActionState("idle");
+    }
+  }
+
+  async function onRunWorkflowAction(action: WorkflowReviewActionCard) {
+    if (!taskId || !sessionToken) return;
+
+    const payload = toApplyReviewDecisionRequest(action.payload);
+    if (payload === null) {
+      const errorMsg = t("taskDetail.workflowActionInvalid");
+      setError(errorMsg);
+      announcePolite(errorMsg);
+      return;
+    }
+
+    setError(null);
+    setWorkflowActionId(action.action_id);
+    try {
+      const outcome = await applyReviewDecision(taskId, payload, sessionToken);
+      const successMessage = t("taskDetail.workflowActionApplied", { action: action.title });
+      toastSuccess(successMessage);
+      announcePolite(successMessage);
+      const refreshScope = outcome.refresh_scope ?? (outcome.created_task_id ? "navigate" : "panel_only");
+      const refreshTaskId = outcome.refresh_task_id ?? outcome.created_task_id ?? taskId;
+      await handleRefreshAfterOutcome(refreshScope, refreshTaskId, sessionToken);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : t("taskDetail.workflowActionInvalid");
+      setError(errorMsg);
+      const failureMessage = t("taskDetail.workflowActionFailed", { error: errorMsg });
+      toastError(failureMessage);
+      announcePolite(failureMessage);
+    } finally {
+      setWorkflowActionId(null);
     }
   }
 
@@ -332,6 +476,18 @@ export function TaskDetailPageV2() {
             </div>
           )}
 
+          {snapshot.thread_id ? (
+            <div className="section-card-v2">
+              <h3 className="section-title-v2">Video collaboration workbench</h3>
+              <p className="page-description-v2">
+                Continue the durable owner-plus-agent thread for this video in the dedicated workbench.
+              </p>
+              <Link to={`/videos/${encodeURIComponent(snapshot.thread_id)}`} className="video-grid-link">
+                Open video workbench
+              </Link>
+            </div>
+          ) : null}
+
           {/* 操作面板 */}
           <div className="section-card-v2">
             <h3 className="section-title-v2">{t("taskDetail.actions")}</h3>
@@ -397,6 +553,14 @@ export function TaskDetailPageV2() {
         </div>
 
         <div className="side-column">
+          {reviewBundle?.workflow_review_controls ? (
+            <TaskReviewPanel
+              controls={reviewBundle.workflow_review_controls}
+              activeActionId={workflowActionId}
+              onRunAction={onRunWorkflowAction}
+            />
+          ) : null}
+
           {/* 结果信息 */}
           <div className="section-card-v2">
             <h3 className="section-title-v2">{t("taskDetail.results")}</h3>

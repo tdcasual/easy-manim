@@ -58,14 +58,21 @@ def _build_fake_pipeline_settings(tmp_path: Path) -> Settings:
     )
 
 
-def _seed_agent_memory(app_context, *, memory_id: str, agent_id: str, status: str = "active") -> None:
+def _seed_agent_memory(
+    app_context,
+    *,
+    memory_id: str,
+    agent_id: str,
+    status: str = "active",
+    summary_text: str | None = None,
+) -> None:
     app_context.store.create_agent_memory(
         AgentMemoryRecord(
             memory_id=memory_id,
             agent_id=agent_id,
             source_session_id=f"session-{agent_id}",
             status=status,
-            summary_text=f"Remember {agent_id}",
+            summary_text=summary_text or f"Remember {agent_id}",
             summary_digest=f"digest-{memory_id}",
         )
     )
@@ -150,6 +157,23 @@ def test_revision_child_receives_memory_context_summary(tmp_path: Path) -> None:
     assert stored.memory_context_digest is not None
 
 
+def test_revision_reuses_session_memory_after_app_restart(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+    )
+
+    restarted = create_app_context(_build_fake_pipeline_settings(tmp_path))
+
+    child = restarted.task_service.revise_video_task(created.task_id, feedback="add title")
+    stored = restarted.store.get_task(child.task_id)
+
+    assert stored is not None
+    assert stored.memory_context_summary is not None
+    assert "draw a circle" in stored.memory_context_summary
+
+
 def test_revision_prompt_separates_session_and_persistent_memory_contexts(tmp_path: Path) -> None:
     app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
     app_context.workflow_engine.llm_client = CapturingLLMClient()
@@ -174,6 +198,65 @@ def test_revision_prompt_separates_session_and_persistent_memory_contexts(tmp_pa
     assert prompt is not None
     assert "Session memory context:" in prompt
     assert "Persistent memory context:" in prompt
+
+
+def test_owner_revision_inherits_root_workflow_pinned_memory_when_memory_ids_omitted(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+    )
+    _seed_agent_memory(
+        app_context,
+        memory_id="mem-a",
+        agent_id="local-anonymous",
+        summary_text="Prefer high-contrast diagrams and concise labels.",
+    )
+    app_context.workflow_collaboration_service.pin_workflow_memory(
+        created.task_id,
+        memory_id="mem-a",
+    )
+
+    child = app_context.task_service.revise_video_task(
+        created.task_id,
+        feedback="add labels",
+        session_id="session-1",
+    )
+    task = app_context.store.get_task(child.task_id)
+
+    assert task is not None
+    assert task.selected_memory_ids == ["mem-a"]
+    assert "high-contrast diagrams" in (task.persistent_memory_context_summary or "")
+
+
+def test_owner_revision_can_explicitly_clear_root_workflow_pinned_memory(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+    )
+    _seed_agent_memory(
+        app_context,
+        memory_id="mem-a",
+        agent_id="local-anonymous",
+        summary_text="Prefer high-contrast diagrams and concise labels.",
+    )
+    app_context.workflow_collaboration_service.pin_workflow_memory(
+        created.task_id,
+        memory_id="mem-a",
+    )
+
+    child = app_context.task_service.revise_video_task(
+        created.task_id,
+        feedback="add labels",
+        session_id="session-1",
+        memory_ids=[],
+    )
+    task = app_context.store.get_task(child.task_id)
+
+    assert task is not None
+    assert task.selected_memory_ids == []
+    assert task.persistent_memory_context_summary is None
 
 
 

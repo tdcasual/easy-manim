@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -14,9 +15,11 @@ from video_agent.server.mcp_resources import authorize_resource_access, read_res
 from video_agent.server.mcp_tools import (
     accept_best_version_tool,
     apply_review_decision_tool,
+    append_video_turn_tool,
     authenticate_agent_tool,
     cancel_video_task_tool,
     clear_session_memory_tool,
+    create_video_thread_tool,
     create_video_task_tool,
     disable_agent_memory_tool,
     get_failure_contract_tool,
@@ -30,14 +33,24 @@ from video_agent.server.mcp_tools import (
     get_session_memory_tool,
     get_task_events_tool,
     get_video_result_tool,
+    get_video_thread_surface_tool,
     list_agent_memories_tool,
+    list_video_thread_participants_tool,
     promote_session_memory_tool,
     query_agent_memories_tool,
     get_video_task_tool,
+    list_workflow_participants_tool,
     list_video_tasks_tool,
+    remove_video_thread_participant_tool,
+    remove_workflow_participant_tool,
+    request_video_explanation_tool,
+    request_video_revision_tool,
     retry_video_task_tool,
     revise_video_task_tool,
+    select_video_result_tool,
     summarize_session_memory_tool,
+    upsert_video_thread_participant_tool,
+    upsert_workflow_participant_tool,
 )
 from video_agent.server.session_auth import session_key_for_context
 
@@ -114,6 +127,107 @@ def create_mcp_server(
             agent_principal=current_principal(ctx),
         )
 
+    @mcp.tool(name="create_video_thread")
+    def create_video_thread(
+        owner_agent_id: str,
+        title: str,
+        prompt: str,
+        memory_ids: list[str] | None = None,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return create_video_thread_tool(
+            context,
+            {
+                "owner_agent_id": owner_agent_id,
+                "title": title,
+                "prompt": prompt,
+                "memory_ids": memory_ids,
+                "session_id": current_session_id(ctx),
+            },
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="get_video_thread_surface")
+    def get_video_thread_surface(thread_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return get_video_thread_surface_tool(
+            context,
+            {"thread_id": thread_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="append_video_turn")
+    def append_video_turn(
+        thread_id: str,
+        iteration_id: str,
+        title: str,
+        summary: str = "",
+        addressed_participant_id: str | None = None,
+        reply_to_turn_id: str | None = None,
+        related_result_id: str | None = None,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return append_video_turn_tool(
+            context,
+            {
+                "thread_id": thread_id,
+                "iteration_id": iteration_id,
+                "title": title,
+                "summary": summary,
+                "addressed_participant_id": addressed_participant_id,
+                "reply_to_turn_id": reply_to_turn_id,
+                "related_result_id": related_result_id,
+            },
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="list_video_thread_participants")
+    def list_video_thread_participants(thread_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return list_video_thread_participants_tool(
+            context,
+            {"thread_id": thread_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="upsert_video_thread_participant")
+    def upsert_video_thread_participant(
+        thread_id: str,
+        participant_id: str,
+        participant_type: str,
+        role: str,
+        display_name: str,
+        agent_id: str | None = None,
+        capabilities: list[str] | None = None,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return upsert_video_thread_participant_tool(
+            context,
+            {
+                "thread_id": thread_id,
+                "participant_id": participant_id,
+                "participant_type": participant_type,
+                "agent_id": agent_id,
+                "role": role,
+                "display_name": display_name,
+                "capabilities": capabilities,
+            },
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="remove_video_thread_participant")
+    def remove_video_thread_participant(
+        thread_id: str,
+        participant_id: str,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return remove_video_thread_participant_tool(
+            context,
+            {
+                "thread_id": thread_id,
+                "participant_id": participant_id,
+            },
+            agent_principal=current_principal(ctx),
+        )
+
     @mcp.tool(name="get_video_task")
     def get_video_task(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
         return get_video_task_tool(
@@ -178,6 +292,44 @@ def create_mcp_server(
             agent_principal=current_principal(ctx),
         )
 
+    @mcp.tool(name="list_workflow_participants")
+    def list_workflow_participants(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return list_workflow_participants_tool(
+            context,
+            {"task_id": task_id},
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="upsert_workflow_participant")
+    def upsert_workflow_participant(
+        task_id: str,
+        agent_id: str,
+        role: str,
+        capabilities: list[str] | None = None,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return upsert_workflow_participant_tool(
+            context,
+            {
+                "task_id": task_id,
+                "agent_id": agent_id,
+                "role": role,
+                "capabilities": capabilities,
+            },
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="remove_workflow_participant")
+    def remove_workflow_participant(task_id: str, agent_id: str, ctx: Context | None = None) -> dict[str, Any]:
+        return remove_workflow_participant_tool(
+            context,
+            {
+                "task_id": task_id,
+                "agent_id": agent_id,
+            },
+            agent_principal=current_principal(ctx),
+        )
+
     @mcp.tool(name="apply_review_decision")
     def apply_review_decision(
         task_id: str,
@@ -220,6 +372,62 @@ def create_mcp_server(
                 "preserve_working_parts": preserve_working_parts,
                 "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
+            },
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="request_video_revision")
+    def request_video_revision(
+        thread_id: str,
+        iteration_id: str,
+        summary: str,
+        preserve_working_parts: bool = True,
+        memory_ids: list[str] | None = None,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return request_video_revision_tool(
+            context,
+            {
+                "thread_id": thread_id,
+                "iteration_id": iteration_id,
+                "summary": summary,
+                "preserve_working_parts": preserve_working_parts,
+                "memory_ids": memory_ids,
+                "session_id": current_session_id(ctx),
+            },
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="request_video_explanation")
+    def request_video_explanation(
+        thread_id: str,
+        iteration_id: str,
+        summary: str,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return request_video_explanation_tool(
+            context,
+            {
+                "thread_id": thread_id,
+                "iteration_id": iteration_id,
+                "summary": summary,
+            },
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.tool(name="select_video_result")
+    def select_video_result(
+        thread_id: str,
+        iteration_id: str,
+        result_id: str,
+        ctx: Context | None = None,
+    ) -> dict[str, Any]:
+        return select_video_result_tool(
+            context,
+            {
+                "thread_id": thread_id,
+                "iteration_id": iteration_id,
+                "result_id": result_id,
             },
             agent_principal=current_principal(ctx),
         )
@@ -386,6 +594,35 @@ def create_mcp_server(
             agent_principal=current_principal(ctx),
         )
 
+    @mcp.resource("video-thread://{thread_id}/surface.json", mime_type="application/json")
+    def video_thread_surface_resource(thread_id: str, ctx: Context | None = None) -> str:
+        return _read_video_thread_surface_resource(
+            context,
+            thread_id,
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.resource("video-thread://{thread_id}/timeline.json", mime_type="application/json")
+    def video_thread_timeline_resource(thread_id: str, ctx: Context | None = None) -> str:
+        return _read_video_thread_timeline_resource(
+            context,
+            thread_id,
+            agent_principal=current_principal(ctx),
+        )
+
+    @mcp.resource("video-thread://{thread_id}/iterations/{iteration_id}.json", mime_type="application/json")
+    def video_thread_iteration_resource(
+        thread_id: str,
+        iteration_id: str,
+        ctx: Context | None = None,
+    ) -> str:
+        return _read_video_thread_iteration_resource(
+            context,
+            thread_id,
+            iteration_id,
+            agent_principal=current_principal(ctx),
+        )
+
     return mcp
 
 
@@ -443,3 +680,42 @@ def _read_binary_resource(
     authorize_resource_access(context, task_id, agent_principal=agent_principal)
     target = context.artifact_store.task_dir(task_id) / relative_path
     return target.read_bytes()
+
+
+def _read_video_thread_surface_resource(
+    context: AppContext,
+    thread_id: str,
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> str:
+    surface = get_video_thread_surface_tool(
+        context,
+        {"thread_id": thread_id},
+        agent_principal=agent_principal,
+    )
+    return json.dumps(surface, indent=2)
+
+
+def _read_video_thread_timeline_resource(
+    context: AppContext,
+    thread_id: str,
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> str:
+    if agent_principal is not None:
+        context.agent_identity_service.require_action(agent_principal, "task:read")
+    payload = context.video_projection_service.build_timeline_payload(thread_id)
+    return json.dumps(payload, indent=2)
+
+
+def _read_video_thread_iteration_resource(
+    context: AppContext,
+    thread_id: str,
+    iteration_id: str,
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> str:
+    if agent_principal is not None:
+        context.agent_identity_service.require_action(agent_principal, "task:read")
+    payload = context.video_projection_service.build_iteration_payload(thread_id, iteration_id)
+    return json.dumps(payload, indent=2)

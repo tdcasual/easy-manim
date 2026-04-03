@@ -10,6 +10,8 @@ from collections.abc import Callable
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.enums import TaskPhase, TaskStatus
+from video_agent.domain.validation_models import ValidationReport
 from tests.support import bootstrapped_settings
 
 
@@ -269,6 +271,21 @@ def test_fastmcp_tool_and_resource_roundtrip(tmp_path: Path) -> None:
 
     asyncio.run(run())
 
+
+def test_fastmcp_no_longer_exposes_legacy_video_discussion_thread_resource(tmp_path: Path) -> None:
+    async def run() -> None:
+        settings = _build_fake_pipeline_settings(tmp_path)
+        app = _create_app_context(settings)
+        created = app.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+        mcp = _create_mcp_server(settings)
+        try:
+            await mcp.read_resource(f"video-discussion://{created.task_id}/thread.json")
+        except (KeyError, ValueError) as exc:
+            assert "video-discussion://" in str(exc)
+        else:  # pragma: no cover - regression guard
+            raise AssertionError("legacy video-discussion resource should not be registered")
+
+    asyncio.run(run())
 
 
 def test_fastmcp_server_can_skip_background_worker(tmp_path: Path, monkeypatch) -> None:

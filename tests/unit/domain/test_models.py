@@ -28,3 +28,18 @@ def test_child_task_inherits_display_title_metadata() -> None:
 
     assert child.display_title == "蓝色圆形开场动画"
     assert child.title_source == "prompt"
+
+
+def test_video_task_can_bind_to_thread_iteration_and_result() -> None:
+    task = VideoTask(
+        prompt="draw a circle",
+        thread_id="thread-1",
+        iteration_id="iter-1",
+        result_id="result-1",
+        execution_kind="initial_generation",
+    )
+
+    assert task.thread_id == "thread-1"
+    assert task.iteration_id == "iter-1"
+    assert task.result_id == "result-1"
+    assert task.execution_kind == "initial_generation"

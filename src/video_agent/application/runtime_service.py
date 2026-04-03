@@ -14,6 +14,7 @@ from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.config import DEFAULT_STUB_LLM_MODEL, Settings
 from video_agent.domain.enums import TaskStatus
 from video_agent.domain.models import VideoTask
+from video_agent.domain.review_workflow_models import RuntimeCollaborationSummary
 from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.validation.runtime_smoke import run_mathtex_smoke
 from video_agent.version import get_release_metadata
@@ -124,6 +125,7 @@ class RuntimeDeliverySummary(BaseModel):
     arbitration_success_rate: float
     repair_loop_saturation_count: int
     repair_loop_saturation_rate: float
+    active_threads: list[dict[str, str | None]] = Field(default_factory=list)
     top_stop_reasons: list[RuntimeDeliveryStopReason] = Field(default_factory=list)
 
 
@@ -142,6 +144,7 @@ class RuntimeStatus(BaseModel):
     autonomy_guard: RuntimeAutonomyGuardStatus
     task_processing: RuntimeTaskProcessingStatus
     delivery_summary: RuntimeDeliverySummary
+    collaboration_summary: RuntimeCollaborationSummary
     delivery_canary: RuntimeDeliveryCanaryStatus
     checks: dict[str, RuntimeCheckResult]
     features: dict[str, RuntimeFeatureStatus]
@@ -156,15 +159,18 @@ class RuntimeService:
         settings: Settings,
         store: SQLiteTaskStore | None = None,
         runtime_policy: RuntimePolicy | None = None,
+        collaboration_service=None,
     ) -> None:
         self.settings = settings
         self.store = store
         self.runtime_policy = runtime_policy
+        self.collaboration_service = collaboration_service
 
     def inspect(self, run_feature_smoke: bool = False) -> RuntimeStatus:
         checks = self.inspect_checks()
         task_processing = self.inspect_task_processing(checks)
         delivery_summary = self.inspect_delivery_summary()
+        collaboration_summary = self.inspect_collaboration_summary()
         delivery_canary = self.inspect_delivery_canary()
         return RuntimeStatus(
             storage=RuntimeStorageStatus(
@@ -206,6 +212,7 @@ class RuntimeService:
             ),
             task_processing=task_processing,
             delivery_summary=delivery_summary,
+            collaboration_summary=collaboration_summary,
             delivery_canary=delivery_canary,
             checks=checks,
             features={
@@ -307,6 +314,7 @@ class RuntimeService:
                 arbitration_success_rate=0.0,
                 repair_loop_saturation_count=0,
                 repair_loop_saturation_rate=0.0,
+                active_threads=[],
                 top_stop_reasons=[],
             )
 
@@ -410,8 +418,31 @@ class RuntimeService:
             else arbitration_success_count / arbitration_attempt_count,
             repair_loop_saturation_count=repair_loop_saturation_count,
             repair_loop_saturation_rate=repair_loop_saturation_count / total_roots,
+            active_threads=self._load_active_thread_bindings(),
             top_stop_reasons=top_stop_reasons,
         )
+
+    def _load_active_thread_bindings(self) -> list[dict[str, str | None]]:
+        if self.store is None:
+            return []
+        active_statuses = {TaskStatus.QUEUED, TaskStatus.RUNNING}
+        active_threads: list[dict[str, str | None]] = []
+        seen_thread_ids: set[str] = set()
+        for task in self.store.list_thread_bound_tasks():
+            if task.thread_id is None or task.thread_id in seen_thread_ids:
+                continue
+            if task.status not in active_statuses:
+                continue
+            seen_thread_ids.add(task.thread_id)
+            active_threads.append(
+                {
+                    "thread_id": task.thread_id,
+                    "iteration_id": task.iteration_id,
+                    "task_id": task.task_id,
+                    "status": task.status.value,
+                }
+            )
+        return active_threads
 
     def inspect_delivery_canary(self) -> RuntimeDeliveryCanaryStatus:
         target = self.settings.eval_root / "delivery-canary" / "latest.json"
@@ -422,6 +453,11 @@ class RuntimeService:
         except (OSError, json.JSONDecodeError):
             return RuntimeDeliveryCanaryStatus(available=False, last_run=None)
         return RuntimeDeliveryCanaryStatus(available=True, last_run=payload)
+
+    def inspect_collaboration_summary(self) -> RuntimeCollaborationSummary:
+        if self.collaboration_service is None:
+            return RuntimeCollaborationSummary()
+        return self.collaboration_service.build_runtime_summary()
 
     def inspect_multi_agent_autonomy_guard(
         self,

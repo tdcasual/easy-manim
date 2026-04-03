@@ -98,6 +98,9 @@ class Settings(BaseModel):
     persistent_memory_enable_embeddings: bool = False
     persistent_memory_embedding_provider: str | None = None
     persistent_memory_embedding_model: str | None = None
+    persistent_memory_memo0_api_key: str | None = None
+    persistent_memory_memo0_org_id: str | None = None
+    persistent_memory_memo0_project_id: str | None = None
     capability_rollout_profile: str = "supervised"
     agent_learning_auto_apply_enabled: bool = False
     agent_learning_auto_apply_min_completed_tasks: int = 5

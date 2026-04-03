@@ -6,6 +6,7 @@ import { requestJson } from "./api";
 
 export type RecentVideoItem = {
   task_id: string;
+  thread_id?: string | null;
   display_title?: string | null;
   title_source?: string | null;
   status: string;

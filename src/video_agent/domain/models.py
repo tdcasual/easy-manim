@@ -17,6 +17,13 @@ class VideoTask(BaseModel):
     task_id: str = Field(default_factory=lambda: str(uuid4()))
     root_task_id: Optional[str] = None
     parent_task_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    iteration_id: Optional[str] = None
+    result_id: Optional[str] = None
+    execution_kind: Optional[str] = None
+    target_participant_id: Optional[str] = None
+    target_agent_id: Optional[str] = None
+    target_agent_role: Optional[str] = None
     inherited_from_task_id: Optional[str] = None
     branch_kind: Optional[str] = None
     agent_id: Optional[str] = None
@@ -77,6 +84,13 @@ class VideoTask(BaseModel):
         return cls(
             root_task_id=parent.root_task_id,
             parent_task_id=parent.task_id,
+            thread_id=parent.thread_id,
+            iteration_id=parent.iteration_id,
+            result_id=parent.result_id,
+            execution_kind=parent.execution_kind,
+            target_participant_id=parent.target_participant_id,
+            target_agent_id=parent.target_agent_id,
+            target_agent_role=parent.target_agent_role,
             inherited_from_task_id=parent.task_id,
             branch_kind=None,
             agent_id=parent.agent_id,

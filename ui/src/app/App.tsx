@@ -20,6 +20,9 @@ const TaskDetailPageLazy = lazy(() =>
 const VideosPageLazy = lazy(() =>
   import("../features/videos/VideosPageV2").then((m) => ({ default: m.VideosPageV2 }))
 );
+const VideoThreadPageLazy = lazy(() =>
+  import("../features/videoThreads/VideoThreadPage").then((m) => ({ default: m.VideoThreadPage }))
+);
 const MemoryPageLazy = lazy(() =>
   import("../features/memory/MemoryPageV2").then((m) => ({ default: m.MemoryPageV2 }))
 );
@@ -82,6 +85,7 @@ export function App() {
               <Route path="/tasks" element={<TasksPageLazy />} />
               <Route path="/tasks/:taskId" element={<TaskDetailPageLazy />} />
               <Route path="/videos" element={<VideosPageLazy />} />
+              <Route path="/videos/:threadId" element={<VideoThreadPageLazy />} />
               <Route path="/memory" element={<MemoryPageLazy />} />
               <Route path="/profile" element={<ProfilePageLazy />} />
               <Route path="/evals" element={<EvalsPageLazy />} />

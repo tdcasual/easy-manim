@@ -87,6 +87,29 @@ def test_settings_define_persistent_memory_defaults() -> None:
     assert settings.persistent_memory_enable_embeddings is False
     assert settings.persistent_memory_embedding_provider is None
     assert settings.persistent_memory_embedding_model is None
+    assert settings.persistent_memory_memo0_api_key is None
+    assert settings.persistent_memory_memo0_org_id is None
+    assert settings.persistent_memory_memo0_project_id is None
+
+
+def test_build_settings_reads_persistent_memory_env(monkeypatch) -> None:
+    monkeypatch.setenv("EASY_MANIM_PERSISTENT_MEMORY_BACKEND", "memo0")
+    monkeypatch.setenv("EASY_MANIM_PERSISTENT_MEMORY_ENABLE_EMBEDDINGS", "true")
+    monkeypatch.setenv("EASY_MANIM_PERSISTENT_MEMORY_EMBEDDING_PROVIDER", "openai")
+    monkeypatch.setenv("EASY_MANIM_PERSISTENT_MEMORY_EMBEDDING_MODEL", "text-embedding-3-small")
+    monkeypatch.setenv("EASY_MANIM_PERSISTENT_MEMORY_MEMO0_API_KEY", "memo0-secret")
+    monkeypatch.setenv("EASY_MANIM_PERSISTENT_MEMORY_MEMO0_ORG_ID", "org-123")
+    monkeypatch.setenv("EASY_MANIM_PERSISTENT_MEMORY_MEMO0_PROJECT_ID", "proj-456")
+
+    settings = build_settings(Path("data"))
+
+    assert settings.persistent_memory_backend == "memo0"
+    assert settings.persistent_memory_enable_embeddings is True
+    assert settings.persistent_memory_embedding_provider == "openai"
+    assert settings.persistent_memory_embedding_model == "text-embedding-3-small"
+    assert settings.persistent_memory_memo0_api_key == "memo0-secret"
+    assert settings.persistent_memory_memo0_org_id == "org-123"
+    assert settings.persistent_memory_memo0_project_id == "proj-456"
 
 
 def test_settings_define_multi_agent_workflow_defaults() -> None:

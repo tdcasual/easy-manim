@@ -10,8 +10,6 @@ from video_agent.application.persistent_memory_service import PersistentMemoryEr
 from video_agent.domain.review_workflow_models import ReviewDecision
 from video_agent.server.app import AppContext
 
-
-
 def authenticate_agent_tool(
     context: AppContext,
     payload: dict[str, Any],
@@ -106,6 +104,176 @@ def create_video_task_tool(
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         return _error_payload(_permission_error_code(exc), str(exc))
+    return result.model_dump(mode="json")
+
+
+def create_video_thread_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:create")
+        result = context.video_thread_service.create_thread(
+            owner_agent_id=payload["owner_agent_id"],
+            title=payload["title"],
+            prompt=payload["prompt"],
+            session_id=payload.get("session_id"),
+            memory_ids=payload.get("memory_ids"),
+            agent_principal=principal,
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return result.model_dump(mode="json")
+
+
+def append_video_turn_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        result = context.video_thread_service.append_turn(
+            thread_id=payload["thread_id"],
+            iteration_id=payload["iteration_id"],
+            title=payload["title"],
+            summary=payload.get("summary", ""),
+            addressed_participant_id=payload.get("addressed_participant_id"),
+            reply_to_turn_id=payload.get("reply_to_turn_id"),
+            related_result_id=payload.get("related_result_id"),
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError as exc:
+        code = str(exc.args[0]) if exc.args else "thread_not_found"
+        return _error_payload(code, code)
+    return result.model_dump(mode="json")
+
+
+def request_video_explanation_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        result = context.video_thread_service.request_explanation(
+            thread_id=payload["thread_id"],
+            iteration_id=payload["iteration_id"],
+            summary=payload["summary"],
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError as exc:
+        code = str(exc.args[0]) if exc.args else "thread_not_found"
+        return _error_payload(code, code)
+    return result.model_dump(mode="json")
+
+
+def select_video_result_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        result = context.video_thread_service.select_result(
+            payload["thread_id"],
+            payload["result_id"],
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError as exc:
+        code = str(exc.args[0]) if exc.args else "thread_not_found"
+        return _error_payload(code, code)
+    return result.model_dump(mode="json")
+
+
+def get_video_thread_surface_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
+        surface = context.video_projection_service.build_surface(
+            payload["thread_id"],
+            viewer_agent_id=None if principal is None else principal.agent_id,
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError:
+        return _error_payload("thread_not_found", "thread_not_found")
+    return surface.model_dump(mode="json")
+
+
+def list_video_thread_participants_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        _authorize_agent_action(context, agent_principal, "task:read")
+        items = context.video_thread_service.list_participants(payload["thread_id"])
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError:
+        return _error_payload("thread_not_found", "thread_not_found")
+    return {
+        "thread_id": payload["thread_id"],
+        "items": [item.model_dump(mode="json") for item in items],
+    }
+
+
+def upsert_video_thread_participant_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        result = context.video_thread_service.upsert_participant(
+            thread_id=payload["thread_id"],
+            participant_id=payload["participant_id"],
+            participant_type=payload["participant_type"],
+            agent_id=payload.get("agent_id"),
+            role=payload["role"],
+            display_name=payload["display_name"],
+            capabilities=payload.get("capabilities"),
+            agent_principal=principal,
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError:
+        return _error_payload("thread_not_found", "thread_not_found")
+    return result.model_dump(mode="json")
+
+
+def remove_video_thread_participant_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        result = context.video_thread_service.remove_participant(
+            thread_id=payload["thread_id"],
+            participant_id=payload["participant_id"],
+            agent_principal=principal,
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError:
+        return _error_payload("thread_not_found", "thread_not_found")
     return result.model_dump(mode="json")
 
 
@@ -317,6 +485,32 @@ def revise_video_task_tool(
     return result.model_dump(mode="json")
 
 
+def request_video_revision_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        result = context.video_thread_service.request_revision(
+            thread_id=payload["thread_id"],
+            base_task_id=payload.get("base_task_id"),
+            base_iteration_id=payload.get("iteration_id"),
+            summary=payload["summary"],
+            preserve_working_parts=payload.get("preserve_working_parts", True),
+            session_id=payload.get("session_id"),
+            memory_ids=payload.get("memory_ids"),
+            agent_principal=principal,
+        )
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    except KeyError as exc:
+        code = str(exc.args[0]) if exc.args else "thread_not_found"
+        return _error_payload(code, code)
+    return result.model_dump(mode="json")
+
+
 def get_review_bundle_tool(
     context: AppContext,
     payload: dict[str, Any],
@@ -336,6 +530,155 @@ def get_review_bundle_tool(
     return result.model_dump(mode="json")
 
 
+def list_workflow_participants_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
+        root_task_id, items = context.workflow_collaboration_service.list_workflow_participants(
+            payload["task_id"],
+            agent_principal=principal,
+        )
+    except KeyError:
+        return _error_payload("task_not_found", "task_not_found")
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return {
+        "task_id": payload["task_id"],
+        "root_task_id": root_task_id,
+        "items": [item.model_dump(mode="json") for item in items],
+    }
+
+
+def upsert_workflow_participant_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        participant = context.workflow_collaboration_service.upsert_workflow_participant(
+            payload["task_id"],
+            participant_agent_id=payload["agent_id"],
+            role=payload["role"],
+            capabilities=payload.get("capabilities"),
+            agent_principal=principal,
+        )
+    except KeyError:
+        return _error_payload("task_not_found", "task_not_found")
+    except ValidationError as exc:
+        return _error_payload("invalid_workflow_participant", str(exc))
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return {
+        "task_id": payload["task_id"],
+        "root_task_id": participant.root_task_id,
+        "participant": participant.model_dump(mode="json"),
+    }
+
+
+def remove_workflow_participant_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        root_task_id, removed = context.workflow_collaboration_service.remove_workflow_participant(
+            payload["task_id"],
+            participant_agent_id=payload["agent_id"],
+            agent_principal=principal,
+        )
+    except KeyError:
+        return _error_payload("task_not_found", "task_not_found")
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return {
+        "task_id": payload["task_id"],
+        "root_task_id": root_task_id,
+        "agent_id": payload["agent_id"],
+        "removed": removed,
+    }
+
+
+def list_workflow_memory_recommendations_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:read")
+        recommendations = context.workflow_collaboration_service.list_workflow_memory_recommendations(
+            payload["task_id"],
+            limit=payload.get("limit", 5),
+            agent_principal=principal,
+        )
+    except KeyError:
+        return _error_payload("task_not_found", "task_not_found")
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return {
+        "task_id": payload["task_id"],
+        **recommendations.model_dump(mode="json"),
+    }
+
+
+def pin_workflow_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        state = context.workflow_collaboration_service.pin_workflow_memory(
+            payload["task_id"],
+            memory_id=payload["memory_id"],
+            agent_principal=principal,
+        )
+    except KeyError:
+        return _error_payload("task_not_found", "task_not_found")
+    except PersistentMemoryError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return {
+        "task_id": payload["task_id"],
+        **state.model_dump(mode="json"),
+    }
+
+
+def unpin_workflow_memory_tool(
+    context: AppContext,
+    payload: dict[str, Any],
+    *,
+    agent_principal: AgentPrincipal | None = None,
+) -> dict[str, Any]:
+    try:
+        principal = _authorize_agent_action(context, agent_principal, "task:mutate")
+        state = context.workflow_collaboration_service.unpin_workflow_memory(
+            payload["task_id"],
+            memory_id=payload["memory_id"],
+            agent_principal=principal,
+        )
+    except KeyError:
+        return _error_payload("task_not_found", "task_not_found")
+    except PersistentMemoryError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PermissionError as exc:
+        return _error_payload(_permission_error_code(exc), str(exc))
+    return {
+        "task_id": payload["task_id"],
+        **state.model_dump(mode="json"),
+    }
+
+
 def apply_review_decision_tool(
     context: AppContext,
     payload: dict[str, Any],
@@ -352,11 +695,15 @@ def apply_review_decision_tool(
             review_decision=review_decision,
             session_id=payload.get("session_id"),
             memory_ids=payload.get("memory_ids"),
+            pin_workflow_memory_ids=payload.get("pin_workflow_memory_ids"),
+            unpin_workflow_memory_ids=payload.get("unpin_workflow_memory_ids"),
             agent_principal=principal,
         )
     except ValidationError as exc:
         return _error_payload("invalid_review_decision", str(exc))
     except AdmissionControlError as exc:
+        return _error_payload(exc.code, str(exc))
+    except PersistentMemoryError as exc:
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         return _error_payload(_permission_error_code(exc), str(exc))

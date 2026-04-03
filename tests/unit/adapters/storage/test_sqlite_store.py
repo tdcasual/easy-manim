@@ -10,6 +10,7 @@ from video_agent.domain.agent_profile_suggestion_models import AgentProfileSugge
 from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.models import VideoTask
 from video_agent.domain.quality_models import QualityScorecard
+from video_agent.domain.review_workflow_models import WorkflowParticipant
 
 
 def _build_store(tmp_path) -> SQLiteTaskStore:
@@ -97,6 +98,57 @@ def test_sqlite_bootstrapper_adds_reliability_columns_and_tables(tmp_path) -> No
     assert "task_quality_scores" in tables
 
 
+def test_sqlite_bootstrapper_adds_video_thread_runtime_tables_and_columns(tmp_path) -> None:
+    database_path = tmp_path / "agent.db"
+    SQLiteBootstrapper(database_path).bootstrap()
+
+    with sqlite3.connect(database_path) as connection:
+        task_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(video_tasks)").fetchall()
+        }
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        }
+        indexes = {
+            row[1]
+            for row in connection.execute("PRAGMA index_list(video_iterations)").fetchall()
+        }
+
+    assert "thread_id" in task_columns
+    assert "iteration_id" in task_columns
+    assert "result_id" in task_columns
+    assert "execution_kind" in task_columns
+    assert "video_threads" in tables
+    assert "video_iterations" in tables
+    assert "video_turns" in tables
+    assert "video_results" in tables
+    assert "video_thread_participants" in tables
+    assert "video_agent_runs" in tables
+    assert "idx_video_iterations_thread_created_at" in indexes
+
+
+def test_store_persists_thread_binding_fields_on_tasks(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    task = VideoTask(
+        prompt="draw a circle",
+        thread_id="thread-1",
+        iteration_id="iter-1",
+        result_id="result-1",
+        execution_kind="initial_generation",
+    )
+
+    store.create_task(task, idempotency_key="thread-binding")
+    loaded = store.get_task(task.task_id)
+
+    assert loaded is not None
+    assert loaded.thread_id == "thread-1"
+    assert loaded.iteration_id == "iter-1"
+    assert loaded.result_id == "result-1"
+    assert loaded.execution_kind == "initial_generation"
+
+
 def test_idempotency_key_returns_existing_task(tmp_path) -> None:
     store = _build_store(tmp_path)
     first = VideoTask(prompt="draw a circle")
@@ -105,6 +157,31 @@ def test_idempotency_key_returns_existing_task(tmp_path) -> None:
     created = store.create_task(first, idempotency_key="same")
     duplicate = store.create_task(second, idempotency_key="same")
     assert duplicate.task_id == created.task_id
+
+
+def test_store_lists_filtered_events_by_type_without_default_truncation(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    task = VideoTask(prompt="draw a circle")
+    store.create_task(task, idempotency_key="filtered-events")
+
+    for index in range(205):
+        store.append_event(
+            task.task_id,
+            "workflow_memory_pinned",
+            {"memory_id": f"mem-{index}", "summary": f"pin memory {index}"},
+        )
+    store.append_event(task.task_id, "task_status_changed", {"status": "running"})
+
+    filtered_events = store.list_events(
+        task.task_id,
+        limit=None,
+        event_type="workflow_memory_pinned",
+    )
+
+    assert len(filtered_events) == 205
+    assert filtered_events[0]["payload"]["memory_id"] == "mem-0"
+    assert filtered_events[-1]["payload"]["memory_id"] == "mem-204"
+    assert all(event["event_type"] == "workflow_memory_pinned" for event in filtered_events)
 
 
 def test_store_round_trips_agent_profile(tmp_path) -> None:
@@ -319,6 +396,34 @@ def test_store_round_trips_task_quality_score(tmp_path) -> None:
     assert loaded is not None
     assert loaded.total_score == 0.72
     assert loaded.dimension_scores["motion_smoothness"] == 0.4
+
+
+def test_store_round_trips_workflow_participants(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    reviewer = store.upsert_workflow_participant(
+        WorkflowParticipant(
+            root_task_id="root-1",
+            agent_id="agent-b",
+            role="reviewer",
+        )
+    )
+    repairer = store.upsert_workflow_participant(
+        WorkflowParticipant(
+            root_task_id="root-1",
+            agent_id="agent-c",
+            role="repairer",
+        )
+    )
+
+    loaded = store.get_workflow_participant("root-1", "agent-b")
+    participants = store.list_workflow_participants("root-1")
+
+    assert loaded is not None
+    assert loaded.role == "reviewer"
+    assert loaded.capabilities == ["review_bundle:read", "review_decision:write"]
+    assert [participant.agent_id for participant in participants] == ["agent-b", "agent-c"]
+    assert participants[0].created_at == reviewer.created_at
+    assert participants[1].created_at == repairer.created_at
 
 
 def test_store_round_trips_agent_profile_revision(tmp_path) -> None:

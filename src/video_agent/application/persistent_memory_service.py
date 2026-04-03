@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, Protocol
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -27,6 +28,25 @@ class PersistentMemoryContext(BaseModel):
     summary_digest: str | None = None
 
 
+class PersistentMemoryBackendHit(BaseModel):
+    memory_id: str
+    score: float = 0.0
+    matched_terms: list[str] = Field(default_factory=list)
+    match_reasons: list[str] = Field(default_factory=list)
+
+
+class PersistentMemoryBackend(PersistentMemoryEnhancer, Protocol):
+    def search(
+        self,
+        *,
+        agent_id: str,
+        query: str,
+        limit: int,
+    ) -> list[PersistentMemoryBackendHit]: ...
+
+    def delete(self, record: AgentMemoryRecord) -> None: ...
+
+
 @dataclass(frozen=True)
 class _RetrievalScore:
     score: float
@@ -40,26 +60,44 @@ def build_persistent_memory_enhancer(
     enable_embeddings: bool,
     embedding_provider: str | None,
     embedding_model: str | None,
+    memo0_api_key: str | None = None,
+    memo0_org_id: str | None = None,
+    memo0_project_id: str | None = None,
 ) -> PersistentMemoryEnhancer | None:
+    return build_persistent_memory_backend(
+        backend=backend,
+        enable_embeddings=enable_embeddings,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        memo0_api_key=memo0_api_key,
+        memo0_org_id=memo0_org_id,
+        memo0_project_id=memo0_project_id,
+    )
+
+
+def build_persistent_memory_backend(
+    *,
+    backend: str,
+    enable_embeddings: bool,
+    embedding_provider: str | None,
+    embedding_model: str | None,
+    memo0_api_key: str | None = None,
+    memo0_org_id: str | None = None,
+    memo0_project_id: str | None = None,
+) -> PersistentMemoryBackend | None:
     if backend == "local":
         return None
     if backend == "memo0":
+        from video_agent.application.memo0_memory_backend import Memo0MemoryBackend
 
-        def enhancer(record: AgentMemoryRecord) -> dict[str, object]:
-            payload: dict[str, object] = {
-                "status": "unavailable",
-                "code": "agent_memory_enhancement_unavailable",
-                "backend": backend,
-            }
-            if enable_embeddings or embedding_provider or embedding_model:
-                payload["embeddings"] = {
-                    "enabled": enable_embeddings,
-                    "provider": embedding_provider,
-                    "model": embedding_model,
-                }
-            return payload
-
-        return enhancer
+        return Memo0MemoryBackend(
+            api_key=memo0_api_key,
+            org_id=memo0_org_id,
+            project_id=memo0_project_id,
+            enable_embeddings=enable_embeddings,
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+        )
     raise ValueError(f"Unsupported persistent_memory_backend: {backend}")
 
 
@@ -73,6 +111,7 @@ class PersistentMemoryService:
         list_records: Callable[[str, bool], list[AgentMemoryRecord]] | None = None,
         disable_record: Callable[[str], bool] | None = None,
         enhancer: PersistentMemoryEnhancer | None = None,
+        memory_backend: PersistentMemoryBackend | None = None,
         memory_id_factory: Callable[[], str] | None = None,
     ) -> None:
         self.create_record = create_record
@@ -81,6 +120,7 @@ class PersistentMemoryService:
         self.list_records = list_records or (lambda agent_id, include_disabled=False: [])
         self.disable_record = disable_record or (lambda memory_id: False)
         self.enhancer = enhancer
+        self.memory_backend = memory_backend or self._coerce_memory_backend(enhancer)
         self.memory_id_factory = memory_id_factory or self._default_memory_id
 
     def promote_session_memory(self, session_id: str, *, agent_id: str) -> AgentMemoryRecord:
@@ -118,6 +158,7 @@ class PersistentMemoryService:
         record = self.get_agent_memory(memory_id, agent_id=agent_id)
         if record.status == "disabled":
             return record
+        self._disable_memory_backend(record)
         if not self.disable_record(memory_id):
             raise PersistentMemoryError("agent_memory_not_found")
         return self.get_agent_memory(memory_id, agent_id=agent_id)
@@ -134,6 +175,14 @@ class PersistentMemoryService:
         normalized_query = query.strip()
         if not normalized_query:
             return []
+
+        backend_hits = self._query_memory_backend(
+            agent_id,
+            query=normalized_query,
+            limit=limit,
+        )
+        if backend_hits:
+            return backend_hits
 
         query_tokens = self._tokenize_for_retrieval(normalized_query)
         if not query_tokens:
@@ -160,6 +209,43 @@ class PersistentMemoryService:
             )
             for retrieval_score, record in scored[:limit]
         ]
+
+    def _query_memory_backend(
+        self,
+        agent_id: str,
+        *,
+        query: str,
+        limit: int,
+    ) -> list[AgentMemoryRetrievalHit]:
+        if self.memory_backend is None:
+            return []
+        try:
+            backend_hits = self.memory_backend.search(
+                agent_id=agent_id,
+                query=query,
+                limit=limit,
+            )
+        except Exception:
+            return []
+
+        resolved: list[AgentMemoryRetrievalHit] = []
+        for backend_hit in backend_hits:
+            record = self.get_record(backend_hit.memory_id)
+            if record is None or record.agent_id != agent_id or record.status != "active":
+                continue
+            resolved.append(
+                AgentMemoryRetrievalHit(
+                    memory_id=record.memory_id,
+                    score=round(backend_hit.score, 6),
+                    summary_text=record.summary_text,
+                    summary_digest=record.summary_digest,
+                    matched_terms=list(backend_hit.matched_terms),
+                    match_reasons=list(backend_hit.match_reasons),
+                    lineage_refs=list(record.lineage_refs),
+                    enhancement=dict(record.enhancement),
+                )
+            )
+        return resolved
 
     def resolve_memory_context(self, agent_id: str, memory_ids: list[str] | None) -> PersistentMemoryContext:
         selected_ids = list(dict.fromkeys(memory_ids or []))
@@ -197,6 +283,24 @@ class PersistentMemoryService:
                 result = {} if result_payload is None else dict(result_payload)
         result["retrieval"] = normalize_retrieval_metadata(record, existing=result)
         return result
+
+    def _disable_memory_backend(self, record: AgentMemoryRecord) -> None:
+        if self.memory_backend is None:
+            return
+        try:
+            self.memory_backend.delete(record)
+        except Exception:
+            return
+
+    @staticmethod
+    def _coerce_memory_backend(
+        enhancer: PersistentMemoryEnhancer | None,
+    ) -> PersistentMemoryBackend | None:
+        if enhancer is None:
+            return None
+        if hasattr(enhancer, "search") and hasattr(enhancer, "delete"):
+            return enhancer  # type: ignore[return-value]
+        return None
 
     @staticmethod
     def _tokenize_for_retrieval(text: str) -> list[str]:

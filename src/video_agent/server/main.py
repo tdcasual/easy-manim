@@ -154,6 +154,13 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         worker_stale_after_seconds=_env_int("EASY_MANIM_WORKER_STALE_AFTER_SECONDS", 30),
         max_queued_tasks=_env_int("EASY_MANIM_MAX_QUEUED_TASKS", 20),
         max_attempts_per_root_task=_env_int("EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK", 5),
+        persistent_memory_backend=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_BACKEND", "local"),
+        persistent_memory_enable_embeddings=_env_bool("EASY_MANIM_PERSISTENT_MEMORY_ENABLE_EMBEDDINGS", False),
+        persistent_memory_embedding_provider=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_EMBEDDING_PROVIDER"),
+        persistent_memory_embedding_model=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_EMBEDDING_MODEL"),
+        persistent_memory_memo0_api_key=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_MEMO0_API_KEY"),
+        persistent_memory_memo0_org_id=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_MEMO0_ORG_ID"),
+        persistent_memory_memo0_project_id=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_MEMO0_PROJECT_ID"),
         capability_rollout_profile=rollout_profile,
         agent_learning_auto_apply_enabled=_env_bool(
             "EASY_MANIM_AGENT_LEARNING_AUTO_APPLY_ENABLED",

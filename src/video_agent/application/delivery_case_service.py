@@ -7,6 +7,7 @@ from typing import Any
 from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.lineage_graph import reachable_lineage_tasks
+from video_agent.application.video_run_binding_service import VideoRunBindingService
 from video_agent.domain.delivery_case_models import AgentRun, DeliveryCase
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
@@ -19,9 +20,11 @@ class DeliveryCaseService:
         *,
         store: SQLiteTaskStore,
         artifact_store: ArtifactStore,
+        video_run_binding_service: VideoRunBindingService | None = None,
     ) -> None:
         self.store = store
         self.artifact_store = artifact_store
+        self.video_run_binding_service = video_run_binding_service
 
     def ensure_case_for_task(self, task: VideoTask) -> tuple[DeliveryCase, bool]:
         case_id = task.root_task_id or task.task_id
@@ -361,7 +364,7 @@ class DeliveryCaseService:
         elif status == "queued":
             finished_at = None
 
-        return self.store.upsert_agent_run(
+        run = self.store.upsert_agent_run(
             AgentRun(
                 run_id=run_id,
                 case_id=delivery_case.case_id,
@@ -380,6 +383,14 @@ class DeliveryCaseService:
                 finished_at=finished_at,
             )
         )
+        if self.video_run_binding_service is not None and status != "queued":
+            self.video_run_binding_service.sync_task_lifecycle_run(
+                task=task,
+                status=status,
+                phase=phase,
+                summary=summary,
+            )
+        return run
 
     @staticmethod
     def _lifecycle_run_id(task_id: str, role: str) -> str:

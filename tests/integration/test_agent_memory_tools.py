@@ -3,9 +3,11 @@ from pathlib import Path
 import pytest
 
 from video_agent.application.agent_identity_service import AgentPrincipal
+from video_agent.application.persistent_memory_service import PersistentMemoryBackendHit
 from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+import video_agent.server.app as app_module
 from video_agent.server.app import create_app_context
 from video_agent.server.mcp_tools import (
     create_video_task_tool,
@@ -16,6 +18,31 @@ from video_agent.server.mcp_tools import (
     query_agent_memories_tool,
 )
 from tests.support import bootstrapped_settings
+
+
+class _FakeMemo0Backend:
+    def __init__(self) -> None:
+        self.deleted_memory_ids: list[str] = []
+        self.search_hits: list[PersistentMemoryBackendHit] = []
+
+    def __call__(self, record: AgentMemoryRecord) -> dict[str, object]:
+        return {
+            "status": "indexed",
+            "backend": "memo0",
+            "memory_ids": [f"remote-{record.memory_id}"],
+        }
+
+    def search(
+        self,
+        *,
+        agent_id: str,
+        query: str,
+        limit: int,
+    ) -> list[PersistentMemoryBackendHit]:
+        return list(self.search_hits[:limit])
+
+    def delete(self, record: AgentMemoryRecord) -> None:
+        self.deleted_memory_ids.append(record.memory_id)
 
 
 def _build_agent_memory_settings(tmp_path: Path, *, persistent_memory_backend: str = "local") -> Settings:
@@ -137,6 +164,29 @@ def test_promote_returns_enhancement_warning_without_failing(tmp_path: Path) -> 
     assert payload["memory_id"]
     assert payload["enhancement"]["code"] == "agent_memory_enhancement_unavailable"
     assert payload["enhancement"]["backend"] == "memo0"
+
+
+def test_promote_returns_memo0_index_metadata_when_backend_is_injected(tmp_path: Path, monkeypatch) -> None:
+    backend = _FakeMemo0Backend()
+    monkeypatch.setattr(app_module, "build_persistent_memory_backend", lambda **kwargs: backend, raising=False)
+
+    app_context = create_app_context(_build_agent_memory_settings(tmp_path, persistent_memory_backend="memo0"))
+    app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-a",
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    payload = promote_session_memory_tool(
+        app_context,
+        {},
+        agent_principal=agent_principal("agent-a"),
+        session_id="session-a",
+    )
+
+    assert payload["enhancement"]["status"] == "indexed"
+    assert payload["enhancement"]["backend"] == "memo0"
+    assert payload["enhancement"]["memory_ids"] == [f"remote-{payload['memory_id']}"]
 
 
 def test_promote_stores_retrieval_metadata_for_local_backend(app_context) -> None:
@@ -275,6 +325,54 @@ def test_query_agent_memories_keeps_stable_order_for_equal_scores(app_context) -
     )
 
     assert [item["memory_id"] for item in payload["items"]] == ["mem-a", "mem-b"]
+
+
+def test_query_agent_memories_uses_memo0_backend_ordering(tmp_path: Path, monkeypatch) -> None:
+    backend = _FakeMemo0Backend()
+    backend.search_hits = [
+        PersistentMemoryBackendHit(
+            memory_id="mem-b",
+            score=0.95,
+            match_reasons=["memo0_semantic_search"],
+        ),
+        PersistentMemoryBackendHit(
+            memory_id="mem-a",
+            score=0.83,
+            match_reasons=["memo0_semantic_search"],
+        ),
+    ]
+    monkeypatch.setattr(app_module, "build_persistent_memory_backend", lambda **kwargs: backend, raising=False)
+
+    app_context = create_app_context(_build_agent_memory_settings(tmp_path, persistent_memory_backend="memo0"))
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="Dark background with smooth transitions.",
+            summary_digest="digest-mem-a",
+        )
+    )
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-b",
+            agent_id="agent-a",
+            source_session_id="session-agent-a",
+            status="active",
+            summary_text="High contrast title treatment.",
+            summary_digest="digest-mem-b",
+        )
+    )
+
+    payload = query_agent_memories_tool(
+        app_context,
+        {"query": "cinematic contrast", "limit": 5},
+        agent_principal=agent_principal("agent-a"),
+    )
+
+    assert [item["memory_id"] for item in payload["items"]] == ["mem-b", "mem-a"]
+    assert payload["items"][0]["match_reasons"] == ["memo0_semantic_search"]
 
 
 def test_query_agent_memories_requires_memory_read_scope(app_context) -> None:

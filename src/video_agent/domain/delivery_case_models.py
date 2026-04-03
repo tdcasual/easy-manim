@@ -29,6 +29,9 @@ class AgentRun(BaseModel):
     run_id: str = Field(default_factory=lambda: str(uuid4()))
     case_id: str
     root_task_id: str
+    thread_id: str | None = None
+    iteration_id: str | None = None
+    result_id: str | None = None
     task_id: str | None = None
     role: str
     status: str

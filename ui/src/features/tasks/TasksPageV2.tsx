@@ -181,6 +181,7 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
   const { list, t } = useI18n();
   const [prompt, setPrompt] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const blurTimeoutRef = useRef<number | null>(null);
 
   const quickPromptEmojis = ["🎨", "📊", "✨", "🌊"];
   const quickPrompts = list("tasks.quickPrompts").map((text, index) => ({
@@ -201,6 +202,14 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
     submitPrompt(prompt);
   };
 
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current !== null) {
+        window.clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className={`quick-input kawaii-input ${isFocused ? "focused" : ""}`}>
       <form onSubmit={handleSubmit}>
@@ -210,8 +219,22 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+            onFocus={() => {
+              if (blurTimeoutRef.current !== null) {
+                window.clearTimeout(blurTimeoutRef.current);
+                blurTimeoutRef.current = null;
+              }
+              setIsFocused(true);
+            }}
+            onBlur={() => {
+              if (blurTimeoutRef.current !== null) {
+                window.clearTimeout(blurTimeoutRef.current);
+              }
+              blurTimeoutRef.current = window.setTimeout(() => {
+                setIsFocused(false);
+                blurTimeoutRef.current = null;
+              }, 200);
+            }}
             placeholder={t("tasks.promptPlaceholder")}
             className="input-field"
           />

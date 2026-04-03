@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from video_agent.server.app import create_app_context
@@ -31,6 +29,19 @@ def test_clear_session_memory_only_clears_target_session(app_context) -> None:
     assert cleared["cleared_attempt_count"] == 1
     assert memory_a["entry_count"] == 0
     assert memory_b["entry_count"] == 1
+
+
+def test_clear_session_memory_stays_cleared_after_restart(temp_settings) -> None:
+    app_context = create_app_context(temp_settings)
+    app_context.task_service.create_video_task(prompt="draw a circle", session_id="session-a")
+
+    cleared = clear_session_memory_tool(app_context, {}, session_id="session-a")
+    restarted = create_app_context(app_context.settings)
+    memory = get_session_memory_tool(restarted, {}, session_id="session-a")
+
+    assert cleared["cleared"] is True
+    assert memory["entry_count"] == 0
+    assert memory["entries"] == []
 
 
 def test_summarize_session_memory_returns_lineage_refs(app_context) -> None:

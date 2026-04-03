@@ -30,6 +30,10 @@ CREATE TABLE IF NOT EXISTS video_tasks (
     task_id TEXT PRIMARY KEY,
     root_task_id TEXT NOT NULL,
     parent_task_id TEXT,
+    thread_id TEXT,
+    iteration_id TEXT,
+    result_id TEXT,
+    execution_kind TEXT,
     agent_id TEXT,
     session_id TEXT,
     status TEXT NOT NULL,
@@ -127,6 +131,24 @@ CREATE TABLE IF NOT EXISTS agent_memories (
     disabled_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS session_memory_snapshots (
+    session_id TEXT PRIMARY KEY,
+    agent_id TEXT,
+    snapshot_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS workflow_participants (
+    root_task_id TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    capabilities_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (root_task_id, agent_id)
+);
+
 CREATE TABLE IF NOT EXISTS task_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL,
@@ -162,6 +184,108 @@ CREATE TABLE IF NOT EXISTS worker_heartbeats (
     last_seen_at TEXT NOT NULL,
     details_json TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS video_threads (
+    thread_id TEXT PRIMARY KEY,
+    owner_agent_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL,
+    current_iteration_id TEXT,
+    selected_result_id TEXT,
+    origin_prompt TEXT NOT NULL,
+    origin_context_summary TEXT,
+    thread_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    archived_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS video_iterations (
+    iteration_id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL,
+    parent_iteration_id TEXT,
+    goal TEXT NOT NULL,
+    requested_action TEXT,
+    preserve_working_parts INTEGER,
+    status TEXT NOT NULL,
+    resolution_state TEXT NOT NULL,
+    focus_summary TEXT,
+    selected_result_id TEXT,
+    source_result_id TEXT,
+    initiated_by_turn_id TEXT,
+    responsible_role TEXT,
+    responsible_agent_id TEXT,
+    iteration_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    closed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS video_turns (
+    turn_id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL,
+    iteration_id TEXT NOT NULL,
+    turn_type TEXT NOT NULL,
+    speaker_type TEXT NOT NULL,
+    speaker_agent_id TEXT,
+    speaker_role TEXT,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    visibility TEXT NOT NULL,
+    source_run_id TEXT,
+    source_task_id TEXT,
+    turn_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS video_results (
+    result_id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL,
+    iteration_id TEXT NOT NULL,
+    source_task_id TEXT,
+    status TEXT NOT NULL,
+    video_resource TEXT,
+    preview_resources_json TEXT NOT NULL,
+    script_resource TEXT,
+    validation_report_resource TEXT,
+    result_summary TEXT NOT NULL,
+    quality_summary TEXT,
+    selected INTEGER NOT NULL DEFAULT 0,
+    result_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS video_thread_participants (
+    thread_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
+    participant_type TEXT NOT NULL,
+    agent_id TEXT,
+    role TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    capabilities_json TEXT NOT NULL,
+    participant_json TEXT NOT NULL,
+    joined_at TEXT NOT NULL,
+    left_at TEXT,
+    PRIMARY KEY (thread_id, participant_id)
+);
+
+CREATE TABLE IF NOT EXISTS video_agent_runs (
+    run_id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL,
+    iteration_id TEXT NOT NULL,
+    task_id TEXT,
+    agent_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    status TEXT NOT NULL,
+    phase TEXT,
+    input_summary TEXT,
+    output_summary TEXT,
+    run_json TEXT NOT NULL,
+    started_at TEXT,
+    ended_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -172,6 +296,14 @@ def ensure_column(connection: sqlite3.Connection, table_name: str, column_name: 
     if any(row["name"] == column_name for row in rows):
         return
     connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
+
+
+def has_table(connection: sqlite3.Connection, table_name: str) -> bool:
+    row = connection.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table_name,),
+    ).fetchone()
+    return row is not None
 
 
 def dedupe_agent_learning_events(connection: sqlite3.Connection) -> None:
@@ -328,6 +460,216 @@ def apply_delivery_case_scaffold(connection: sqlite3.Connection) -> None:
     )
 
 
+def apply_session_memory_snapshot_scaffold(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS session_memory_snapshots (
+            session_id TEXT PRIMARY KEY,
+            agent_id TEXT,
+            snapshot_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_session_memory_snapshots_agent_updated_at
+        ON session_memory_snapshots (agent_id, updated_at ASC, session_id ASC)
+        """
+    )
+
+
+def apply_workflow_participant_scaffold(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS workflow_participants (
+            root_task_id TEXT NOT NULL,
+            agent_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            capabilities_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (root_task_id, agent_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_workflow_participants_root_role
+        ON workflow_participants (root_task_id, role, agent_id)
+        """
+    )
+
+
+def apply_task_event_ordering_indexes(connection: sqlite3.Connection) -> None:
+    if not has_table(connection, "task_events"):
+        return
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_task_events_task_id_id
+        ON task_events (task_id, id ASC)
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_task_events_task_type_id
+        ON task_events (task_id, event_type, id ASC)
+        """
+    )
+
+
+def apply_video_thread_runtime_scaffold(connection: sqlite3.Connection) -> None:
+    ensure_column(connection, "video_tasks", "thread_id", "TEXT")
+    ensure_column(connection, "video_tasks", "iteration_id", "TEXT")
+    ensure_column(connection, "video_tasks", "result_id", "TEXT")
+    ensure_column(connection, "video_tasks", "execution_kind", "TEXT")
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS video_threads (
+            thread_id TEXT PRIMARY KEY,
+            owner_agent_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            status TEXT NOT NULL,
+            current_iteration_id TEXT,
+            selected_result_id TEXT,
+            origin_prompt TEXT NOT NULL,
+            origin_context_summary TEXT,
+            thread_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            archived_at TEXT
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS video_iterations (
+            iteration_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            parent_iteration_id TEXT,
+            goal TEXT NOT NULL,
+            requested_action TEXT,
+            preserve_working_parts INTEGER,
+            status TEXT NOT NULL,
+            resolution_state TEXT NOT NULL,
+            focus_summary TEXT,
+            selected_result_id TEXT,
+            source_result_id TEXT,
+            initiated_by_turn_id TEXT,
+            responsible_role TEXT,
+            responsible_agent_id TEXT,
+            iteration_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            closed_at TEXT
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS video_turns (
+            turn_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            iteration_id TEXT NOT NULL,
+            turn_type TEXT NOT NULL,
+            speaker_type TEXT NOT NULL,
+            speaker_agent_id TEXT,
+            speaker_role TEXT,
+            title TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            visibility TEXT NOT NULL,
+            source_run_id TEXT,
+            source_task_id TEXT,
+            turn_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS video_results (
+            result_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            iteration_id TEXT NOT NULL,
+            source_task_id TEXT,
+            status TEXT NOT NULL,
+            video_resource TEXT,
+            preview_resources_json TEXT NOT NULL,
+            script_resource TEXT,
+            validation_report_resource TEXT,
+            result_summary TEXT NOT NULL,
+            quality_summary TEXT,
+            selected INTEGER NOT NULL DEFAULT 0,
+            result_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS video_thread_participants (
+            thread_id TEXT NOT NULL,
+            participant_id TEXT NOT NULL,
+            participant_type TEXT NOT NULL,
+            agent_id TEXT,
+            role TEXT NOT NULL,
+            display_name TEXT NOT NULL,
+            capabilities_json TEXT NOT NULL,
+            participant_json TEXT NOT NULL,
+            joined_at TEXT NOT NULL,
+            left_at TEXT,
+            PRIMARY KEY (thread_id, participant_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS video_agent_runs (
+            run_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            iteration_id TEXT NOT NULL,
+            task_id TEXT,
+            agent_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            status TEXT NOT NULL,
+            phase TEXT,
+            input_summary TEXT,
+            output_summary TEXT,
+            run_json TEXT NOT NULL,
+            started_at TEXT,
+            ended_at TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_video_iterations_thread_created_at
+        ON video_iterations (thread_id, created_at ASC, iteration_id ASC)
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_video_turns_iteration_created_at
+        ON video_turns (iteration_id, created_at ASC, turn_id ASC)
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_video_results_iteration_created_at
+        ON video_results (iteration_id, created_at ASC, result_id ASC)
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_video_agent_runs_iteration_created_at
+        ON video_agent_runs (iteration_id, created_at ASC, run_id ASC)
+        """
+    )
+
+
 SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
     SQLiteMigration(
         migration_id="001_initial_schema",
@@ -378,5 +720,25 @@ SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
         migration_id="010_delivery_case_scaffold",
         description="persist delivery cases and agent runs for native orchestration scaffolding",
         apply=apply_delivery_case_scaffold,
+    ),
+    SQLiteMigration(
+        migration_id="011_session_memory_snapshot_scaffold",
+        description="persist session memory snapshots for restart recovery",
+        apply=apply_session_memory_snapshot_scaffold,
+    ),
+    SQLiteMigration(
+        migration_id="012_workflow_participant_scaffold",
+        description="persist workflow participants for collaboration access control",
+        apply=apply_workflow_participant_scaffold,
+    ),
+    SQLiteMigration(
+        migration_id="013_task_event_ordering_indexes",
+        description="index task events for ordered discussion thread loading",
+        apply=apply_task_event_ordering_indexes,
+    ),
+    SQLiteMigration(
+        migration_id="014_video_thread_runtime_scaffold",
+        description="persist video thread runtime entities and task bindings",
+        apply=apply_video_thread_runtime_scaffold,
     ),
 )

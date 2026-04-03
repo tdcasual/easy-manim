@@ -5,9 +5,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from video_agent.application.persistent_memory_service import PersistentMemoryError
-from video_agent.application.agent_profile_suggestion_service import AgentProfileSuggestionService
 from video_agent.application.agent_identity_service import AgentPrincipal
+from video_agent.application.agent_profile_suggestion_service import AgentProfileSuggestionService
+from video_agent.application.errors import AdmissionControlError
+from video_agent.application.persistent_memory_service import PersistentMemoryError
 from video_agent.config import Settings
 from video_agent.server.app import create_app_context
 from video_agent.server.http_auth import (
@@ -18,11 +19,13 @@ from video_agent.server.http_auth import (
 from video_agent.server.mcp_resources import guess_mime_type, resolve_resource_path
 from video_agent.server.mcp_tools import (
     accept_best_version_tool,
+    apply_review_decision_tool,
+    append_video_turn_tool,
     cancel_video_task_tool,
     clear_session_memory_tool,
+    create_video_thread_tool,
     create_video_task_tool,
     disable_agent_memory_tool,
-    apply_review_decision_tool,
     get_agent_memory_tool,
     get_quality_score_tool,
     get_recovery_plan_tool,
@@ -30,14 +33,27 @@ from video_agent.server.mcp_tools import (
     get_scene_spec_tool,
     get_session_memory_tool,
     get_video_result_tool,
+    get_video_thread_surface_tool,
     get_video_task_tool,
     list_agent_memories_tool,
+    list_video_thread_participants_tool,
     list_video_tasks_tool,
+    list_workflow_memory_recommendations_tool,
+    list_workflow_participants_tool,
+    pin_workflow_memory_tool,
     promote_session_memory_tool,
     query_agent_memories_tool,
+    remove_video_thread_participant_tool,
+    remove_workflow_participant_tool,
+    request_video_explanation_tool,
+    request_video_revision_tool,
     retry_video_task_tool,
     revise_video_task_tool,
+    select_video_result_tool,
     summarize_session_memory_tool,
+    unpin_workflow_memory_tool,
+    upsert_video_thread_participant_tool,
+    upsert_workflow_participant_tool,
 )
 
 
@@ -61,6 +77,45 @@ class ReviseTaskRequest(BaseModel):
     memory_ids: list[str] | None = None
 
 
+class CreateVideoThreadRequest(BaseModel):
+    title: str
+    prompt: str
+    owner_agent_id: str | None = None
+    memory_ids: list[str] | None = None
+
+
+class RequestVideoThreadRevisionRequest(BaseModel):
+    summary: str
+    preserve_working_parts: bool = True
+    memory_ids: list[str] | None = None
+
+
+class AppendVideoTurnRequest(BaseModel):
+    iteration_id: str
+    title: str
+    summary: str = ""
+    addressed_participant_id: str | None = None
+    reply_to_turn_id: str | None = None
+    related_result_id: str | None = None
+
+
+class RequestVideoExplanationRequest(BaseModel):
+    summary: str
+
+
+class SelectVideoResultRequest(BaseModel):
+    result_id: str
+
+
+class VideoThreadParticipantUpsertRequest(BaseModel):
+    participant_id: str
+    participant_type: str
+    agent_id: str | None = None
+    role: str
+    display_name: str
+    capabilities: list[str] | None = None
+
+
 class ProfileApplyRequest(BaseModel):
     patch: dict[str, Any]
 
@@ -80,6 +135,18 @@ class ReviewDecisionRequest(BaseModel):
 class ApplyReviewDecisionRequest(BaseModel):
     review_decision: ReviewDecisionRequest
     memory_ids: list[str] | None = None
+    pin_workflow_memory_ids: list[str] | None = None
+    unpin_workflow_memory_ids: list[str] | None = None
+
+
+class WorkflowParticipantUpsertRequest(BaseModel):
+    agent_id: str
+    role: str
+    capabilities: list[str] | None = None
+
+
+class WorkflowMemoryPinRequest(BaseModel):
+    memory_id: str
 
 
 class PreferenceProposalRequest(BaseModel):
@@ -100,6 +167,7 @@ class MemoryRetrievalRequest(BaseModel):
 _PROFILE_PATCH_ALLOWLIST = frozenset({"style_hints", "output_profile", "validation_profile"})
 _RECENT_PROFILE_SUGGESTION_LIMIT = 5
 _AUTO_APPLY_MIN_SUGGESTION_CONFIDENCE = 0.8
+_LEGACY_DISCUSSION_TRANSPORT_REMOVED = "legacy_discussion_transport_removed"
 
 
 def _validate_profile_patch_shape(patch: dict[str, Any]) -> None:
@@ -234,6 +302,16 @@ def _strategy_profile_payload(profile: Any) -> dict[str, Any]:
 
 def create_http_api(settings: Settings) -> FastAPI:
     context = create_app_context(settings)
+
+    def _resolve_optional_agent_session(
+        request: Request,
+        authorization: str | None,
+    ) -> ResolvedAgentSession | None:
+        if authorization is None:
+            if context.settings.auth_mode == "required":
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing_session_token")
+            return None
+        return resolve_agent_session(request, authorization=authorization)
 
     def _list_recent_memories(agent_id: str) -> list[Any]:
         return context.store.list_agent_memories(agent_id, include_disabled=False)[-_RECENT_PROFILE_SUGGESTION_LIMIT :]
@@ -798,6 +876,230 @@ def create_http_api(settings: Settings) -> FastAPI:
             )
         )
 
+    @app.post("/api/video-threads")
+    def create_video_thread(
+        payload: CreateVideoThreadRequest,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        principal = None if resolved is None else resolved.agent_principal
+        owner_agent_id = (
+            payload.owner_agent_id
+            or (None if principal is None else principal.agent_id)
+            or context.settings.anonymous_agent_id
+        )
+        return _tool_payload_or_http_error(
+            create_video_thread_tool(
+                context,
+                {
+                    "owner_agent_id": owner_agent_id,
+                    "title": payload.title,
+                    "prompt": payload.prompt,
+                    "memory_ids": payload.memory_ids,
+                    "session_id": None if resolved is None else current_internal_session_id(resolved),
+                },
+                agent_principal=principal,
+            )
+        )
+
+    @app.get("/api/video-threads/{thread_id}")
+    def get_video_thread(
+        thread_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        try:
+            if resolved is not None and resolved.agent_principal is not None:
+                context.agent_identity_service.require_action(resolved.agent_principal, "task:read")
+            thread = context.video_thread_service.load_thread(thread_id)
+        except PermissionError as exc:
+            raise _permission_http_error(exc) from exc
+        except KeyError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="thread_not_found") from exc
+        return thread.model_dump(mode="json")
+
+    @app.get("/api/video-threads/{thread_id}/surface")
+    def get_video_thread_surface(
+        thread_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            get_video_thread_surface_tool(
+                context,
+                {"thread_id": thread_id},
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
+    @app.get("/api/video-threads/{thread_id}/iterations/{iteration_id}")
+    def get_video_thread_iteration(
+        thread_id: str,
+        iteration_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        try:
+            if resolved is not None and resolved.agent_principal is not None:
+                context.agent_identity_service.require_action(resolved.agent_principal, "task:read")
+            return context.video_projection_service.build_iteration_payload(thread_id, iteration_id)
+        except PermissionError as exc:
+            raise _permission_http_error(exc) from exc
+        except KeyError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="iteration_not_found") from exc
+
+    @app.post("/api/video-threads/{thread_id}/turns")
+    def append_video_thread_turn(
+        thread_id: str,
+        payload: AppendVideoTurnRequest,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            append_video_turn_tool(
+                context,
+                {
+                    "thread_id": thread_id,
+                    "iteration_id": payload.iteration_id,
+                    "title": payload.title,
+                    "summary": payload.summary,
+                    "addressed_participant_id": payload.addressed_participant_id,
+                    "reply_to_turn_id": payload.reply_to_turn_id,
+                    "related_result_id": payload.related_result_id,
+                },
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
+    @app.post("/api/video-threads/{thread_id}/iterations/{iteration_id}/request-revision")
+    def request_video_thread_revision(
+        thread_id: str,
+        iteration_id: str,
+        payload: RequestVideoThreadRevisionRequest,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            request_video_revision_tool(
+                context,
+                {
+                    "thread_id": thread_id,
+                    "iteration_id": iteration_id,
+                    "summary": payload.summary,
+                    "preserve_working_parts": payload.preserve_working_parts,
+                    "memory_ids": payload.memory_ids,
+                    "session_id": None if resolved is None else current_internal_session_id(resolved),
+                },
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
+    @app.post("/api/video-threads/{thread_id}/iterations/{iteration_id}/request-explanation")
+    def request_video_thread_explanation(
+        thread_id: str,
+        iteration_id: str,
+        payload: RequestVideoExplanationRequest,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            request_video_explanation_tool(
+                context,
+                {
+                    "thread_id": thread_id,
+                    "iteration_id": iteration_id,
+                    "summary": payload.summary,
+                },
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
+    @app.post("/api/video-threads/{thread_id}/iterations/{iteration_id}/select-result")
+    def select_video_thread_result(
+        thread_id: str,
+        iteration_id: str,
+        payload: SelectVideoResultRequest,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            select_video_result_tool(
+                context,
+                {
+                    "thread_id": thread_id,
+                    "iteration_id": iteration_id,
+                    "result_id": payload.result_id,
+                },
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
+    @app.get("/api/video-threads/{thread_id}/participants")
+    def list_video_thread_participants(
+        thread_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            list_video_thread_participants_tool(
+                context,
+                {"thread_id": thread_id},
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
+    @app.post("/api/video-threads/{thread_id}/participants")
+    def upsert_video_thread_participant(
+        thread_id: str,
+        payload: VideoThreadParticipantUpsertRequest,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            upsert_video_thread_participant_tool(
+                context,
+                {
+                    "thread_id": thread_id,
+                    "participant_id": payload.participant_id,
+                    "participant_type": payload.participant_type,
+                    "agent_id": payload.agent_id,
+                    "role": payload.role,
+                    "display_name": payload.display_name,
+                    "capabilities": payload.capabilities,
+                },
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
+    @app.delete("/api/video-threads/{thread_id}/participants/{participant_id}")
+    def remove_video_thread_participant(
+        thread_id: str,
+        participant_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        resolved = _resolve_optional_agent_session(request, authorization)
+        return _tool_payload_or_http_error(
+            remove_video_thread_participant_tool(
+                context,
+                {
+                    "thread_id": thread_id,
+                    "participant_id": participant_id,
+                },
+                agent_principal=None if resolved is None else resolved.agent_principal,
+            )
+        )
+
     @app.get("/api/tasks")
     def list_tasks(resolved: ResolvedAgentSession = Depends(resolve_agent_session)) -> dict[str, Any]:
         return _tool_payload_or_http_error(
@@ -864,7 +1166,9 @@ def create_http_api(settings: Settings) -> FastAPI:
         except KeyError as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task_not_found") from exc
 
-        payload["video_download_url"] = _download_url_from_resource_uri(payload.get("video_resource"))
+        video_download_url = _download_url_from_resource_uri(payload.get("video_resource"))
+        if video_download_url is not None:
+            payload["video_download_url"] = video_download_url
 
         preview_resources = payload.get("preview_frame_resources") or []
         preview_urls: list[str] = []
@@ -876,10 +1180,14 @@ def create_http_api(settings: Settings) -> FastAPI:
         if preview_urls:
             payload["preview_download_urls"] = preview_urls
 
-        payload["script_download_url"] = _download_url_from_resource_uri(payload.get("script_resource"))
+        script_download_url = _download_url_from_resource_uri(payload.get("script_resource"))
+        if script_download_url is not None:
+            payload["script_download_url"] = script_download_url
 
         if payload.get("validation_report_resource"):
-            payload["validation_report_download_url"] = _download_url_from_resource_uri(payload["validation_report_resource"])
+            validation_report_download_url = _download_url_from_resource_uri(payload["validation_report_resource"])
+            if validation_report_download_url is not None:
+                payload["validation_report_download_url"] = validation_report_download_url
         return payload
 
     @app.get("/api/tasks/{task_id}/review-bundle")
@@ -897,6 +1205,17 @@ def create_http_api(settings: Settings) -> FastAPI:
             )
         )
 
+    @app.get("/api/tasks/{task_id}/discussion-thread")
+    def get_task_discussion_thread(
+        task_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        _ = (task_id, resolved)
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=_LEGACY_DISCUSSION_TRANSPORT_REMOVED,
+        )
+
     @app.post("/api/tasks/{task_id}/review-decision")
     def apply_task_review_decision(
         task_id: str,
@@ -911,10 +1230,114 @@ def create_http_api(settings: Settings) -> FastAPI:
                         "task_id": task_id,
                         "review_decision": payload.review_decision.model_dump(mode="json"),
                         "memory_ids": payload.memory_ids,
+                        "pin_workflow_memory_ids": payload.pin_workflow_memory_ids,
+                        "unpin_workflow_memory_ids": payload.unpin_workflow_memory_ids,
                         "session_id": current_internal_session_id(resolved),
                     },
                     agent_principal=resolved.agent_principal,
                 )
+            )
+        )
+
+    @app.post("/api/tasks/{task_id}/discussion-messages")
+    def create_task_discussion_message(
+        task_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        _ = (task_id, resolved)
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=_LEGACY_DISCUSSION_TRANSPORT_REMOVED,
+        )
+
+    @app.get("/api/tasks/{task_id}/workflow-participants")
+    def list_task_workflow_participants(
+        task_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _tool_payload_or_http_error(
+            list_workflow_participants_tool(
+                context,
+                {"task_id": task_id},
+                agent_principal=resolved.agent_principal,
+            )
+        )
+
+    @app.post("/api/tasks/{task_id}/workflow-participants")
+    def upsert_task_workflow_participant(
+        task_id: str,
+        payload: WorkflowParticipantUpsertRequest,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _tool_payload_or_http_error(
+            upsert_workflow_participant_tool(
+                context,
+                {
+                    "task_id": task_id,
+                    "agent_id": payload.agent_id,
+                    "role": payload.role,
+                    "capabilities": payload.capabilities,
+                },
+                agent_principal=resolved.agent_principal,
+            )
+        )
+
+    @app.delete("/api/tasks/{task_id}/workflow-participants/{agent_id}")
+    def remove_task_workflow_participant(
+        task_id: str,
+        agent_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _tool_payload_or_http_error(
+            remove_workflow_participant_tool(
+                context,
+                {
+                    "task_id": task_id,
+                    "agent_id": agent_id,
+                },
+                agent_principal=resolved.agent_principal,
+            )
+        )
+
+    @app.get("/api/tasks/{task_id}/workflow-memory/recommendations")
+    def list_task_workflow_memory_recommendations(
+        task_id: str,
+        limit: int = 5,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _tool_payload_or_http_error(
+            list_workflow_memory_recommendations_tool(
+                context,
+                {"task_id": task_id, "limit": limit},
+                agent_principal=resolved.agent_principal,
+            )
+        )
+
+    @app.post("/api/tasks/{task_id}/workflow-memory/pins")
+    def pin_task_workflow_memory(
+        task_id: str,
+        payload: WorkflowMemoryPinRequest,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _tool_payload_or_http_error(
+            pin_workflow_memory_tool(
+                context,
+                {"task_id": task_id, "memory_id": payload.memory_id},
+                agent_principal=resolved.agent_principal,
+            )
+        )
+
+    @app.delete("/api/tasks/{task_id}/workflow-memory/pins/{memory_id}")
+    def unpin_task_workflow_memory(
+        task_id: str,
+        memory_id: str,
+        resolved: ResolvedAgentSession = Depends(resolve_agent_session),
+    ) -> dict[str, Any]:
+        return _tool_payload_or_http_error(
+            unpin_workflow_memory_tool(
+                context,
+                {"task_id": task_id, "memory_id": memory_id},
+                agent_principal=resolved.agent_principal,
             )
         )
 
@@ -947,6 +1370,7 @@ def create_http_api(settings: Settings) -> FastAPI:
             items.append(
                 {
                     "task_id": entry["task_id"],
+                    "thread_id": entry.get("thread_id"),
                     "display_title": entry["display_title"],
                     "title_source": entry["title_source"],
                     "status": entry["status"],

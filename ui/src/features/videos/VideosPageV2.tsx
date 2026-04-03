@@ -33,6 +33,9 @@ type StatusFilter = "all" | "completed" | "running" | "queued" | "failed";
 const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVideoItem }) {
   const previewUrl = resolveApiUrl(video.latest_preview_url);
   const displayTitle = video.display_title ?? video.task_id;
+  const detailHref = video.thread_id
+    ? `/videos/${encodeURIComponent(video.thread_id)}`
+    : `/tasks/${encodeURIComponent(video.task_id)}`;
   const { locale, t } = useI18n();
 
   const statusConfig: Record<
@@ -108,7 +111,7 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
       </div>
 
       <div className="video-list-actions">
-        <Link to={`/tasks/${encodeURIComponent(video.task_id)}`} className="video-list-link">
+        <Link to={detailHref} className="video-list-link">
           <span>{t("videos.viewDetails")}</span>
           <ArrowRight size={14} />
         </Link>
@@ -122,6 +125,9 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
   const videoUrl = resolveApiUrl(video.latest_video_url);
   const previewUrl = resolveApiUrl(video.latest_preview_url);
   const displayTitle = video.display_title ?? video.task_id;
+  const detailHref = video.thread_id
+    ? `/videos/${encodeURIComponent(video.thread_id)}`
+    : `/tasks/${encodeURIComponent(video.task_id)}`;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { locale, t } = useI18n();
@@ -221,7 +227,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
         )}
         <div className="video-grid-overlay">
           <Link
-            to={`/tasks/${encodeURIComponent(video.task_id)}`}
+            to={detailHref}
             className="video-grid-play"
             aria-label={t("videos.openDetails", { title: displayTitle })}
           >
@@ -239,7 +245,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
       <div className="video-grid-info">
         <h4>{displayTitle}</h4>
         <p>{video.task_id}</p>
-        <Link to={`/tasks/${encodeURIComponent(video.task_id)}`} className="video-grid-link">
+        <Link to={detailHref} className="video-grid-link">
           <span>{t("videos.viewDetails")}</span>
           <ArrowRight size={14} />
         </Link>

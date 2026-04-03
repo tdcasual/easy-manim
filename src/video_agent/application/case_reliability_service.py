@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -33,13 +34,41 @@ class CaseReliabilityService:
         self.metrics = metrics
 
     def reconcile_startup(self) -> dict[str, int]:
-        requeued = self.store.requeue_stale_tasks(recovery_grace_seconds=self.settings.worker_recovery_grace_seconds)
-        self.metrics.increment("task_reliability_requeued", requeued)
-        return self._reconcile_pending_roots(mark_runtime_unhealthy=False)
+        try:
+            requeued = self.store.requeue_stale_tasks(recovery_grace_seconds=self.settings.worker_recovery_grace_seconds)
+            self.metrics.increment("task_reliability_requeued", requeued)
+            return self._reconcile_pending_roots(mark_runtime_unhealthy=False)
+        except sqlite3.OperationalError as exc:
+            if self._should_skip_reliability_reconcile(exc):
+                return {"reconciled": 0, "failed": 0}
+            raise
 
     def sweep_watchdog(self) -> dict[str, int]:
-        return self._reconcile_pending_roots(
-            mark_runtime_unhealthy=not self.runtime_service.inspect_task_processing().ready
+        try:
+            return self._reconcile_pending_roots(
+                mark_runtime_unhealthy=not self.runtime_service.inspect_task_processing().ready
+            )
+        except sqlite3.OperationalError as exc:
+            if self._should_skip_reliability_reconcile(exc):
+                return {"reconciled": 0, "failed": 0}
+            raise
+
+    @staticmethod
+    def _should_skip_reliability_reconcile(exc: sqlite3.OperationalError) -> bool:
+        message = str(exc)
+        if "no such table:" not in message:
+            return False
+        return any(
+            table_name in message
+            for table_name in (
+                "video_tasks",
+                "task_leases",
+                "delivery_cases",
+                "agent_runs",
+                "task_artifacts",
+                "task_events",
+                "task_validations",
+            )
         )
 
     def _reconcile_pending_roots(self, *, mark_runtime_unhealthy: bool) -> dict[str, int]:

@@ -63,7 +63,12 @@ class CreateVideoTaskResult(BaseModel):
 
 class VideoTaskSnapshot(BaseModel):
     task_id: str
+    thread_id: str | None = None
+    iteration_id: str | None = None
     agent_id: Optional[str] = None
+    target_participant_id: str | None = None
+    target_agent_id: str | None = None
+    target_agent_role: str | None = None
     strategy_profile_id: Optional[str] = None
     display_title: Optional[str] = None
     title_source: Optional[str] = None
@@ -142,12 +147,19 @@ class TaskService:
         feedback: Optional[str] = None,
         session_id: Optional[str] = None,
         memory_ids: list[str] | None = None,
+        thread_id: str | None = None,
+        iteration_id: str | None = None,
+        result_id: str | None = None,
+        execution_kind: str | None = None,
+        target_participant_id: str | None = None,
+        target_agent_id: str | None = None,
+        target_agent_role: str | None = None,
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         self._enforce_queue_capacity()
         principal = self._resolve_agent_principal(agent_principal)
         self._authorize_action(principal, "task:create")
-        persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
+        persistent_memory = self.resolve_persistent_memory_context_for_agent(principal.agent_id, memory_ids)
         active_strategy = self._resolve_active_strategy_profile(
             strategy_prompt_cluster=strategy_prompt_cluster,
             prompt=prompt,
@@ -171,6 +183,13 @@ class TaskService:
         )
         display_title, title_source = self._derive_display_title(prompt)
         task = VideoTask(
+            thread_id=thread_id,
+            iteration_id=iteration_id,
+            result_id=result_id,
+            execution_kind=execution_kind,
+            target_participant_id=target_participant_id,
+            target_agent_id=target_agent_id,
+            target_agent_role=target_agent_role,
             agent_id=principal.agent_id,
             session_id=session_id,
             prompt=prompt,
@@ -269,6 +288,9 @@ class TaskService:
         principal = self._resolve_agent_principal(agent_principal)
         self._authorize_action(principal, "task:mutate")
         accepted_task = self._require_authorized_task(task_id, principal)
+        return self.accept_authorized_task(accepted_task)
+
+    def accept_authorized_task(self, accepted_task: VideoTask) -> VideoTaskSnapshot:
         if accepted_task.status is not TaskStatus.COMPLETED:
             raise ValueError("accept_best_requires_completed_task")
 
@@ -313,7 +335,7 @@ class TaskService:
         self.artifact_store.write_task_snapshot(root_task)
 
         self.store.append_event(
-            task_id,
+            accepted_task.task_id,
             "task_accepted_as_best",
             {
                 "root_task_id": root_task_id,
@@ -352,7 +374,7 @@ class TaskService:
                 "recommended_task_id": arbitration_summary.get("recommended_task_id"),
             },
         )
-        return self.get_video_task(task_id)
+        return self.get_video_task(accepted_task.task_id)
 
     def require_task_access(self, task_id: str, agent_id: str) -> VideoTask:
         task = self._require_task(task_id)
@@ -377,7 +399,12 @@ class TaskService:
         repair_state = build_repair_state_snapshot(root_task, repair_children)
         return VideoTaskSnapshot(
             task_id=task.task_id,
+            thread_id=task.thread_id,
+            iteration_id=task.iteration_id,
             agent_id=task.agent_id,
+            target_participant_id=task.target_participant_id,
+            target_agent_id=task.target_agent_id,
+            target_agent_role=task.target_agent_role,
             strategy_profile_id=task.strategy_profile_id,
             display_title=task.display_title,
             title_source=task.title_source,
@@ -408,40 +435,42 @@ class TaskService:
         task = self._require_task(task_id)
         latest_validation = self.store.get_latest_validation(task_id)
         resolved_task = self._resolved_result_task(task)
-        if resolved_task is None:
-            return VideoResult(
-                task_id=task.task_id,
-                status=task.status,
-                ready=False,
-                delivery_status=task.delivery_status,
-                resolved_task_id=task.resolved_task_id,
-                completion_mode=task.completion_mode,
-                delivery_tier=task.delivery_tier,
-                delivery_stop_reason=task.delivery_stop_reason,
-            )
+        result_task_id = task.task_id if resolved_task is None else resolved_task.task_id
+        result_validation = latest_validation if result_task_id == task.task_id else self.store.get_latest_validation(result_task_id)
 
-        result_task_id = resolved_task.task_id
-        result_validation = self.store.get_latest_validation(result_task_id)
-        video_artifacts = self.store.list_artifacts(result_task_id, "final_video")
-        preview_artifacts = self.store.list_artifacts(result_task_id, "preview_frame")
-        script_artifacts = self.store.list_artifacts(result_task_id, "current_script")
-        validation_artifacts = self.store.list_artifacts(result_task_id, "validation_report")
-
-        video_resource = None
-        if video_artifacts:
-            video_resource = self._resource_ref(result_task_id, Path(video_artifacts[-1]["path"]))
-        preview_frame_resources = [self._resource_ref(result_task_id, Path(item["path"])) for item in preview_artifacts]
-        script_resource = None
-        if script_artifacts:
-            script_resource = self._resource_ref(result_task_id, Path(script_artifacts[-1]["path"]))
-        validation_report_resource = None
-        if validation_artifacts:
-            validation_report_resource = self._resource_ref(result_task_id, Path(validation_artifacts[-1]["path"]))
+        video_resource = self._latest_artifact_resource(
+            result_task_id,
+            "final_video",
+            fallback_paths=[self.artifact_store.final_video_path(result_task_id)],
+        )
+        preview_frame_resources = self._artifact_resources(
+            result_task_id,
+            "preview_frame",
+            fallback_paths=sorted(
+                path
+                for path in self.artifact_store.previews_dir(result_task_id).glob("*.png")
+                if path.is_file()
+            ),
+        )
+        script_resource = self._latest_artifact_resource(
+            result_task_id,
+            "current_script",
+            fallback_paths=[self.artifact_store.script_path(result_task_id)],
+        )
+        validation_report_resource = self._latest_artifact_resource(
+            result_task_id,
+            "validation_report",
+            fallback_paths=sorted(
+                path
+                for path in self.artifact_store.task_dir(result_task_id).glob("validations/validation_report_v*.json")
+                if path.is_file()
+            ),
+        )
 
         return VideoResult(
             task_id=task.task_id,
-            status=resolved_task.status,
-            ready=True,
+            status=task.status if resolved_task is None else resolved_task.status,
+            ready=resolved_task is not None,
             video_resource=video_resource,
             preview_frame_resources=preview_frame_resources,
             script_resource=script_resource,
@@ -461,12 +490,54 @@ class TaskService:
         preserve_working_parts: bool = True,
         session_id: Optional[str] = None,
         memory_ids: list[str] | None = None,
+        thread_id: str | None = None,
+        iteration_id: str | None = None,
+        execution_kind: str | None = None,
+        target_participant_id: str | None = None,
+        target_agent_id: str | None = None,
+        target_agent_role: str | None = None,
         agent_principal: AgentPrincipal | None = None,
     ) -> CreateVideoTaskResult:
         principal = self._resolve_agent_principal(agent_principal)
         self._authorize_action(principal, "task:mutate")
         base_task = self._require_authorized_task(base_task_id, principal)
-        persistent_memory = self._resolve_persistent_memory_context(principal.agent_id, memory_ids)
+        persistent_memory = (
+            self._resolve_owner_revision_persistent_memory(
+                base_task=base_task,
+                agent_id=principal.agent_id,
+            )
+            if memory_ids is None
+            else self.resolve_persistent_memory_context_for_agent(principal.agent_id, memory_ids)
+        )
+        return self.revise_authorized_task(
+            base_task=base_task,
+            feedback=feedback,
+            preserve_working_parts=preserve_working_parts,
+            session_id=session_id,
+            persistent_memory=persistent_memory,
+            thread_id=thread_id,
+            iteration_id=iteration_id,
+            execution_kind=execution_kind,
+            target_participant_id=target_participant_id,
+            target_agent_id=target_agent_id,
+            target_agent_role=target_agent_role,
+        )
+
+    def revise_authorized_task(
+        self,
+        *,
+        base_task: VideoTask,
+        feedback: str,
+        preserve_working_parts: bool,
+        session_id: Optional[str],
+        persistent_memory: PersistentMemoryContext | None,
+        thread_id: str | None = None,
+        iteration_id: str | None = None,
+        execution_kind: str | None = None,
+        target_participant_id: str | None = None,
+        target_agent_id: str | None = None,
+        target_agent_role: str | None = None,
+    ) -> CreateVideoTaskResult:
         if self._is_completed_delivery_candidate(base_task):
             return self._create_challenger_child_task(
                 base_task=base_task,
@@ -498,6 +569,12 @@ class TaskService:
                 **metadata,
             },
             persistent_memory=persistent_memory,
+            thread_id=thread_id,
+            iteration_id=iteration_id,
+            execution_kind=execution_kind,
+            target_participant_id=target_participant_id,
+            target_agent_id=target_agent_id,
+            target_agent_role=target_agent_role,
         )
 
     def create_challenger_task(
@@ -512,7 +589,7 @@ class TaskService:
             base_task=base_task,
             feedback=feedback,
             session_id=session_id,
-            persistent_memory=self._inherit_persistent_memory_context(base_task),
+            persistent_memory=self.inherit_persistent_memory_context(base_task),
         )
 
     def retry_video_task(
@@ -524,6 +601,17 @@ class TaskService:
         principal = self._resolve_agent_principal(agent_principal)
         self._authorize_action(principal, "task:mutate")
         base_task = self._require_authorized_task(task_id, principal)
+        return self.retry_authorized_task(
+            base_task=base_task,
+            session_id=session_id,
+        )
+
+    def retry_authorized_task(
+        self,
+        *,
+        base_task: VideoTask,
+        session_id: Optional[str],
+    ) -> CreateVideoTaskResult:
         if base_task.status is not TaskStatus.FAILED:
             raise ValueError("retry_video_task requires a failed parent task")
         self._enforce_attempt_limit(base_task.root_task_id)
@@ -665,6 +753,7 @@ class TaskService:
             candidates.append(
                 {
                     "task_id": task_id,
+                    "thread_id": row.get("thread_id"),
                     "display_title": row.get("display_title"),
                     "title_source": row.get("title_source"),
                     "status": row["status"],
@@ -730,6 +819,11 @@ class TaskService:
         if self.settings.auth_mode != "required":
             return self._require_task(task_id)
         return self.require_task_access(task_id, principal.agent_id)
+
+    def require_owner_task(self, task_id: str, agent_principal: AgentPrincipal | None, *, action: str) -> VideoTask:
+        principal = self._resolve_agent_principal(agent_principal)
+        self._authorize_action(principal, action)
+        return self._require_authorized_task(task_id, principal)
 
     def _authorize_action(self, principal: AgentPrincipal, action: str) -> None:
         self.authorization_service.require_allowed(principal.profile, principal.token, action)
@@ -853,6 +947,50 @@ class TaskService:
     def _resource_ref(self, task_id: str, file_path: Path) -> str:
         return self.artifact_store.resource_uri(task_id, file_path)
 
+    def _latest_artifact_resource(
+        self,
+        task_id: str,
+        artifact_kind: str,
+        *,
+        fallback_paths: list[Path] | None = None,
+    ) -> str | None:
+        resources = self._artifact_resources(task_id, artifact_kind, fallback_paths=fallback_paths)
+        if not resources:
+            return None
+        return resources[-1]
+
+    def _artifact_resources(
+        self,
+        task_id: str,
+        artifact_kind: str,
+        *,
+        fallback_paths: list[Path] | None = None,
+    ) -> list[str]:
+        resources: list[str] = []
+        seen_paths: set[str] = set()
+
+        for artifact in self.store.list_artifacts(task_id, artifact_kind):
+            path = Path(artifact["path"])
+            if not path.exists():
+                continue
+            path_key = str(path.resolve())
+            if path_key in seen_paths:
+                continue
+            resources.append(self._resource_ref(task_id, path))
+            seen_paths.add(path_key)
+
+        for fallback_path in fallback_paths or []:
+            path = Path(fallback_path)
+            if not path.exists():
+                continue
+            path_key = str(path.resolve())
+            if path_key in seen_paths:
+                continue
+            resources.append(self._resource_ref(task_id, path))
+            seen_paths.add(path_key)
+
+        return resources
+
     def _build_auto_repair_summary(self, root_task_id: str, repair_children: int) -> dict[str, Any]:
         root_task = self._require_task(root_task_id)
         latest_decision = self._latest_auto_repair_decision(root_task_id)
@@ -900,7 +1038,7 @@ class TaskService:
         return task.status is TaskStatus.COMPLETED and task.delivery_status == "delivered"
 
     @staticmethod
-    def _inherit_persistent_memory_context(base_task: VideoTask) -> PersistentMemoryContext | None:
+    def inherit_persistent_memory_context(base_task: VideoTask) -> PersistentMemoryContext | None:
         if not (
             base_task.selected_memory_ids
             or base_task.persistent_memory_context_summary
@@ -912,6 +1050,18 @@ class TaskService:
             summary_text=base_task.persistent_memory_context_summary,
             summary_digest=base_task.persistent_memory_context_digest,
         )
+
+    def _resolve_owner_revision_persistent_memory(
+        self,
+        *,
+        base_task: VideoTask,
+        agent_id: str,
+    ) -> PersistentMemoryContext | None:
+        root_task = self._require_task(base_task.root_task_id or base_task.task_id)
+        workflow_memory_ids = list(root_task.selected_memory_ids)
+        if workflow_memory_ids:
+            return self.resolve_persistent_memory_context_for_agent(agent_id, workflow_memory_ids)
+        return None
 
     def _create_challenger_child_task(
         self,
@@ -967,10 +1117,27 @@ class TaskService:
         event_type: str,
         event_payload: dict[str, Any],
         persistent_memory: PersistentMemoryContext | None = None,
+        thread_id: str | None = None,
+        iteration_id: str | None = None,
+        execution_kind: str | None = None,
+        target_participant_id: str | None = None,
+        target_agent_id: str | None = None,
+        target_agent_role: str | None = None,
     ) -> CreateVideoTaskResult:
         effective_session_id = child_task.session_id or base_task.session_id or session_id
         if effective_session_id is not None:
             child_task.session_id = effective_session_id
+        child_task.thread_id = thread_id or child_task.thread_id or base_task.thread_id
+        child_task.iteration_id = iteration_id or child_task.iteration_id
+        child_task.execution_kind = execution_kind or child_task.execution_kind
+        child_task.target_participant_id = (
+            target_participant_id or child_task.target_participant_id or base_task.target_participant_id
+        )
+        child_task.target_agent_id = target_agent_id or child_task.target_agent_id or base_task.target_agent_id
+        child_task.target_agent_role = (
+            target_agent_role or child_task.target_agent_role or base_task.target_agent_role
+        )
+        child_task.result_id = None
 
         self._apply_memory_context(session_id=effective_session_id, child_task=child_task)
         self._apply_persistent_memory_context(child_task=child_task, persistent_memory=persistent_memory)
@@ -1060,7 +1227,7 @@ class TaskService:
             details=details,
         )
 
-    def _resolve_persistent_memory_context(
+    def resolve_persistent_memory_context_for_agent(
         self,
         agent_id: str,
         memory_ids: list[str] | None,

@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 else:
     try:
         from mcp.server.fastmcp import Context
-    except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
+    except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional runtime dependency
         Context = Any
 
 from video_agent.application.agent_identity_service import AgentPrincipal

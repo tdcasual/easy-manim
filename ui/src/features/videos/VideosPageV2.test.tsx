@@ -23,6 +23,7 @@ beforeEach(() => {
           items: [
             {
               task_id: "task-target-001",
+              thread_id: "thread-target-001",
               display_title: "Ocean waves",
               status: "completed",
               updated_at: "2026-03-28T00:00:00Z",
@@ -82,4 +83,17 @@ test("videos filter controls follow the active locale", async () => {
   expect(screen.getByRole("button", { name: /in progress/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /queued/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /failed/i })).toBeInTheDocument();
+});
+
+test("videos page links each video to the collaboration workbench when thread id exists", async () => {
+  render(
+    <MemoryRouter>
+      <ToastProvider>
+        <VideosPageV2 />
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  const links = await screen.findAllByRole("link", { name: /view details|open details/i });
+  expect(links.some((link) => link.getAttribute("href") === "/videos/thread-target-001")).toBe(true);
 });

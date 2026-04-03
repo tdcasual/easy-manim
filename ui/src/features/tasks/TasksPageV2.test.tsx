@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
@@ -196,4 +196,50 @@ test("tasks page chrome follows the active locale", async () => {
   await act(async () => {
     writeLocale("zh-CN");
   });
+});
+
+test("quick input clears pending blur timers on unmount", async () => {
+  writeSessionToken("sess-token-1");
+
+  // @ts-expect-error - test shim
+  globalThis.fetch = async (url: string, init?: RequestInit) => {
+    const parsed = new URL(String(url), "http://example.test");
+    const path = `${parsed.pathname}${parsed.search}`;
+
+    if (path === "/api/tasks" && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path.startsWith("/api/videos/recent") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response("not found", { status: 404 });
+  };
+
+  const { unmount } = render(
+    <MemoryRouter>
+      <ToastProvider>
+        <TasksPageV2 />
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  const input = await screen.findByPlaceholderText(/做一个简洁的蓝色圆形动画|生成一个带中文标题的柱状图视频/);
+  vi.useFakeTimers();
+  fireEvent.focus(input);
+  fireEvent.blur(input);
+
+  expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+  unmount();
+
+  expect(vi.getTimerCount()).toBe(0);
+  vi.useRealTimers();
 });

@@ -674,16 +674,22 @@ class WorkflowEngine:
         if not auto_repair_decision.created:
             delivery_decision = self._maybe_schedule_degraded_delivery(task)
             if delivery_decision is None:
-                try:
-                    delivery_decision = self.delivery_guarantee_service.maybe_deliver(task)
-                except Exception as exc:
-                    delivery_decision = DeliveryGuaranteeDecision(delivered=False, reason="delivery_exception")
-                    self._log(
-                        task,
-                        TaskPhase.FAILED,
-                        "Delivery guarantee failed",
-                        error=str(exc),
+                if not self._allows_emergency_delivery(top_issue.code if top_issue is not None else None):
+                    delivery_decision = DeliveryGuaranteeDecision(
+                        delivered=False,
+                        reason=top_issue.code if top_issue is not None else "delivery_blocked",
                     )
+                else:
+                    try:
+                        delivery_decision = self.delivery_guarantee_service.maybe_deliver(task)
+                    except Exception as exc:
+                        delivery_decision = DeliveryGuaranteeDecision(delivered=False, reason="delivery_exception")
+                        self._log(
+                            task,
+                            TaskPhase.FAILED,
+                            "Delivery guarantee failed",
+                            error=str(exc),
+                        )
             if delivery_decision.delivered:
                 self._finalize_guaranteed_delivery(task, delivery_decision)
             elif not delivery_decision.scheduled:
@@ -744,6 +750,14 @@ class WorkflowEngine:
             self.metrics.increment("tasks_failed")
         if self.delivery_case_service is not None:
             self.delivery_case_service.sync_case_for_root(task.root_task_id or task.task_id)
+
+    @staticmethod
+    def _allows_emergency_delivery(issue_code: str | None) -> bool:
+        return issue_code not in {
+            "latex_dependency_missing",
+            "sandbox_policy_violation",
+            "runtime_policy_violation",
+        }
 
     def _record_session_memory_outcome(
         self,

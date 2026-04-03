@@ -79,6 +79,102 @@ def test_runtime_status_tool_reports_binary_and_provider_state(tmp_path: Path) -
     assert payload["autonomy_guard"]["reasons"] == []
 
 
+def test_runtime_status_exposes_collaboration_summary(tmp_path: Path) -> None:
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            auth_mode="required",
+            run_embedded_worker=False,
+        )
+    )
+    context = create_app_context(settings)
+    context.store.upsert_agent_profile(AgentProfile(agent_id="agent-a", name="Agent A"))
+    context.store.issue_agent_token(
+        AgentToken(
+            token_hash=hash_agent_token("agent-a-secret"),
+            agent_id="agent-a",
+            scopes_json={"allow": ["task:create", "task:read", "task:mutate"]},
+        )
+    )
+    context.store.upsert_agent_profile(AgentProfile(agent_id="agent-b", name="Agent B"))
+    context.store.upsert_agent_profile(AgentProfile(agent_id="agent-c", name="Agent C"))
+    owner = context.agent_identity_service.authenticate("agent-a-secret")
+
+    first = context.task_service.create_video_task(
+        prompt="draw a circle",
+        agent_principal=owner,
+    )
+    second = context.task_service.create_video_task(
+        prompt="draw a square",
+        agent_principal=owner,
+    )
+    context.workflow_collaboration_service.upsert_workflow_participant(
+        first.task_id,
+        participant_agent_id="agent-b",
+        role="reviewer",
+        agent_principal=owner,
+    )
+    context.workflow_collaboration_service.upsert_workflow_participant(
+        second.task_id,
+        participant_agent_id="agent-c",
+        role="verifier",
+        agent_principal=owner,
+    )
+
+    payload = get_runtime_status_tool(context, {})
+    summary = payload["collaboration_summary"]
+
+    assert summary["workflow_count"] == 2
+    assert summary["participant_count"] == 2
+    assert summary["participants_by_role"] == {
+        "reviewer": 1,
+        "verifier": 1,
+    }
+    assert summary["capability_counts"] == {
+        "review_bundle:read": 2,
+        "review_decision:write": 2,
+    }
+    assert [event["event_type"] for event in summary["recent_events"]] == [
+        "workflow_participant_upserted",
+        "workflow_participant_upserted",
+    ]
+    assert {event["root_task_id"] for event in summary["recent_events"]} == {
+        first.task_id,
+        second.task_id,
+    }
+
+
+def test_runtime_status_reports_active_thread_iteration_bindings(tmp_path: Path) -> None:
+    settings = bootstrapped_settings(
+        Settings(
+            data_dir=tmp_path / "data",
+            database_path=tmp_path / "data" / "video_agent.db",
+            artifact_root=tmp_path / "data" / "tasks",
+            run_embedded_worker=False,
+        )
+    )
+    context = create_app_context(settings)
+    created = context.video_thread_service.create_thread(
+        owner_agent_id="owner",
+        title="Circle explainer",
+        prompt="draw a circle",
+    )
+
+    payload = get_runtime_status_tool(context, {})
+    active_threads = payload["delivery_summary"]["active_threads"]
+
+    assert active_threads == [
+        {
+            "thread_id": created.thread.thread_id,
+            "iteration_id": created.iteration.iteration_id,
+            "task_id": created.created_task.task_id,
+            "status": "queued",
+        }
+    ]
+
+
 def test_http_runtime_status_returns_payload_when_auth_optional(tmp_path: Path) -> None:
     settings = bootstrapped_settings(
         Settings(

@@ -18,6 +18,9 @@ dependencies = [
 dev = [
   "pytest>=8,<9",
 ]
+memory = [
+  "mem0ai>=1,<2",
+]
 
 [project.scripts]
 easy-manim-mcp = "video_agent.server.main:main"

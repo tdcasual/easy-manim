@@ -185,6 +185,13 @@ def test_workflow_service_routes_revision_decision_to_child_task(tmp_path: Path)
     assert outcome.reason == "revision_created"
 
 
+def test_workflow_service_no_longer_exposes_internal_discussion_methods(tmp_path: Path) -> None:
+    app_context = _with_temporary_mcp_shim(lambda: _create_app_context(_build_fake_pipeline_settings(tmp_path)))
+
+    assert not hasattr(app_context.multi_agent_workflow_service, "create_discussion_message")
+    assert not hasattr(app_context.multi_agent_workflow_service, "get_video_discussion_surface")
+
+
 def test_workflow_service_escalates_when_child_budget_is_exhausted(tmp_path: Path) -> None:
     settings = _build_fake_pipeline_settings(tmp_path)
     settings.multi_agent_workflow_max_child_attempts = 0
@@ -240,6 +247,7 @@ def test_workflow_service_get_review_bundle(tmp_path: Path) -> None:
     assert bundle.case_status == "queued"
     assert bundle.active_task_id == created.task_id
     assert bundle.selected_task_id is None
+    assert "video_discussion_surface" not in bundle.model_dump(mode="json")
     assert [candidate["task_id"] for candidate in bundle.branch_candidates] == [created.task_id]
     assert any(
         run["role"] == "orchestrator" and run["decision"].get("action") == "case_created"
