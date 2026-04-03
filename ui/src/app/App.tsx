@@ -85,6 +85,7 @@ export function App() {
               <Route path="/tasks" element={<TasksPageLazy />} />
               <Route path="/tasks/:taskId" element={<TaskDetailPageLazy />} />
               <Route path="/videos" element={<VideosPageLazy />} />
+              <Route path="/threads/:threadId" element={<VideoThreadPageLazy />} />
               <Route path="/videos/:threadId" element={<VideoThreadPageLazy />} />
               <Route path="/memory" element={<MemoryPageLazy />} />
               <Route path="/profile" element={<ProfilePageLazy />} />

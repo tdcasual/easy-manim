@@ -34,7 +34,7 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
   const previewUrl = resolveApiUrl(video.latest_preview_url);
   const displayTitle = video.display_title ?? video.task_id;
   const detailHref = video.thread_id
-    ? `/videos/${encodeURIComponent(video.thread_id)}`
+    ? `/threads/${encodeURIComponent(video.thread_id)}`
     : `/tasks/${encodeURIComponent(video.task_id)}`;
   const { locale, t } = useI18n();
 
@@ -126,7 +126,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
   const previewUrl = resolveApiUrl(video.latest_preview_url);
   const displayTitle = video.display_title ?? video.task_id;
   const detailHref = video.thread_id
-    ? `/videos/${encodeURIComponent(video.thread_id)}`
+    ? `/threads/${encodeURIComponent(video.thread_id)}`
     : `/tasks/${encodeURIComponent(video.task_id)}`;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
