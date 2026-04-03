@@ -3,6 +3,18 @@
   gap: 1rem;
 }
 
+.thread-discussion-panel,
+.thread-discussion-panel__header,
+.thread-discussion-panel__stack,
+.thread-discussion-panel__composer {
+  display: grid;
+  gap: 1rem;
+}
+
+.thread-discussion-panel {
+  margin: 1rem 0;
+}
+
 .video-thread-workbench--attention .video-thread-workbench__hero {
   border-color: rgba(251, 191, 36, 0.35);
 }

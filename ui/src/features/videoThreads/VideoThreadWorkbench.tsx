@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 
 import type {
-  VideoThreadAction,
   VideoThreadIterationDetail,
   VideoThreadSurface,
 } from "../../lib/videoThreadsApi";
@@ -12,19 +11,13 @@ type VideoThreadWorkbenchProps = {
   iterationDetail: VideoThreadIterationDetail | null;
   selectedIterationId: string | null;
   iterationLoading: boolean;
-  draft: string;
-  activeActionId: string | null;
-  submitting: boolean;
   participantSubmitting: boolean;
   participantDraft: {
     agentId: string;
     displayName: string;
     role: string;
   };
-  onDraftChange: (value: string) => void;
   onSelectIteration: (iterationId: string) => void;
-  onSelectAction: (actionId: string) => void;
-  onSubmit: () => void;
   onParticipantDraftChange: (field: "agentId" | "displayName" | "role", value: string) => void;
   onInviteParticipant: () => void;
   onRemoveParticipant: (participantId: string) => void;
@@ -35,33 +28,19 @@ export function VideoThreadWorkbench({
   iterationDetail,
   selectedIterationId,
   iterationLoading,
-  draft,
-  activeActionId,
-  submitting,
   participantSubmitting,
   participantDraft,
-  onDraftChange,
   onSelectIteration,
-  onSelectAction,
-  onSubmit,
   onParticipantDraftChange,
   onInviteParticipant,
   onRemoveParticipant,
 }: VideoThreadWorkbenchProps) {
-  const selectedAction = useMemo<VideoThreadAction | null>(() => {
-    return (
-      surface.actions.items.find((item) => item.action_id === activeActionId) ??
-      surface.actions.items[0] ??
-      null
-    );
-  }, [activeActionId, surface.actions.items]);
   const panelPresentationById = useMemo(() => {
     return new Map(
       surface.render_contract.panel_presentations.map((item) => [item.panel_id, item] as const)
     );
   }, [surface.render_contract.panel_presentations]);
   const participantManagement = surface.participants.management;
-  const expandedPanelsLabel = surface.render_contract.default_expanded_panels.join(", ") || "none";
   const artifactLineage = surface.artifact_lineage ?? {
     title: "Artifact Lineage",
     summary: "",
@@ -130,37 +109,6 @@ export function VideoThreadWorkbench({
       latest_agent_turn_id: null,
       is_active: false,
     };
-  const activeComposerTarget = iterationDetail?.composer_target ??
-    surface.composer.target ?? {
-      iteration_id: null,
-      result_id: null,
-      addressed_participant_id: null,
-      addressed_agent_id: null,
-      addressed_display_name: null,
-      agent_role: null,
-      agent_display_name: null,
-      summary: "",
-    };
-  const discussionRuntime = surface.discussion_runtime ?? {
-    title: "Discussion Runtime",
-    summary: "",
-    active_iteration_id: null,
-    active_discussion_group_id: null,
-    continuity_scope: "thread" as const,
-    reply_policy: "continue_thread" as const,
-    default_intent_type: null,
-    default_reply_to_turn_id: null,
-    default_related_result_id: null,
-    addressed_participant_id: null,
-    addressed_agent_id: null,
-    addressed_display_name: null,
-    suggested_follow_up_modes: [],
-    active_thread_title: null,
-    active_thread_summary: "",
-    latest_owner_turn_id: null,
-    latest_agent_turn_id: null,
-    latest_agent_summary: "",
-  };
   const participantRuntime = surface.participant_runtime ?? {
     title: "Participant Runtime",
     summary: "",
@@ -173,12 +121,6 @@ export function VideoThreadWorkbench({
     follow_up_target_locked: false,
     recent_contributors: [],
   };
-  const replyPolicyHint =
-    discussionRuntime.reply_policy === "continue_thread"
-      ? "Stay inside the active discussion thread for the next owner follow-up."
-      : discussionRuntime.reply_policy === "start_new_thread"
-        ? "Start a new discussion thread for the next owner follow-up."
-        : "The responding agent may decide whether to continue or branch the discussion.";
 
   const getPanelClassName = (panelId: string) => {
     const presentation = panelPresentationById.get(panelId);
@@ -537,76 +479,6 @@ export function VideoThreadWorkbench({
           </div>
         </section>
 
-        <section className={getPanelClassName("discussion_runtime")}>
-          <h2>{discussionRuntime.title}</h2>
-          <p>{discussionRuntime.summary || "No active discussion runtime has been projected yet."}</p>
-          <div className="video-thread-workbench__focus-grid">
-            <div>
-              <span className="video-thread-workbench__label">Active thread</span>
-              <strong>{discussionRuntime.active_thread_title || "No active thread yet"}</strong>
-            </div>
-            <div>
-              <span className="video-thread-workbench__label">Reply target</span>
-              <strong>{discussionRuntime.addressed_display_name || "Agent choice"}</strong>
-            </div>
-            <div>
-              <span className="video-thread-workbench__label">Continuity</span>
-              <strong>{discussionRuntime.continuity_scope}</strong>
-            </div>
-            <div>
-              <span className="video-thread-workbench__label">Reply policy</span>
-              <strong>{discussionRuntime.reply_policy}</strong>
-            </div>
-          </div>
-          {discussionRuntime.active_thread_summary ? (
-            <p>{discussionRuntime.active_thread_summary}</p>
-          ) : null}
-          <div className="video-thread-workbench__intent-meta">
-            <span className="video-thread-workbench__meta">
-              Continuity: {discussionRuntime.continuity_scope}
-            </span>
-            <span className="video-thread-workbench__meta">
-              Reply policy: {discussionRuntime.reply_policy}
-            </span>
-            {discussionRuntime.default_reply_to_turn_id ? (
-              <span className="video-thread-workbench__meta">
-                Reply to: {discussionRuntime.default_reply_to_turn_id}
-              </span>
-            ) : null}
-            {discussionRuntime.default_related_result_id ? (
-              <span className="video-thread-workbench__meta">
-                Result: {discussionRuntime.default_related_result_id}
-              </span>
-            ) : null}
-          </div>
-          <p className="video-thread-workbench__meta">{replyPolicyHint}</p>
-          {discussionRuntime.suggested_follow_up_modes.length ? (
-            <div className="video-thread-workbench__chip-list">
-              {discussionRuntime.suggested_follow_up_modes.map((mode) => (
-                <span key={mode} className="video-thread-workbench__chip">
-                  Suggested: {mode}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          <div className="video-thread-workbench__conversation">
-            <article className="video-thread-workbench__journal-entry">
-              <div className="video-thread-workbench__turn-row">
-                <strong>Latest owner prompt</strong>
-                <span>{discussionRuntime.latest_owner_turn_id || "waiting"}</span>
-              </div>
-              <p>{discussionRuntime.active_thread_summary || "No active owner prompt summary is available yet."}</p>
-            </article>
-            <article className="video-thread-workbench__journal-entry">
-              <div className="video-thread-workbench__turn-row">
-                <strong>Latest agent answer</strong>
-                <span>{discussionRuntime.latest_agent_turn_id || "awaiting reply"}</span>
-              </div>
-              <p>{discussionRuntime.latest_agent_summary || "No visible agent answer has been projected yet."}</p>
-            </article>
-          </div>
-        </section>
-
         <section className={getPanelClassName("participant_runtime")}>
           <h2>{participantRuntime.title}</h2>
           <p>{participantRuntime.summary || "No participant continuity has been projected yet."}</p>
@@ -670,75 +542,6 @@ export function VideoThreadWorkbench({
           </div>
         </section>
 
-        <section className={getPanelClassName("discussion_groups")}>
-          <h2>Discussion Threads</h2>
-          <div className="video-thread-workbench__conversation">
-            {surface.discussion_groups.groups.length ? (
-              surface.discussion_groups.groups.map((group) => (
-                <article key={group.group_id} className="video-thread-workbench__discussion-group">
-                  <div className="video-thread-workbench__turn-row">
-                    <strong>{group.prompt_title}</strong>
-                    <span>{group.status}</span>
-                  </div>
-                  {group.prompt_summary ? <p>{group.prompt_summary}</p> : null}
-                  <div className="video-thread-workbench__intent-meta">
-                    {group.prompt_intent_type ? (
-                      <span className="video-thread-workbench__meta">
-                        Intent: {group.prompt_intent_type}
-                      </span>
-                    ) : null}
-                    {group.related_result_id ? (
-                      <span className="video-thread-workbench__meta">
-                        Result: {group.related_result_id}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="video-thread-workbench__turn-row">
-                    <span className="video-thread-workbench__meta">
-                      {group.prompt_actor_display_name || group.prompt_actor_role || "Owner"}
-                    </span>
-                    <span className="video-thread-workbench__meta">
-                      {group.iteration_id || group.prompt_turn_id}
-                    </span>
-                  </div>
-                  {group.replies.length ? (
-                    <div className="video-thread-workbench__reply-list">
-                      {group.replies.map((reply) => (
-                        <article key={reply.turn_id} className="video-thread-workbench__reply">
-                          <div className="video-thread-workbench__turn-row">
-                            <strong>{reply.title}</strong>
-                            <span>{reply.speaker_role || "agent"}</span>
-                          </div>
-                          {reply.summary ? <p>{reply.summary}</p> : null}
-                          <div className="video-thread-workbench__intent-meta">
-                            {reply.intent_type ? (
-                              <span className="video-thread-workbench__meta">
-                                Intent: {reply.intent_type}
-                              </span>
-                            ) : null}
-                            {reply.related_result_id ? (
-                              <span className="video-thread-workbench__meta">
-                                Result: {reply.related_result_id}
-                              </span>
-                            ) : null}
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="video-thread-workbench__meta">
-                      No reply has been attached to this discussion yet.
-                    </p>
-                  )}
-                </article>
-              ))
-            ) : (
-              <p className="video-thread-workbench__meta">
-                No grouped discussion threads are available yet.
-              </p>
-            )}
-          </div>
-        </section>
       </div>
 
       <div className="video-thread-workbench__layout">
@@ -952,37 +755,6 @@ export function VideoThreadWorkbench({
           )}
         </section>
 
-        <section className={getPanelClassName("conversation")}>
-          <h2>Conversation</h2>
-          <div className="video-thread-workbench__conversation">
-            {surface.conversation.turns.map((turn) => (
-              <article key={turn.turn_id} className="video-thread-workbench__turn">
-                <div className="video-thread-workbench__turn-row">
-                  <strong>{turn.title}</strong>
-                  <span>{turn.speaker_role || turn.speaker_type}</span>
-                </div>
-                {turn.summary ? <p>{turn.summary}</p> : null}
-                {turn.intent_type || turn.reply_to_turn_id || turn.related_result_id ? (
-                  <div className="video-thread-workbench__intent-meta">
-                    {turn.intent_type ? (
-                      <span className="video-thread-workbench__meta">Intent: {turn.intent_type}</span>
-                    ) : null}
-                    {turn.reply_to_turn_id ? (
-                      <span className="video-thread-workbench__meta">
-                        Replies to: {turn.reply_to_turn_id}
-                      </span>
-                    ) : null}
-                    {turn.related_result_id ? (
-                      <span className="video-thread-workbench__meta">
-                        Result: {turn.related_result_id}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-              </article>
-            ))}
-          </div>
-        </section>
       </div>
 
       <section className={getPanelClassName("process")}>
@@ -1080,62 +852,6 @@ export function VideoThreadWorkbench({
               {participantManagement.invite_label}
             </button>
           </div>
-        </div>
-      </section>
-
-      <section className={getPanelClassName("composer")}>
-        <h2>Composer</h2>
-        <div className="video-thread-workbench__actions">
-          {surface.actions.items.map((action) => (
-            <button
-              key={action.action_id}
-              type="button"
-              className={`video-thread-workbench__action ${
-                activeActionId === action.action_id ? "video-thread-workbench__action--selected" : ""
-              }`}
-              onClick={() => onSelectAction(action.action_id)}
-              disabled={action.disabled || submitting}
-              title={action.disabled ? action.disabled_reason : action.description}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-        {selectedAction?.description ? <p>{selectedAction.description}</p> : null}
-        <label className="video-thread-workbench__label" htmlFor="video-thread-composer">
-          {selectedAction?.label || "Add note"}
-        </label>
-        <textarea
-          id="video-thread-composer"
-          className="video-thread-workbench__composer"
-          rows={4}
-          value={draft}
-          placeholder={surface.composer.placeholder}
-          onChange={(event) => onDraftChange(event.target.value)}
-          disabled={submitting || surface.composer.disabled}
-        />
-        {surface.composer.context_hint ? <p>{surface.composer.context_hint}</p> : null}
-        {activeComposerTarget?.summary ? <p>{activeComposerTarget.summary}</p> : null}
-        {activeComposerTarget?.addressed_display_name || activeComposerTarget?.addressed_participant_id ? (
-          <p>
-            Reply target:{" "}
-            {activeComposerTarget.addressed_display_name ||
-              activeComposerTarget.addressed_participant_id}
-          </p>
-        ) : null}
-        <div className="video-thread-workbench__composer-footer">
-          <div className="video-thread-workbench__composer-strategy">
-            <span>Focus: {surface.render_contract.default_focus_panel}</span>
-            <span>Expanded: {expandedPanelsLabel}</span>
-          </div>
-          <button
-            type="button"
-            className={`video-thread-workbench__submit video-thread-workbench__submit--${surface.render_contract.sticky_primary_action_emphasis}`}
-            onClick={onSubmit}
-            disabled={submitting || surface.composer.disabled || !draft.trim() || selectedAction?.disabled}
-          >
-            {surface.composer.submit_label}
-          </button>
         </div>
       </section>
     </section>

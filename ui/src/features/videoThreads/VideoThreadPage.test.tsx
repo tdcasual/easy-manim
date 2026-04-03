@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { vi } from "vitest";
 
@@ -779,6 +779,14 @@ test("video thread page renders the collaboration workbench from thread surface"
   );
 
   expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
+  const selectedVersion = await screen.findByRole("region", { name: "Selected version" });
+  const discussion = await screen.findByRole("region", { name: "Discussion" });
+  expect(selectedVersion.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(discussion).getByLabelText("Request revision")).toBeInTheDocument();
+  expect(within(discussion).getByText("Thread: Why this pacing?")).toBeInTheDocument();
+  expect(within(discussion).getByText("Reply to: turn-1")).toBeInTheDocument();
+  expect(within(discussion).getAllByText("Result: result-2").length).toBeGreaterThan(0);
+  expect(screen.queryByRole("heading", { name: "Composer" })).not.toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Selected version" })).toBeInTheDocument();
   expect(screen.getByText("Selected result: result-2")).toBeInTheDocument();
   expect(screen.getByText("Selected iteration: iter-2")).toBeInTheDocument();
@@ -827,13 +835,10 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(screen.getByText("Recommended next move")).toBeInTheDocument();
   expect(screen.getByText("Production Journal")).toBeInTheDocument();
   expect(screen.getByText("Selected result recorded")).toBeInTheDocument();
-  expect(screen.getByText("Discussion Runtime")).toBeInTheDocument();
   expect(screen.getByText("Continue 'Why this pacing?' with Repairer while staying on the active iteration.")).toBeInTheDocument();
   expect(screen.getAllByText("Why this pacing?").length).toBeGreaterThan(1);
   expect(screen.getByText("Continuity: iteration")).toBeInTheDocument();
   expect(screen.getByText("Reply policy: continue_thread")).toBeInTheDocument();
-  expect(screen.getByText("Suggested: ask_why")).toBeInTheDocument();
-  expect(screen.getByText("Suggested: request_change")).toBeInTheDocument();
   expect(screen.getByText("Participant Runtime")).toBeInTheDocument();
   expect(
     screen.getByText("Repairer is currently expected to respond, while Planner also shaped the active iteration.")
@@ -848,7 +853,6 @@ test("video thread page renders the collaboration workbench from thread surface"
   });
   expect(screen.getByText("Focus result: result-2")).toBeInTheDocument();
   expect(screen.getByText("How This Video Got Here")).toBeInTheDocument();
-  expect(screen.getByText("Discussion Threads")).toBeInTheDocument();
   expect(screen.getByText("answered")).toBeInTheDocument();
   expect(screen.getByText("Repairer is refining this cut")).toBeInTheDocument();
   expect(screen.getByText("primary emphasis")).toBeInTheDocument();
@@ -873,7 +877,7 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(
     screen.getByText("New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.")
   ).toBeInTheDocument();
-  expect(screen.getByText("Reply target: Repairer")).toBeInTheDocument();
+  expect(within(discussion).getAllByText("Reply target: Repairer").length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: /draw a circle/ }));
@@ -886,7 +890,7 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(
     screen.getByText("New messages will attach to iter-1, stay anchored to result-1, and hand off to Planner.")
   ).toBeInTheDocument();
-  expect(screen.getByText("Reply target: Planner")).toBeInTheDocument();
+  expect(within(discussion).getAllByText("Reply target: Planner").length).toBeGreaterThan(0);
 });
 
 test("video thread page invites and removes participants from the owner panel", async () => {
@@ -1414,7 +1418,7 @@ test("video thread page invites and removes participants from the owner panel", 
   ).toBe(true);
 });
 
-test("video thread page submits discussion turns to the addressed participant target", async () => {
+test("video thread page routes discussion actions through the selected composer mode", async () => {
   writeSessionToken("sess-token-1");
   const user = userEvent.setup();
   const requests: Array<{ method: string; path: string; body?: string | null }> = [];
@@ -1544,6 +1548,22 @@ test("video thread page submits discussion turns to the addressed participant ta
           },
           actions: {
             items: [
+              {
+                action_id: "request_revision",
+                label: "Request revision",
+                description: "Create the next revision from the selected result and current goal.",
+                tone: "strong",
+                disabled: false,
+                disabled_reason: "",
+              },
+              {
+                action_id: "request_explanation",
+                label: "Ask why",
+                description: "Request a product-safe explanation for the current direction.",
+                tone: "neutral",
+                disabled: false,
+                disabled_reason: "",
+              },
               {
                 action_id: "discuss",
                 label: "Add note",
@@ -1679,6 +1699,26 @@ test("video thread page submits discussion turns to the addressed participant ta
       );
     }
 
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1/request-revision" &&
+      init?.method === "POST"
+    ) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1/request-explanation" &&
+      init?.method === "POST"
+    ) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
     return new Response("not found", { status: 404 });
   }) as typeof fetch;
 
@@ -1693,16 +1733,53 @@ test("video thread page submits discussion turns to the addressed participant ta
   );
 
   expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
-  expect(await screen.findByText("Execution Summary")).toBeInTheDocument();
-  expect(
-    await screen.findByText(
-      "Repairer is currently repairing for task task-1 while shaping result result-1."
-    )
-  ).toBeInTheDocument();
-  expect(await screen.findByText("Current result: result-1")).toBeInTheDocument();
-  await user.type(screen.getByLabelText("Add note"), "Please keep this pacing but make the title land softer.");
-  await user.click(screen.getByRole("button", { name: "Send" }));
+  const discussion = await screen.findByRole("region", { name: "Discussion" });
+  expect(within(discussion).getByLabelText("Request revision")).toBeInTheDocument();
+  expect(within(discussion).getByText("Reply to: turn-1")).toBeInTheDocument();
+  expect(within(discussion).getByText("Result: result-1")).toBeInTheDocument();
 
+  await user.type(
+    within(discussion).getByLabelText("Request revision"),
+    "Please keep this pacing but make the title land softer."
+  );
+  await user.click(within(discussion).getByRole("button", { name: "Send" }));
+
+  await waitFor(() => {
+    expect(
+      requests.some(
+        (request) =>
+          request.method === "POST" &&
+          request.path === "/api/video-threads/thread-1/iterations/iter-1/request-revision" &&
+          request.body?.includes('"summary":"Please keep this pacing but make the title land softer."')
+      )
+    ).toBe(true);
+  });
+
+  await user.click(within(discussion).getByRole("button", { name: "Ask why" }));
+  await user.type(
+    within(discussion).getByLabelText("Ask why"),
+    "Why does the current title entrance feel more deliberate?"
+  );
+  await user.click(within(discussion).getByRole("button", { name: "Send" }));
+
+  await waitFor(() => {
+    expect(
+      requests.some(
+        (request) =>
+          request.method === "POST" &&
+          request.path ===
+            "/api/video-threads/thread-1/iterations/iter-1/request-explanation" &&
+          request.body?.includes('"summary":"Why does the current title entrance feel more deliberate?"')
+      )
+    ).toBe(true);
+  });
+
+  await user.click(within(discussion).getByRole("button", { name: "Add note" }));
+  await user.type(
+    within(discussion).getByLabelText("Add note"),
+    "Please keep this pacing but make the title land softer."
+  );
+  await user.click(within(discussion).getByRole("button", { name: "Send" }));
   await waitFor(() => {
     expect(
       requests.some(

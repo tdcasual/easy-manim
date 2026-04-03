@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { useSession } from "../auth/useSession";
 import { VideoThreadWorkbench } from "./VideoThreadWorkbench";
 import { SelectedVersionHero } from "./SelectedVersionHero";
+import { ThreadDiscussionPanel } from "./ThreadDiscussionPanel";
 import { useTaskArtifactDownloads } from "./useTaskArtifactDownloads";
 import {
   appendVideoTurn,
@@ -313,20 +314,29 @@ export function VideoThreadPage() {
         downloads={downloads}
         downloadError={downloadError}
       />
+      <ThreadDiscussionPanel
+        surface={surface}
+        activeActionId={activeActionId}
+        activeComposerTarget={activeComposerTarget}
+        replyToTurnId={
+          surface.discussion_runtime?.default_reply_to_turn_id ??
+          iterationDetail?.execution_summary.reply_to_turn_id ??
+          null
+        }
+        draft={draft}
+        submitting={submitting}
+        onDraftChange={setDraft}
+        onSelectAction={setActiveActionId}
+        onSubmit={onSubmit}
+      />
       <VideoThreadWorkbench
         surface={surface}
         iterationDetail={iterationDetail}
         selectedIterationId={selectedIterationId}
         iterationLoading={iterationLoading}
-        draft={draft}
-        activeActionId={activeActionId}
-        submitting={submitting}
         participantSubmitting={participantSubmitting}
         participantDraft={participantDraft}
-        onDraftChange={setDraft}
         onSelectIteration={setSelectedIterationId}
-        onSelectAction={setActiveActionId}
-        onSubmit={onSubmit}
         onParticipantDraftChange={(field, value) =>
           setParticipantDraft((current) => ({ ...current, [field]: value }))
         }
