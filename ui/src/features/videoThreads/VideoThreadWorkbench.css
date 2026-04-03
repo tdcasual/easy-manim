@@ -6,13 +6,41 @@
 .thread-discussion-panel,
 .thread-discussion-panel__header,
 .thread-discussion-panel__stack,
-.thread-discussion-panel__composer {
+.thread-discussion-panel__composer,
+.version-timeline,
+.version-timeline__header,
+.version-timeline__list {
   display: grid;
   gap: 1rem;
 }
 
 .thread-discussion-panel {
   margin: 1rem 0;
+}
+
+.version-timeline {
+  margin: 1rem 0;
+}
+
+.version-timeline__card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.85rem;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.version-timeline__card--selected {
+  border-color: rgba(94, 234, 212, 0.42);
+  background: rgba(94, 234, 212, 0.08);
+}
+
+.version-timeline__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .video-thread-workbench--attention .video-thread-workbench__hero {

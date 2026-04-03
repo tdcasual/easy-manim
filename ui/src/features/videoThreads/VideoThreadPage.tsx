@@ -6,6 +6,7 @@ import { VideoThreadWorkbench } from "./VideoThreadWorkbench";
 import { SelectedVersionHero } from "./SelectedVersionHero";
 import { ThreadDiscussionPanel } from "./ThreadDiscussionPanel";
 import { useTaskArtifactDownloads } from "./useTaskArtifactDownloads";
+import { VersionTimeline } from "./VersionTimeline";
 import {
   appendVideoTurn,
   getVideoThreadIteration,
@@ -13,6 +14,7 @@ import {
   removeVideoThreadParticipant,
   requestVideoExplanation,
   requestVideoRevision,
+  selectVideoResult,
   upsertVideoThreadParticipant,
   type VideoThreadIterationDetail,
   type VideoThreadSurface,
@@ -61,6 +63,7 @@ export function VideoThreadPage() {
   const [draft, setDraft] = useState("");
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [selectingResultId, setSelectingResultId] = useState<string | null>(null);
   const [participantSubmitting, setParticipantSubmitting] = useState(false);
   const [participantDraft, setParticipantDraft] = useState({
     agentId: "",
@@ -74,9 +77,9 @@ export function VideoThreadPage() {
     iterationDetail?.results.find((result) => result.result_id === surface?.current_focus.current_result_id) ??
     null;
   const selectedTaskId =
-    selectedTaskIdFromSurface(surface, selectedIterationId) ??
-    iterationDetail?.runs.find((run) => run.task_id)?.task_id ??
     taskIdFromVideoResource(selectedResult?.video_resource) ??
+    iterationDetail?.runs.find((run) => run.task_id)?.task_id ??
+    selectedTaskIdFromSurface(surface, selectedIterationId) ??
     null;
   const { downloads, error: downloadError } = useTaskArtifactDownloads(selectedTaskId, sessionToken);
 
@@ -144,6 +147,14 @@ export function VideoThreadPage() {
       cancelled = true;
     };
   }, [selectedIterationId, sessionToken, threadId]);
+
+  async function refreshIterationDetail(iterationId: string) {
+    if (!threadId || !sessionToken) {
+      return;
+    }
+    const detail = await getVideoThreadIteration(threadId, iterationId, sessionToken);
+    setIterationDetail(detail);
+  }
 
   async function refreshSurface() {
     if (!threadId || !sessionToken) {
@@ -276,6 +287,24 @@ export function VideoThreadPage() {
     }
   }
 
+  async function onSelectResult(resultId: string) {
+    if (!threadId || !sessionToken || !selectedIterationId) {
+      return;
+    }
+
+    setSelectingResultId(resultId);
+    setError(null);
+    try {
+      await selectVideoResult(threadId, selectedIterationId, { result_id: resultId }, sessionToken);
+      await refreshSurface();
+      await refreshIterationDetail(selectedIterationId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to select version");
+    } finally {
+      setSelectingResultId(null);
+    }
+  }
+
   if (!threadId) {
     return <div className="page-v2">Missing thread id.</div>;
   }
@@ -328,6 +357,12 @@ export function VideoThreadPage() {
         onDraftChange={setDraft}
         onSelectAction={setActiveActionId}
         onSubmit={onSubmit}
+      />
+      <VersionTimeline
+        results={iterationDetail?.results ?? []}
+        selectedResultId={selectedResult?.result_id ?? surface.current_focus.current_result_id ?? null}
+        selectingResultId={selectingResultId}
+        onSelectResult={onSelectResult}
       />
       <VideoThreadWorkbench
         surface={surface}

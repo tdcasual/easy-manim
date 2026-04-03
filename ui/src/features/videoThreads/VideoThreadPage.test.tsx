@@ -1793,3 +1793,730 @@ test("video thread page routes discussion actions through the selected composer 
     ).toBe(true);
   });
 });
+
+test("video thread page shows version cards with select and task actions", async () => {
+  writeSessionToken("sess-token-1");
+  const user = userEvent.setup();
+  const requests: Array<{ method: string; path: string; body?: string | null }> = [];
+  let surfaceIndex = 0;
+  let iter2DetailIndex = 0;
+
+  const surfaces = [
+    {
+      thread_header: {
+        thread_id: "thread-1",
+        title: "Circle explainer",
+        status: "active",
+        current_iteration_id: "iter-2",
+        selected_result_id: "result-2",
+      },
+      thread_summary: "A durable collaboration thread for iterating on this video.",
+      current_focus: {
+        current_iteration_id: "iter-2",
+        current_iteration_goal: "Slow the opener and make the title entrance more deliberate.",
+        current_result_id: "result-2",
+        current_result_summary: "Selected cut with a slower title entrance.",
+      },
+      selection_summary: {
+        title: "Why this version is selected",
+        summary: "The latest selected version keeps the deliberate title entrance.",
+        selected_result_id: "result-2",
+      },
+      latest_explanation: {
+        title: "Latest visible explanation",
+        summary: "The slower opener gives the title more room to land.",
+      },
+      authorship: {
+        title: "Who shaped this version",
+        summary: "Repairer shaped the latest selected cut.",
+        primary_agent_display_name: "Repairer",
+        primary_agent_role: "repairer",
+      },
+      decision_notes: { title: "Decision Notes", items: [] },
+      artifact_lineage: { title: "Artifact Lineage", summary: "", selected_result_id: "result-2", items: [] },
+      rationale_snapshots: { title: "Rationale Snapshots", summary: "", current_iteration_id: "iter-2", items: [] },
+      iteration_compare: {
+        title: "Iteration Compare",
+        summary: "",
+        previous_iteration_id: "iter-1",
+        current_iteration_id: "iter-2",
+        previous_result_id: "result-1",
+        current_result_id: surfaceIndex === 0 ? "result-2" : "result-1",
+        change_summary: "",
+        rationale_shift_summary: "",
+        continuity_status: "changed",
+        continuity_summary: "",
+      },
+      next_recommended_move: {
+        title: "Recommended next move",
+        summary: "Review the current version or switch to another cut.",
+        recommended_action_id: "request_revision",
+        recommended_action_label: "Request revision",
+        owner_action_required: "review_latest_result",
+        tone: "attention",
+      },
+      responsibility: {
+        owner_action_required: "review_latest_result",
+        expected_agent_role: "repairer",
+      },
+      iteration_workbench: {
+        selected_iteration_id: "iter-2",
+        latest_iteration_id: "iter-2",
+        iterations: [
+          {
+            iteration_id: "iter-2",
+            title: "Slow the opener",
+            goal: "Slow the opener and make the title entrance more deliberate.",
+            status: "active",
+            resolution_state: "open",
+            requested_action: "revise",
+            result_summary: "Two visible candidate cuts are available.",
+          },
+        ],
+      },
+      iteration_detail: {
+        title: "Iteration Detail",
+        summary: "Inspect the selected iteration to review visible turns, runs, and results.",
+        selected_iteration_id: "iter-2",
+        resource_uri: "video-thread://thread-1/iterations/iter-2.json",
+        turn_count: 1,
+        run_count: 1,
+        result_count: 2,
+      },
+      conversation: { turns: [] },
+      history: { cards: [] },
+      production_journal: {
+        title: "Production Journal",
+        summary: "",
+        entries: [
+          {
+            entry_id: "journal-result-2",
+            entry_kind: "result",
+            title: "Selected result recorded",
+            summary: "Selected cut with a slower title entrance.",
+            stage: "result",
+            status: "ready",
+            iteration_id: "iter-2",
+            task_id: "task-2",
+            run_id: null,
+            result_id: "result-2",
+            actor_display_name: "Repairer",
+            actor_role: "repairer",
+            resource_refs: ["video-task://task-2/artifacts/final.mp4"],
+          },
+        ],
+      },
+      discussion_groups: { groups: [] },
+      discussion_runtime: {
+        title: "Discussion Runtime",
+        summary: "Discuss the currently selected cut.",
+        active_iteration_id: "iter-2",
+        active_discussion_group_id: null,
+        continuity_scope: "iteration",
+        reply_policy: "continue_thread",
+        default_intent_type: "discuss",
+        default_reply_to_turn_id: "turn-1",
+        default_related_result_id: surfaceIndex === 0 ? "result-2" : "result-1",
+        addressed_participant_id: "repairer-1",
+        addressed_agent_id: "repairer-1",
+        addressed_display_name: "Repairer",
+        suggested_follow_up_modes: [],
+        active_thread_title: "Version review",
+        active_thread_summary: "Choose the cut you want to carry forward.",
+        latest_owner_turn_id: "turn-1",
+        latest_agent_turn_id: null,
+        latest_agent_summary: "",
+      },
+      participant_runtime: {
+        title: "Participant Runtime",
+        summary: "",
+        active_iteration_id: "iter-2",
+        expected_participant_id: "repairer-1",
+        expected_agent_id: "repairer-1",
+        expected_display_name: "Repairer",
+        expected_role: "repairer",
+        continuity_mode: "keep_current_participant",
+        follow_up_target_locked: true,
+        recent_contributors: [],
+      },
+      process: {
+        runs: [
+          {
+            run_id: "run-2",
+            iteration_id: "iter-2",
+            task_id: "task-2",
+            role: "repairer",
+            status: "completed",
+            phase: "completed",
+            output_summary: "Produced two candidate cuts.",
+          },
+        ],
+      },
+      participants: {
+        items: [
+          {
+            participant_id: "owner",
+            participant_type: "owner",
+            role: "owner",
+            display_name: "Owner",
+          },
+        ],
+        management: {
+          can_manage: true,
+          can_invite: true,
+          can_remove: true,
+          invite_label: "Invite participant",
+          invite_placeholder: "Agent id",
+          default_role: "reviewer",
+          default_capabilities: ["review_bundle:read"],
+          remove_label: "Remove participant",
+          removable_participant_ids: [],
+          disabled_reason: "",
+          context_hint: "Invite reviewers or helper agents into this thread.",
+        },
+      },
+      actions: {
+        items: [
+          {
+            action_id: "request_revision",
+            label: "Request revision",
+            description: "Create the next revision from the selected result and current goal.",
+            tone: "strong",
+            disabled: false,
+          },
+        ],
+      },
+      composer: {
+        placeholder: "Ask why this version was made or request the next change.",
+        submit_label: "Send",
+        disabled: false,
+        context_hint: "The selected cut is ready for review or a focused revision request.",
+        target: {
+          iteration_id: "iter-2",
+          result_id: surfaceIndex === 0 ? "result-2" : "result-1",
+          addressed_participant_id: "repairer-1",
+          addressed_agent_id: "repairer-1",
+          addressed_display_name: "Repairer",
+          agent_role: "repairer",
+          agent_display_name: "Repairer",
+          summary:
+            surfaceIndex === 0
+              ? "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer."
+              : "New messages will attach to iter-2, stay anchored to result-1, and hand off to Repairer.",
+        },
+      },
+      render_contract: {
+        default_focus_panel: "composer",
+        panel_tone: "attention",
+        display_priority: "normal",
+        badge_order: ["owner_action_required"],
+        panel_order: ["composer", "iteration_detail"],
+        default_expanded_panels: ["composer", "iteration_detail"],
+        sticky_primary_action_id: "request_revision",
+        sticky_primary_action_emphasis: "strong",
+        panel_presentations: [
+          {
+            panel_id: "iteration_detail",
+            tone: "neutral",
+            emphasis: "supporting",
+            default_open: true,
+            collapsible: true,
+          },
+        ],
+      },
+    },
+    {
+      thread_header: {
+        thread_id: "thread-1",
+        title: "Circle explainer",
+        status: "active",
+        current_iteration_id: "iter-2",
+        selected_result_id: "result-1",
+      },
+      thread_summary: "A durable collaboration thread for iterating on this video.",
+      current_focus: {
+        current_iteration_id: "iter-2",
+        current_iteration_goal: "Slow the opener and make the title entrance more deliberate.",
+        current_result_id: "result-1",
+        current_result_summary: "Earlier cut with a sharper title entrance.",
+      },
+      selection_summary: {
+        title: "Why this version is selected",
+        summary: "The owner switched back to compare the earlier cut.",
+        selected_result_id: "result-1",
+      },
+      latest_explanation: {
+        title: "Latest visible explanation",
+        summary: "The earlier cut lands the title faster.",
+      },
+      authorship: {
+        title: "Who shaped this version",
+        summary: "Repairer shaped both visible cuts.",
+        primary_agent_display_name: "Repairer",
+        primary_agent_role: "repairer",
+      },
+      decision_notes: { title: "Decision Notes", items: [] },
+      artifact_lineage: { title: "Artifact Lineage", summary: "", selected_result_id: "result-1", items: [] },
+      rationale_snapshots: { title: "Rationale Snapshots", summary: "", current_iteration_id: "iter-2", items: [] },
+      iteration_compare: {
+        title: "Iteration Compare",
+        summary: "",
+        previous_iteration_id: "iter-1",
+        current_iteration_id: "iter-2",
+        previous_result_id: "result-1",
+        current_result_id: "result-1",
+        change_summary: "",
+        rationale_shift_summary: "",
+        continuity_status: "changed",
+        continuity_summary: "",
+      },
+      next_recommended_move: {
+        title: "Recommended next move",
+        summary: "Review the current version or switch to another cut.",
+        recommended_action_id: "request_revision",
+        recommended_action_label: "Request revision",
+        owner_action_required: "review_latest_result",
+        tone: "attention",
+      },
+      responsibility: {
+        owner_action_required: "review_latest_result",
+        expected_agent_role: "repairer",
+      },
+      iteration_workbench: {
+        selected_iteration_id: "iter-2",
+        latest_iteration_id: "iter-2",
+        iterations: [
+          {
+            iteration_id: "iter-2",
+            title: "Slow the opener",
+            goal: "Slow the opener and make the title entrance more deliberate.",
+            status: "active",
+            resolution_state: "open",
+            requested_action: "revise",
+            result_summary: "Two visible candidate cuts are available.",
+          },
+        ],
+      },
+      iteration_detail: {
+        title: "Iteration Detail",
+        summary: "Inspect the selected iteration to review visible turns, runs, and results.",
+        selected_iteration_id: "iter-2",
+        resource_uri: "video-thread://thread-1/iterations/iter-2.json",
+        turn_count: 1,
+        run_count: 1,
+        result_count: 2,
+      },
+      conversation: { turns: [] },
+      history: { cards: [] },
+      production_journal: {
+        title: "Production Journal",
+        summary: "",
+        entries: [
+          {
+            entry_id: "journal-result-1",
+            entry_kind: "result",
+            title: "Older result revisited",
+            summary: "Earlier cut with a sharper title entrance.",
+            stage: "result",
+            status: "ready",
+            iteration_id: "iter-2",
+            task_id: "task-1",
+            run_id: null,
+            result_id: "result-1",
+            actor_display_name: "Repairer",
+            actor_role: "repairer",
+            resource_refs: ["video-task://task-1/artifacts/final.mp4"],
+          },
+        ],
+      },
+      discussion_groups: { groups: [] },
+      discussion_runtime: {
+        title: "Discussion Runtime",
+        summary: "Discuss the currently selected cut.",
+        active_iteration_id: "iter-2",
+        active_discussion_group_id: null,
+        continuity_scope: "iteration",
+        reply_policy: "continue_thread",
+        default_intent_type: "discuss",
+        default_reply_to_turn_id: "turn-1",
+        default_related_result_id: "result-1",
+        addressed_participant_id: "repairer-1",
+        addressed_agent_id: "repairer-1",
+        addressed_display_name: "Repairer",
+        suggested_follow_up_modes: [],
+        active_thread_title: "Version review",
+        active_thread_summary: "Choose the cut you want to carry forward.",
+        latest_owner_turn_id: "turn-1",
+        latest_agent_turn_id: null,
+        latest_agent_summary: "",
+      },
+      participant_runtime: {
+        title: "Participant Runtime",
+        summary: "",
+        active_iteration_id: "iter-2",
+        expected_participant_id: "repairer-1",
+        expected_agent_id: "repairer-1",
+        expected_display_name: "Repairer",
+        expected_role: "repairer",
+        continuity_mode: "keep_current_participant",
+        follow_up_target_locked: true,
+        recent_contributors: [],
+      },
+      process: {
+        runs: [
+          {
+            run_id: "run-2",
+            iteration_id: "iter-2",
+            task_id: "task-1",
+            role: "repairer",
+            status: "completed",
+            phase: "completed",
+            output_summary: "Produced two candidate cuts.",
+          },
+        ],
+      },
+      participants: {
+        items: [
+          {
+            participant_id: "owner",
+            participant_type: "owner",
+            role: "owner",
+            display_name: "Owner",
+          },
+        ],
+        management: {
+          can_manage: true,
+          can_invite: true,
+          can_remove: true,
+          invite_label: "Invite participant",
+          invite_placeholder: "Agent id",
+          default_role: "reviewer",
+          default_capabilities: ["review_bundle:read"],
+          remove_label: "Remove participant",
+          removable_participant_ids: [],
+          disabled_reason: "",
+          context_hint: "Invite reviewers or helper agents into this thread.",
+        },
+      },
+      actions: {
+        items: [
+          {
+            action_id: "request_revision",
+            label: "Request revision",
+            description: "Create the next revision from the selected result and current goal.",
+            tone: "strong",
+            disabled: false,
+          },
+        ],
+      },
+      composer: {
+        placeholder: "Ask why this version was made or request the next change.",
+        submit_label: "Send",
+        disabled: false,
+        context_hint: "The selected cut is ready for review or a focused revision request.",
+        target: {
+          iteration_id: "iter-2",
+          result_id: "result-1",
+          addressed_participant_id: "repairer-1",
+          addressed_agent_id: "repairer-1",
+          addressed_display_name: "Repairer",
+          agent_role: "repairer",
+          agent_display_name: "Repairer",
+          summary: "New messages will attach to iter-2, stay anchored to result-1, and hand off to Repairer.",
+        },
+      },
+      render_contract: {
+        default_focus_panel: "composer",
+        panel_tone: "attention",
+        display_priority: "normal",
+        badge_order: ["owner_action_required"],
+        panel_order: ["composer", "iteration_detail"],
+        default_expanded_panels: ["composer", "iteration_detail"],
+        sticky_primary_action_id: "request_revision",
+        sticky_primary_action_emphasis: "strong",
+        panel_presentations: [
+          {
+            panel_id: "iteration_detail",
+            tone: "neutral",
+            emphasis: "supporting",
+            default_open: true,
+            collapsible: true,
+          },
+        ],
+      },
+    },
+  ];
+
+  const iter2Details = [
+    {
+      thread_id: "thread-1",
+      iteration_id: "iter-2",
+      title: "Iteration Detail",
+      summary: "This revision currently exposes two visible candidate cuts.",
+      execution_summary: {
+        title: "Execution Summary",
+        summary: "Repairer produced task-2 while task-1 remains available for comparison.",
+        task_id: "task-2",
+        run_id: "thread-run:task-2",
+        status: "completed",
+        phase: "completed",
+        agent_id: "repairer-1",
+        agent_display_name: "Repairer",
+        agent_role: "repairer",
+        result_id: "result-2",
+        discussion_group_id: null,
+        reply_to_turn_id: "turn-1",
+        latest_owner_turn_id: "turn-1",
+        latest_agent_turn_id: null,
+        is_active: true,
+      },
+      composer_target: {
+        iteration_id: "iter-2",
+        result_id: "result-2",
+        addressed_participant_id: "repairer-1",
+        addressed_agent_id: "repairer-1",
+        addressed_display_name: "Repairer",
+        agent_role: "repairer",
+        agent_display_name: "Repairer",
+        summary: "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.",
+      },
+      iteration: {
+        iteration_id: "iter-2",
+        thread_id: "thread-1",
+        goal: "Slow the opener and make the title entrance more deliberate.",
+        requested_action: "revise",
+        preserve_working_parts: true,
+        status: "active",
+        resolution_state: "open",
+        selected_result_id: "result-2",
+        source_result_id: "result-1",
+        responsible_role: "repairer",
+        responsible_agent_id: "repairer-1",
+      },
+      turns: [],
+      runs: [
+        {
+          run_id: "run-2",
+          agent_id: "repairer-1",
+          agent_display_name: "Repairer",
+          role: "repairer",
+          status: "completed",
+          phase: "completed",
+          output_summary: "Produced two candidate cuts.",
+          task_id: "task-2",
+        },
+      ],
+      results: [
+        {
+          result_id: "result-1",
+          status: "ready",
+          result_summary: "Earlier cut with a sharper title entrance.",
+          selected: false,
+          video_resource: "video-task://task-1/artifacts/final.mp4",
+        },
+        {
+          result_id: "result-2",
+          status: "ready",
+          result_summary: "Selected cut with a slower title entrance.",
+          selected: true,
+          video_resource: "video-task://task-2/artifacts/final.mp4",
+        },
+      ],
+    },
+    {
+      thread_id: "thread-1",
+      iteration_id: "iter-2",
+      title: "Iteration Detail",
+      summary: "This revision currently exposes two visible candidate cuts.",
+      execution_summary: {
+        title: "Execution Summary",
+        summary: "Repairer produced task-1 while task-2 remains available for comparison.",
+        task_id: "task-1",
+        run_id: "thread-run:task-1",
+        status: "completed",
+        phase: "completed",
+        agent_id: "repairer-1",
+        agent_display_name: "Repairer",
+        agent_role: "repairer",
+        result_id: "result-1",
+        discussion_group_id: null,
+        reply_to_turn_id: "turn-1",
+        latest_owner_turn_id: "turn-1",
+        latest_agent_turn_id: null,
+        is_active: true,
+      },
+      composer_target: {
+        iteration_id: "iter-2",
+        result_id: "result-1",
+        addressed_participant_id: "repairer-1",
+        addressed_agent_id: "repairer-1",
+        addressed_display_name: "Repairer",
+        agent_role: "repairer",
+        agent_display_name: "Repairer",
+        summary: "New messages will attach to iter-2, stay anchored to result-1, and hand off to Repairer.",
+      },
+      iteration: {
+        iteration_id: "iter-2",
+        thread_id: "thread-1",
+        goal: "Slow the opener and make the title entrance more deliberate.",
+        requested_action: "revise",
+        preserve_working_parts: true,
+        status: "active",
+        resolution_state: "open",
+        selected_result_id: "result-1",
+        source_result_id: "result-1",
+        responsible_role: "repairer",
+        responsible_agent_id: "repairer-1",
+      },
+      turns: [],
+      runs: [
+        {
+          run_id: "run-1",
+          agent_id: "repairer-1",
+          agent_display_name: "Repairer",
+          role: "repairer",
+          status: "completed",
+          phase: "completed",
+          output_summary: "Produced two candidate cuts.",
+          task_id: "task-1",
+        },
+      ],
+      results: [
+        {
+          result_id: "result-1",
+          status: "ready",
+          result_summary: "Earlier cut with a sharper title entrance.",
+          selected: true,
+          video_resource: "video-task://task-1/artifacts/final.mp4",
+        },
+        {
+          result_id: "result-2",
+          status: "ready",
+          result_summary: "Selected cut with a slower title entrance.",
+          selected: false,
+          video_resource: "video-task://task-2/artifacts/final.mp4",
+        },
+      ],
+    },
+  ];
+
+  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    const path = new URL(String(url), "http://example.test").pathname;
+    requests.push({
+      path,
+      method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? init.body : null,
+    });
+
+    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+      const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
+      surfaceIndex += 1;
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/video-threads/thread-1/iterations/iter-2" && (!init?.method || init.method === "GET")) {
+      const payload = iter2Details[Math.min(iter2DetailIndex, iter2Details.length - 1)];
+      iter2DetailIndex += 1;
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-2/select-result" &&
+      init?.method === "POST"
+    ) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/tasks/task-1/result" && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify({
+          task_id: "task-1",
+          status: "completed",
+          ready: true,
+          summary: "Earlier cut with a sharper title entrance.",
+          video_download_url: "/api/tasks/task-1/artifacts/final_video.mp4",
+          script_download_url: "/api/tasks/task-1/artifacts/current_script.py",
+          validation_report_download_url:
+            "/api/tasks/task-1/artifacts/validations/validation_report_v1.json",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+
+    if (path === "/api/tasks/task-2/result" && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify({
+          task_id: "task-2",
+          status: "completed",
+          ready: true,
+          summary: "Selected cut with a slower title entrance.",
+          video_download_url: "/api/tasks/task-2/artifacts/final_video.mp4",
+          script_download_url: "/api/tasks/task-2/artifacts/current_script.py",
+          validation_report_download_url:
+            "/api/tasks/task-2/artifacts/validations/validation_report_v1.json",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+
+    return new Response("not found", { status: 404 });
+  }) as typeof fetch;
+
+  render(
+    <MemoryRouter initialEntries={["/threads/thread-1"]}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/threads/:threadId" element={<VideoThreadPage />} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  expect(await screen.findByText("Selected result: result-2")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Download video" })).toHaveAttribute(
+    "href",
+    "/api/tasks/task-2/artifacts/final_video.mp4"
+  );
+  const versions = screen.getByRole("region", { name: "Versions" });
+  expect(within(versions).getByRole("heading", { name: "Versions" })).toBeInTheDocument();
+  expect(within(versions).getAllByText("Earlier cut with a sharper title entrance.").length).toBeGreaterThan(0);
+  expect(within(versions).getByRole("link", { name: "Open task detail for result-1" })).toHaveAttribute(
+    "href",
+    "/tasks/task-1"
+  );
+  expect(within(versions).getByRole("link", { name: "Download video for result-1" })).toHaveAttribute(
+    "href",
+    "/api/tasks/task-1/artifacts/final_video.mp4"
+  );
+  expect(within(versions).getByRole("button", { name: "Set as current version result-1" })).toBeInTheDocument();
+
+  await user.click(within(versions).getByRole("button", { name: "Set as current version result-1" }));
+
+  await waitFor(() => {
+    expect(
+      requests.some(
+        (request) =>
+          request.method === "POST" &&
+          request.path === "/api/video-threads/thread-1/iterations/iter-2/select-result" &&
+          request.body?.includes('"result_id":"result-1"')
+      )
+    ).toBe(true);
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText("Selected result: result-1")).toBeInTheDocument();
+  });
+  expect(screen.getByRole("link", { name: "Download video" })).toHaveAttribute(
+    "href",
+    "/api/tasks/task-1/artifacts/final_video.mp4"
+  );
+});

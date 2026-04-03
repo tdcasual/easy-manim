@@ -84,4 +84,5 @@ test("video thread api targets thread-native endpoints", async () => {
     "DELETE /api/video-threads/thread-1/participants/reviewer-1",
   ]);
   expect(seen[2]?.body).toContain('"addressed_participant_id":"repairer-1"');
+  expect(seen[5]?.body).toContain('"result_id":"result-1"');
 });
