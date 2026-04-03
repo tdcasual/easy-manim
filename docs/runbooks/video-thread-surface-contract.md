@@ -12,6 +12,7 @@ Current top-level sections:
 - `decision_notes`
 - `artifact_lineage`
 - `rationale_snapshots`
+- `iteration_compare`
 - `authorship`
 - `next_recommended_move`
 - `responsibility`
@@ -40,6 +41,7 @@ Rules:
 - `decision_notes` is the explicit owner-facing answer to "why is the video shaped this way right now?" It should project product-safe rationale notes from stable thread facts such as selected-result rationale, latest visible explanation, and the active iteration goal so clients do not assemble or rank these notes themselves.
 - `artifact_lineage` is the explicit owner-facing answer to "which visible result evolved into which result?" It should project product-safe lineage hops from thread iterations, result links, owner trigger turns, and shaping agent facts so clients do not infer artifact ancestry from `history`, `production_journal`, or raw iteration metadata.
 - `rationale_snapshots` is the explicit owner-facing answer to "what was the canonical rationale for each visible iteration?" It should project at most one product-safe rationale snapshot per iteration, preferring selected-result rationale when a visible result is actually selected, then the latest visible agent explanation, then the owner goal.
+- `iteration_compare` is the explicit owner-facing answer to "what changed from the previous visible cut and why?" It should compare the current selected or active iteration against the nearest earlier visible iteration using stable facts such as selected results, iteration goals, product-safe rationale summaries, and participant continuity so clients do not diff raw iteration arrays themselves.
 - `authorship` is the explicit owner-facing answer to "who most recently shaped this version?" It should prefer the latest relevant agent run, then fall back to the latest visible agent turn, then the assigned responsible role.
 - `next_recommended_move` is the explicit owner-facing answer to "what should happen next?" and carries the recommended action id/label plus the current owner-action state.
 - `history.cards` is the explicit owner-facing answer to "how did this video get here?" It should be built only from product-safe turns, result-selection rationale, and runtime summaries. It must never expose hidden reasoning.
@@ -68,17 +70,32 @@ Rules:
 - `actions.items` and `composer` carry display copy, disabled state, and contextual guidance so the workbench does not infer action semantics client-side.
 - `composer.target` is the explicit owner-facing answer to "where will the next message land?" It should identify the targeted iteration, visible result, explicitly addressed participant/agent continuity target, and expected agent role/display name so the frontend can render and submit follow-ups without guessing anchoring semantics.
 - `composer.target.addressed_participant_id`, `composer.target.addressed_agent_id`, and `composer.target.addressed_display_name` are the durable thread-native continuity fields for "talk to the agent that shaped this video." They should prefer the explicitly responsible participant, then the latest addressed owner turn on the selected iteration, then the latest visible iteration/runtime agent continuity facts before falling back thread-wide.
+- One-question, one-section matrix:
+  - "What discussion is active right now?" -> `discussion_runtime`
+  - "Who is expected to respond next?" -> `participant_runtime`
+  - "What grouped discussion history exists under this video?" -> `discussion_groups`
+  - "Where will the next submit land right now?" -> `composer.target`
+  - "What is the currently inspected iteration executing right now?" -> `iteration_detail.execution_summary`
+  - "What changed from the previous cut and why?" -> `iteration_compare`
+  - "Which panels deserve default visual emphasis and expansion?" -> `render_contract`
 - Authority boundary summary:
   - `discussion_runtime` answers "which discussion thread is active and how should the next follow-up attach?"
   - `participant_runtime` answers "which participant is expected now and who else recently shaped this iteration?"
   - `discussion_groups` answers "what visible grouped discussion threads exist under this video?"
   - `composer.target` answers "where will the submit action land if the owner sends a new turn right now?"
   - `iteration_detail.execution_summary` answers "what is the currently inspected iteration doing at runtime?"
+- Transitional overlap notes:
+  - `discussion_groups` is history structure and cluster memory. It is not the authority for the currently active thread.
+  - `discussion_runtime` owns active-thread continuity and follow-up attachment semantics. It may reference a group id, but clients should not promote `discussion_groups` into active-thread authority.
+  - `participant_runtime` owns expected-responder semantics. It may reuse continuity targets from `composer.target`, but `composer.target` remains submit-time routing, not participant-history explanation.
+  - `iteration_compare` owns cross-iteration "what changed and why" semantics. `artifact_lineage` remains visible ancestry, while `rationale_snapshots` remains per-iteration canonical rationale memory.
+  - `composer.target` owns submit landing semantics for the next owner turn. It is not a substitute for historical explanation, grouped discussion browsing, or runtime execution state.
+  - `iteration_detail.execution_summary` is iteration-scoped runtime state. It may expose discussion anchors for the inspected iteration, but it is not the top-level authority for the active thread outside that inspected context.
 - `request_revision` should inherit the selected iteration's active continuity target into the newly created iteration. That means the new iteration should immediately carry `responsible_role` and `responsible_agent_id` when the parent iteration already had an explicit addressed/continuity target, so the owner-facing surface and the downstream runtime agree on who is expected to continue the work.
 - `iteration_workbench.selected_iteration_id`, `render_contract.default_focus_panel`, and the presence/order of the summary sections must be stable enough for zero-inference rendering.
 - `render_contract.sticky_primary_action_id`, `render_contract.sticky_primary_action_emphasis`, `render_contract.panel_tone`, `render_contract.display_priority`, `render_contract.badge_order`, and `render_contract.panel_presentations[]` are authoritative presentation hints for the workbench shell.
 - `render_contract.panel_presentations[]` should carry panel-level tone, emphasis, collapse behavior, and default-open state so the frontend does not guess which cards deserve visual priority.
-- `render_contract.panel_order` and `panel_presentations[]` should treat `discussion_runtime`, `participant_runtime`, and `iteration_detail` as first-class panes whenever the surface exposes those runtime sections.
+- `render_contract.panel_order` and `panel_presentations[]` should treat `iteration_compare`, `discussion_runtime`, `participant_runtime`, and `iteration_detail` as first-class panes whenever the surface exposes those runtime sections.
 - `iteration_detail.composer_target` should mirror the per-iteration submit target so selecting an older iteration can still produce explicitly targeted discussion or revision follow-ups instead of silently falling back to the thread's current result.
 - `POST /api/video-threads/{thread_id}/turns` and `append_video_turn` may carry `addressed_participant_id`, `reply_to_turn_id`, and `related_result_id`. The runtime must persist them onto the owner turn and still derive `addressed_agent_id` so later surface projections can preserve participant continuity and discussion anchoring without frontend-side joins or heuristics.
 - Thread-native revision tasks should persist continuity target metadata at task level as well, so later runtime orchestration can recover the intended participant/agent handoff even when it is reading task/task-lineage state instead of thread turns directly.
@@ -91,6 +108,13 @@ Rules:
   - `/api/tasks/{task_id}/discussion-thread`
   - `/api/tasks/{task_id}/discussion-messages`
   - `video-discussion://...`
+
+## Frontend Inspection Note
+
+- Inspection target: [VideoThreadWorkbench.tsx](/Users/lvxiaoer/Documents/codeWork/easy-manim/ui/src/features/videoThreads/VideoThreadWorkbench.tsx)
+- The current workbench consumes `surface.discussion_runtime`, `surface.participant_runtime`, `surface.composer.target`, `surface.iteration_detail.execution_summary`, and `surface.render_contract` directly for active discussion, expected responder, submit routing, and panel emphasis.
+- The current workbench does not scan raw thread turns or raw runs to reconstruct the active discussion thread or expected responder.
+- The current workbench consumes `surface.iteration_compare` directly for previous-vs-current comparison semantics. It does not scan raw iteration arrays to reconstruct comparison state client-side.
 
 ## Closure Checklist
 

@@ -169,6 +169,20 @@ test("video thread page renders the collaboration workbench from thread surface"
               },
             ],
           },
+          iteration_compare: {
+            title: "Iteration Compare",
+            summary: "Compare the current selected cut against the nearest earlier visible iteration.",
+            previous_iteration_id: "iter-1",
+            current_iteration_id: "iter-2",
+            previous_result_id: "result-1",
+            current_result_id: "result-2",
+            change_summary: "Selected cut with a slower title entrance.",
+            rationale_shift_summary:
+              "The previous cut established the baseline circle motion. The current revision shifts toward a more deliberate title entrance because the owner asked to slow the opener.",
+            continuity_status: "changed",
+            continuity_summary:
+              "Participant continuity changed from Planner to Repairer between the compared iterations.",
+          },
           next_recommended_move: {
             title: "Recommended next move",
             summary: "Review the latest selected result, then request a focused revision or record a note.",
@@ -518,6 +532,7 @@ test("video thread page renders the collaboration workbench from thread surface"
               "decision_notes",
               "artifact_lineage",
               "rationale_snapshots",
+              "iteration_compare",
               "next_recommended_move",
               "production_journal",
               "history",
@@ -529,7 +544,7 @@ test("video thread page renders the collaboration workbench from thread surface"
               "actions",
               "composer",
             ],
-            default_expanded_panels: ["current_focus", "decision_notes", "artifact_lineage", "rationale_snapshots", "next_recommended_move", "production_journal", "history", "composer"],
+            default_expanded_panels: ["current_focus", "decision_notes", "artifact_lineage", "rationale_snapshots", "iteration_compare", "next_recommended_move", "production_journal", "history", "composer"],
             sticky_primary_action_emphasis: "strong",
             panel_presentations: [
               {
@@ -564,6 +579,13 @@ test("video thread page renders the collaboration workbench from thread surface"
                 panel_id: "rationale_snapshots",
                 tone: "neutral",
                 emphasis: "supporting",
+                default_open: true,
+                collapsible: true,
+              },
+              {
+                panel_id: "iteration_compare",
+                tone: "accent",
+                emphasis: "primary",
                 default_open: true,
                 collapsible: true,
               },
@@ -762,6 +784,16 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(screen.getByText("Trigger: Owner requested revision")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Rationale Snapshots" })).toBeInTheDocument();
   expect(screen.getByText("Why the current revision is selected")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Iteration Compare" })).toBeInTheDocument();
+  expect(screen.getAllByText("Selected cut with a slower title entrance.").length).toBeGreaterThan(0);
+  expect(
+    screen.getByText(
+      "The previous cut established the baseline circle motion. The current revision shifts toward a more deliberate title entrance because the owner asked to slow the opener."
+    )
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Participant continuity changed from Planner to Repairer between the compared iterations.")
+  ).toBeInTheDocument();
   expect(screen.getByText("Recommended next move")).toBeInTheDocument();
   expect(screen.getByText("Production Journal")).toBeInTheDocument();
   expect(screen.getByText("Selected result recorded")).toBeInTheDocument();

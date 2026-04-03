@@ -92,6 +92,19 @@ export type VideoThreadRationaleSnapshot = {
   status: "current" | "archived";
 };
 
+export type VideoThreadIterationCompare = {
+  title: string;
+  summary: string;
+  previous_iteration_id?: string | null;
+  current_iteration_id?: string | null;
+  previous_result_id?: string | null;
+  current_result_id?: string | null;
+  change_summary: string;
+  rationale_shift_summary: string;
+  continuity_status: "new" | "preserved" | "changed" | "unknown";
+  continuity_summary: string;
+};
+
 export type VideoThreadDiscussionReply = {
   turn_id: string;
   title: string;
@@ -397,6 +410,7 @@ export type VideoThreadSurface = {
     current_iteration_id?: string | null;
     items: VideoThreadRationaleSnapshot[];
   };
+  iteration_compare: VideoThreadIterationCompare;
   authorship: VideoThreadAuthorship;
   next_recommended_move: VideoThreadNextRecommendedMove;
   responsibility: VideoThreadResponsibility;

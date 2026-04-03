@@ -672,27 +672,34 @@ class WorkflowEngine:
             )
         delivery_decision = None
         if not auto_repair_decision.created:
-            delivery_decision = self._maybe_schedule_degraded_delivery(task)
-            if delivery_decision is None:
-                if not self._allows_emergency_delivery(top_issue.code if top_issue is not None else None):
-                    delivery_decision = DeliveryGuaranteeDecision(
-                        delivered=False,
-                        reason=top_issue.code if top_issue is not None else "delivery_blocked",
-                    )
-                else:
-                    try:
-                        delivery_decision = self.delivery_guarantee_service.maybe_deliver(task)
-                    except Exception as exc:
-                        delivery_decision = DeliveryGuaranteeDecision(delivered=False, reason="delivery_exception")
-                        self._log(
-                            task,
-                            TaskPhase.FAILED,
-                            "Delivery guarantee failed",
-                            error=str(exc),
+            if top_issue is not None and top_issue.code in {"sandbox_policy_violation", "runtime_policy_violation"}:
+                self._mark_delivery_failed(task, stop_reason=top_issue.code)
+                self._record_agent_learning_outcome(task, report)
+            else:
+                delivery_decision = self._maybe_schedule_degraded_delivery(task)
+                if delivery_decision is None:
+                    if not self._allows_emergency_delivery(top_issue.code if top_issue is not None else None):
+                        delivery_decision = DeliveryGuaranteeDecision(
+                            delivered=False,
+                            reason=top_issue.code if top_issue is not None else "delivery_blocked",
                         )
-            if delivery_decision.delivered:
+                    else:
+                        try:
+                            delivery_decision = self.delivery_guarantee_service.maybe_deliver(task)
+                        except Exception as exc:
+                            delivery_decision = DeliveryGuaranteeDecision(
+                                delivered=False,
+                                reason="delivery_exception",
+                            )
+                            self._log(
+                                task,
+                                TaskPhase.FAILED,
+                                "Delivery guarantee failed",
+                                error=str(exc),
+                            )
+            if delivery_decision is not None and delivery_decision.delivered:
                 self._finalize_guaranteed_delivery(task, delivery_decision)
-            elif not delivery_decision.scheduled:
+            elif delivery_decision is not None and not delivery_decision.scheduled:
                 self._mark_delivery_failed(task, stop_reason=delivery_decision.reason)
                 self._record_agent_learning_outcome(task, report)
         self.store.append_event(

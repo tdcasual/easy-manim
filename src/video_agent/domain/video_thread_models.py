@@ -475,6 +475,19 @@ class VideoThreadRationaleSnapshots(BaseModel):
     items: list[VideoThreadRationaleSnapshot] = Field(default_factory=list)
 
 
+class VideoThreadIterationCompare(BaseModel):
+    title: str = "Iteration Compare"
+    summary: str = ""
+    previous_iteration_id: str | None = None
+    current_iteration_id: str | None = None
+    previous_result_id: str | None = None
+    current_result_id: str | None = None
+    change_summary: str = ""
+    rationale_shift_summary: str = ""
+    continuity_status: Literal["new", "preserved", "changed", "unknown"] = "unknown"
+    continuity_summary: str = ""
+
+
 class VideoThreadProductionJournalEntry(BaseModel):
     entry_id: str
     entry_kind: Literal["iteration", "run", "result"]
@@ -561,6 +574,7 @@ class VideoThreadRenderContract(BaseModel):
             "decision_notes",
             "artifact_lineage",
             "rationale_snapshots",
+            "iteration_compare",
             "authorship",
             "next_recommended_move",
             "production_journal",
@@ -594,6 +608,7 @@ class VideoThreadSurface(BaseModel):
     decision_notes: VideoThreadDecisionNotes = Field(default_factory=VideoThreadDecisionNotes)
     artifact_lineage: VideoThreadArtifactLineage = Field(default_factory=VideoThreadArtifactLineage)
     rationale_snapshots: VideoThreadRationaleSnapshots = Field(default_factory=VideoThreadRationaleSnapshots)
+    iteration_compare: VideoThreadIterationCompare = Field(default_factory=VideoThreadIterationCompare)
     authorship: VideoThreadAuthorship = Field(default_factory=VideoThreadAuthorship)
     next_recommended_move: VideoThreadNextRecommendedMove = Field(default_factory=VideoThreadNextRecommendedMove)
     responsibility: VideoThreadResponsibility

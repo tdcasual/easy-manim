@@ -245,6 +245,15 @@ def test_http_video_threads_api_supports_discussion_explanation_and_result_selec
     surface = client.get(f"/api/video-threads/{thread_id}/surface")
     assert surface.status_code == 200
     assert surface.json()["thread_header"]["selected_result_id"] == result.result_id
+    assert surface.json()["iteration_compare"]["previous_iteration_id"] == iteration_id
+    assert surface.json()["iteration_compare"]["current_iteration_id"] == revised_iteration_id
+    assert surface.json()["iteration_compare"]["previous_result_id"] == origin_result.result_id
+    assert surface.json()["iteration_compare"]["current_result_id"] == result.result_id
+    assert surface.json()["iteration_compare"]["change_summary"] == "Selected cut with a slower title entrance."
+    assert "Slow the opener and make the title entrance more deliberate." in surface.json()["iteration_compare"][
+        "rationale_shift_summary"
+    ]
+    assert surface.json()["iteration_compare"]["continuity_status"] == "preserved"
     assert surface.json()["render_contract"]["sticky_primary_action_id"] == "request_revision"
     assert surface.json()["render_contract"]["sticky_primary_action_emphasis"] == "strong"
     assert surface.json()["render_contract"]["badge_order"] == [

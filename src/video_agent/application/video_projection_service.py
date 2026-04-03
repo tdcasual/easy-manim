@@ -23,6 +23,7 @@ from video_agent.domain.video_thread_models import (
     VideoThreadHistory,
     VideoThreadHistoryCard,
     VideoThreadIterationCard,
+    VideoThreadIterationCompare,
     VideoThreadIterationDetail,
     VideoThreadIterationExecutionSummary,
     VideoThreadIterationDetailResult,
@@ -137,6 +138,17 @@ class VideoProjectionService:
             current_iteration_id=None if current_iteration is None else current_iteration.iteration_id,
             current_result_selection_reason=current_result_selection_reason,
         )
+        iteration_compare = self._build_iteration_compare(
+            participants=participants,
+            iterations=iterations,
+            results=results,
+            turns=turns,
+            runs=runs,
+            current_iteration=current_iteration,
+            current_result=current_result,
+            current_result_selection_reason=current_result_selection_reason,
+            latest_explanation=latest_explanation,
+        )
         production_journal = self._build_production_journal(
             participants=participants,
             iterations=iterations,
@@ -204,6 +216,7 @@ class VideoProjectionService:
             decision_notes=decision_notes,
             artifact_lineage=artifact_lineage,
             rationale_snapshots=rationale_snapshots,
+            iteration_compare=iteration_compare,
             authorship=authorship,
             production_journal=production_journal,
             discussion_runtime=discussion_runtime,
@@ -241,6 +254,7 @@ class VideoProjectionService:
             decision_notes=decision_notes,
             artifact_lineage=artifact_lineage,
             rationale_snapshots=rationale_snapshots,
+            iteration_compare=iteration_compare,
             authorship=authorship,
             next_recommended_move=next_recommended_move,
             responsibility=responsibility,
@@ -1040,6 +1054,7 @@ class VideoProjectionService:
         decision_notes: VideoThreadDecisionNotes,
         artifact_lineage: VideoThreadArtifactLineage,
         rationale_snapshots: VideoThreadRationaleSnapshots,
+        iteration_compare: VideoThreadIterationCompare,
         authorship: VideoThreadAuthorship,
         production_journal: VideoThreadProductionJournal,
         discussion_runtime: VideoThreadDiscussionRuntime,
@@ -1087,6 +1102,7 @@ class VideoProjectionService:
             "decision_notes",
             "artifact_lineage",
             "rationale_snapshots",
+            "iteration_compare",
             "authorship",
             "next_recommended_move",
             "production_journal",
@@ -1113,6 +1129,20 @@ class VideoProjectionService:
             default_expanded_panels.insert(
                 3 if decision_notes.items and artifact_lineage.items else 2 if decision_notes.items or artifact_lineage.items else 1,
                 "rationale_snapshots",
+            )
+        if (
+            iteration_compare.current_iteration_id is not None
+            and (iteration_compare.change_summary or iteration_compare.rationale_shift_summary or iteration_compare.continuity_summary)
+        ):
+            default_expanded_panels.insert(
+                4
+                if decision_notes.items and artifact_lineage.items and rationale_snapshots.items
+                else 3
+                if sum(bool(item) for item in (decision_notes.items, artifact_lineage.items, rationale_snapshots.items)) >= 2
+                else 2
+                if decision_notes.items or artifact_lineage.items or rationale_snapshots.items
+                else 1,
+                "iteration_compare",
             )
         if authorship.primary_agent_role:
             default_expanded_panels.insert(1, "authorship")
@@ -1147,6 +1177,7 @@ class VideoProjectionService:
                 has_decision_notes=bool(decision_notes.items),
                 has_artifact_lineage=bool(artifact_lineage.items),
                 has_rationale_snapshots=bool(rationale_snapshots.items),
+                has_iteration_compare=iteration_compare.current_iteration_id is not None,
                 has_authorship=bool(authorship.primary_agent_role),
                 has_production_journal=bool(production_journal.entries),
                 has_discussion_runtime=(
@@ -1171,6 +1202,7 @@ class VideoProjectionService:
         has_decision_notes: bool,
         has_artifact_lineage: bool,
         has_rationale_snapshots: bool,
+        has_iteration_compare: bool,
         has_authorship: bool,
         has_production_journal: bool,
         has_discussion_runtime: bool,
@@ -1235,7 +1267,7 @@ class VideoProjectionService:
                     collapsible=True,
                 ),
             )
-        if has_authorship:
+        if has_iteration_compare:
             presentations.insert(
                 (
                     5
@@ -1246,6 +1278,41 @@ class VideoProjectionService:
                     or (has_artifact_lineage and has_rationale_snapshots)
                     else 3
                     if has_decision_notes or has_artifact_lineage or has_rationale_snapshots
+                    else 2
+                ),
+                VideoThreadPanelPresentation(
+                    panel_id="iteration_compare",
+                    tone="accent",
+                    emphasis="primary" if default_focus_panel == "iteration_compare" else "supporting",
+                    default_open=True,
+                    collapsible=True,
+                ),
+            )
+        if has_authorship:
+            presentations.insert(
+                (
+                    6
+                    if has_decision_notes and has_artifact_lineage and has_rationale_snapshots and has_iteration_compare
+                    else 5
+                    if (
+                        (has_decision_notes and has_artifact_lineage and has_rationale_snapshots)
+                        or (has_iteration_compare and has_decision_notes and has_artifact_lineage)
+                        or (has_iteration_compare and has_decision_notes and has_rationale_snapshots)
+                        or (has_iteration_compare and has_artifact_lineage and has_rationale_snapshots)
+                    )
+                    else 4
+                    if sum(
+                        1
+                        for item in (
+                            has_decision_notes,
+                            has_artifact_lineage,
+                            has_rationale_snapshots,
+                            has_iteration_compare,
+                        )
+                        if item
+                    ) >= 2
+                    else 3
+                    if has_decision_notes or has_artifact_lineage or has_rationale_snapshots or has_iteration_compare
                     else 2
                 ),
                 VideoThreadPanelPresentation(
@@ -1628,6 +1695,216 @@ class VideoProjectionService:
             ):
                 return turn
         return None
+
+    @classmethod
+    def _build_iteration_compare(
+        cls,
+        *,
+        participants: list[VideoThreadParticipant],
+        iterations,
+        results,
+        turns,
+        runs,
+        current_iteration,
+        current_result,
+        current_result_selection_reason: str | None,
+        latest_explanation: VideoThreadLatestExplanation,
+    ) -> VideoThreadIterationCompare:
+        if current_iteration is None:
+            return VideoThreadIterationCompare(
+                summary="No iteration is selected yet.",
+            )
+
+        ordered_iterations = sorted(iterations, key=lambda item: (item.created_at, item.iteration_id))
+        current_index = next(
+            (
+                index
+                for index, iteration in enumerate(ordered_iterations)
+                if iteration.iteration_id == current_iteration.iteration_id
+            ),
+            None,
+        )
+        previous_iteration = (
+            ordered_iterations[current_index - 1]
+            if current_index is not None and current_index > 0
+            else None
+        )
+        previous_result = (
+            None if previous_iteration is None else cls._target_result_for_iteration(iteration=previous_iteration, results=results)
+        )
+        current_target_result = current_result or cls._target_result_for_iteration(iteration=current_iteration, results=results)
+
+        continuity_status, continuity_summary = cls._build_iteration_continuity(
+            participants=participants,
+            previous_iteration=previous_iteration,
+            current_iteration=current_iteration,
+            turns=turns,
+            runs=runs,
+        )
+        if previous_iteration is None:
+            return VideoThreadIterationCompare(
+                summary="Compare the current selected cut against the nearest earlier visible iteration.",
+                previous_iteration_id=None,
+                current_iteration_id=current_iteration.iteration_id,
+                previous_result_id=None,
+                current_result_id=None if current_target_result is None else current_target_result.result_id,
+                change_summary="" if current_target_result is None else current_target_result.result_summary,
+                rationale_shift_summary=(
+                    current_iteration.goal
+                    or current_result_selection_reason
+                    or latest_explanation.summary
+                ),
+                continuity_status=continuity_status,
+                continuity_summary=continuity_summary,
+            )
+
+        previous_rationale = cls._iteration_rationale_summary(
+            iteration=previous_iteration,
+            target_result=previous_result,
+            turns=turns,
+        )
+        current_rationale = (
+            current_iteration.goal
+            or current_result_selection_reason
+            or latest_explanation.summary
+            or cls._iteration_rationale_summary(
+                iteration=current_iteration,
+                target_result=current_target_result,
+                turns=turns,
+            )
+        )
+        return VideoThreadIterationCompare(
+            summary="Compare the current selected cut against the nearest earlier visible iteration.",
+            previous_iteration_id=previous_iteration.iteration_id,
+            current_iteration_id=current_iteration.iteration_id,
+            previous_result_id=None if previous_result is None else previous_result.result_id,
+            current_result_id=None if current_target_result is None else current_target_result.result_id,
+            change_summary="" if current_target_result is None else current_target_result.result_summary,
+            rationale_shift_summary=(
+                f"The previous cut focused on {previous_rationale}. "
+                f"The current revision shifts toward {current_rationale}."
+            ),
+            continuity_status=continuity_status,
+            continuity_summary=continuity_summary,
+        )
+
+    @classmethod
+    def _build_iteration_continuity(
+        cls,
+        *,
+        participants: list[VideoThreadParticipant],
+        previous_iteration,
+        current_iteration,
+        turns,
+        runs,
+    ) -> tuple[str, str]:
+        if previous_iteration is None:
+            return "new", "This is the first visible iteration in the thread, so there is no earlier participant continuity to preserve."
+        previous_identity = cls._iteration_participant_identity(
+            participants=participants,
+            iteration=previous_iteration,
+            turns=turns,
+            runs=runs,
+        )
+        current_identity = cls._iteration_participant_identity(
+            participants=participants,
+            iteration=current_iteration,
+            turns=turns,
+            runs=runs,
+        )
+        previous_label = previous_identity["display_name"] or previous_identity["role"] or "the previous owner-safe context"
+        current_label = current_identity["display_name"] or current_identity["role"] or "the current owner-safe context"
+        if (
+            previous_identity["agent_id"] is not None
+            and current_identity["agent_id"] is not None
+            and previous_identity["agent_id"] == current_identity["agent_id"]
+        ):
+            return "preserved", f"Participant continuity stays with {current_label} across the compared iterations."
+        if (
+            previous_identity["agent_id"] is None
+            and current_identity["agent_id"] is None
+            and previous_identity["role"] is not None
+            and previous_identity["role"] == current_identity["role"]
+        ):
+            return "preserved", f"Role continuity stays with {current_label} across the compared iterations."
+        if previous_label == current_label:
+            return "preserved", f"Participant continuity stays with {current_label} across the compared iterations."
+        if previous_identity["agent_id"] is None and current_identity["agent_id"] is None and previous_identity["role"] is None and current_identity["role"] is None:
+            return "unknown", "The compared iterations do not expose enough participant continuity to make a stable comparison."
+        return "changed", f"Participant continuity changed from {previous_label} to {current_label} between the compared iterations."
+
+    @classmethod
+    def _iteration_participant_identity(
+        cls,
+        *,
+        participants: list[VideoThreadParticipant],
+        iteration,
+        turns,
+        runs,
+    ) -> dict[str, str | None]:
+        latest_run = next((run for run in reversed(runs) if run.iteration_id == iteration.iteration_id), None)
+        if latest_run is not None:
+            return {
+                "agent_id": latest_run.agent_id,
+                "role": latest_run.role,
+                "display_name": cls._resolve_participant_display_name(
+                    participants=participants,
+                    agent_id=latest_run.agent_id,
+                    role=latest_run.role,
+                ),
+            }
+        latest_agent_turn = cls._latest_relevant_agent_turn(turns=turns, iteration_id=iteration.iteration_id)
+        if latest_agent_turn is not None:
+            return {
+                "agent_id": latest_agent_turn.speaker_agent_id,
+                "role": latest_agent_turn.speaker_role,
+                "display_name": cls._resolve_participant_display_name(
+                    participants=participants,
+                    agent_id=latest_agent_turn.speaker_agent_id,
+                    role=latest_agent_turn.speaker_role,
+                ),
+            }
+        latest_owner_turn = cls._latest_iteration_owner_turn(turns=turns, iteration_id=iteration.iteration_id)
+        if latest_owner_turn is not None and (
+            latest_owner_turn.addressed_agent_id is not None or latest_owner_turn.addressed_participant_id is not None
+        ):
+            participant = next(
+                (
+                    item
+                    for item in participants
+                    if item.participant_id == latest_owner_turn.addressed_participant_id
+                    or item.agent_id == latest_owner_turn.addressed_agent_id
+                ),
+                None,
+            )
+            return {
+                "agent_id": latest_owner_turn.addressed_agent_id or (None if participant is None else participant.agent_id),
+                "role": None if participant is None else participant.role,
+                "display_name": None if participant is None else participant.display_name,
+            }
+        return {
+            "agent_id": iteration.responsible_agent_id,
+            "role": iteration.responsible_role,
+            "display_name": cls._resolve_participant_display_name(
+                participants=participants,
+                agent_id=iteration.responsible_agent_id,
+                role=iteration.responsible_role,
+            ),
+        }
+
+    @staticmethod
+    def _iteration_rationale_summary(*, iteration, target_result, turns) -> str:
+        latest_owner_turn = VideoProjectionService._latest_iteration_owner_turn(
+            turns=turns,
+            iteration_id=iteration.iteration_id,
+        )
+        if latest_owner_turn is not None and latest_owner_turn.summary.strip():
+            return latest_owner_turn.summary.strip()
+        if latest_owner_turn is not None and latest_owner_turn.title.strip():
+            return latest_owner_turn.title.strip()
+        if target_result is not None and target_result.result_summary.strip():
+            return target_result.result_summary.strip()
+        return iteration.goal.strip()
 
     @classmethod
     def _build_production_journal(

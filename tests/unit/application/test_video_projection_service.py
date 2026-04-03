@@ -164,6 +164,18 @@ def test_video_projection_service_builds_zero_inference_owner_surface(tmp_path: 
     assert surface.rationale_snapshots.items[0].status == "archived"
     assert surface.rationale_snapshots.items[1].status == "current"
     assert surface.rationale_snapshots.items[1].source_result_id == result.result_id
+    assert surface.iteration_compare.title == "Iteration Compare"
+    assert surface.iteration_compare.previous_iteration_id == created.iteration.iteration_id
+    assert surface.iteration_compare.current_iteration_id == follow_up.iteration_id
+    assert surface.iteration_compare.previous_result_id == initial_result.result_id
+    assert surface.iteration_compare.current_result_id == result.result_id
+    assert surface.iteration_compare.change_summary == (
+        "A slower opener with a more deliberate title entrance."
+    )
+    assert "Refine the opener pacing" in (
+        surface.iteration_compare.rationale_shift_summary
+    )
+    assert surface.iteration_compare.continuity_status == "changed"
     assert surface.production_journal.title == "Production Journal"
     assert [item.entry_kind for item in surface.production_journal.entries] == [
         "iteration",

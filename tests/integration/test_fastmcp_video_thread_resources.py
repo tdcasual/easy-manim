@@ -197,6 +197,12 @@ def test_fastmcp_video_thread_resources_expose_surface_and_timeline(tmp_path: Pa
         assert surface["rationale_snapshots"]["title"] == "Rationale Snapshots"
         assert len(surface["rationale_snapshots"]["items"]) == 1
         assert surface["rationale_snapshots"]["items"][0]["snapshot_kind"] == "agent_explanation"
+        assert surface["iteration_compare"]["title"] == "Iteration Compare"
+        assert surface["iteration_compare"]["previous_iteration_id"] is None
+        assert surface["iteration_compare"]["current_iteration_id"] == iteration_id
+        assert surface["iteration_compare"]["previous_result_id"] is None
+        assert surface["iteration_compare"]["current_result_id"] is None
+        assert surface["iteration_compare"]["continuity_status"] == "new"
         assert surface["composer"]["target"]["iteration_id"] == iteration_id
         assert surface["composer"]["target"]["addressed_participant_id"] == "planner-1"
         assert surface["composer"]["target"]["addressed_agent_id"] == "planner-1"

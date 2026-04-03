@@ -74,6 +74,18 @@ export function VideoThreadWorkbench({
     current_iteration_id: null,
     items: [],
   };
+  const iterationCompare = surface.iteration_compare ?? {
+    title: "Iteration Compare",
+    summary: "",
+    previous_iteration_id: null,
+    current_iteration_id: null,
+    previous_result_id: null,
+    current_result_id: null,
+    change_summary: "",
+    rationale_shift_summary: "",
+    continuity_status: "unknown" as const,
+    continuity_summary: "",
+  };
   const iterationDetailSummary = surface.iteration_detail ?? {
     title: "Iteration Detail",
     summary: "",
@@ -401,6 +413,41 @@ export function VideoThreadWorkbench({
               </p>
             )}
           </div>
+        </section>
+
+        <section className={getPanelClassName("iteration_compare")}>
+          <h2>{iterationCompare.title}</h2>
+          <p>
+            {iterationCompare.summary || "No stable iteration comparison is available yet."}
+          </p>
+          <div className="video-thread-workbench__focus-grid">
+            <div>
+              <span className="video-thread-workbench__label">Previous iteration</span>
+              <strong>{iterationCompare.previous_iteration_id || "none"}</strong>
+            </div>
+            <div>
+              <span className="video-thread-workbench__label">Current iteration</span>
+              <strong>{iterationCompare.current_iteration_id || "none"}</strong>
+            </div>
+            <div>
+              <span className="video-thread-workbench__label">Previous result</span>
+              <strong>{iterationCompare.previous_result_id || "none"}</strong>
+            </div>
+            <div>
+              <span className="video-thread-workbench__label">Current result</span>
+              <strong>{iterationCompare.current_result_id || "none"}</strong>
+            </div>
+          </div>
+          {iterationCompare.change_summary ? <p>{iterationCompare.change_summary}</p> : null}
+          {iterationCompare.rationale_shift_summary ? (
+            <p>{iterationCompare.rationale_shift_summary}</p>
+          ) : null}
+          <div className="video-thread-workbench__intent-meta">
+            <span className="video-thread-workbench__meta">
+              Continuity: {iterationCompare.continuity_status}
+            </span>
+          </div>
+          {iterationCompare.continuity_summary ? <p>{iterationCompare.continuity_summary}</p> : null}
         </section>
 
         <section className={getPanelClassName("authorship")}>
