@@ -477,13 +477,13 @@ export function TaskDetailPageV2() {
           )}
 
           {snapshot.thread_id ? (
-            <div className="section-card-v2">
-              <h3 className="section-title-v2">Video collaboration workbench</h3>
+            <div className="section-card-v2 task-thread-workspace-card">
+              <h3 className="section-title-v2">Thread workspace</h3>
               <p className="page-description-v2">
-                Continue the durable owner-plus-agent thread for this video in the dedicated workbench.
+                Open the canonical video page for discussion, versions, and revision history.
               </p>
-              <Link to={`/videos/${encodeURIComponent(snapshot.thread_id)}`} className="video-grid-link">
-                Open video workbench
+              <Link to={`/threads/${encodeURIComponent(snapshot.thread_id)}`} className="video-grid-link">
+                Open thread workspace
               </Link>
             </div>
           ) : null}

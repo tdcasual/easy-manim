@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { useSession } from "../auth/useSession";
+import { ProcessDetailsAccordion } from "./ProcessDetailsAccordion";
 import { VideoThreadWorkbench } from "./VideoThreadWorkbench";
 import { SelectedVersionHero } from "./SelectedVersionHero";
 import { ThreadDiscussionPanel } from "./ThreadDiscussionPanel";
@@ -331,6 +332,7 @@ export function VideoThreadPage() {
           <Link to="/videos" className="back-link">
             Back to videos
           </Link>
+          <h1 className="page-title-v2">{surface.thread_header.title}</h1>
           <p className="page-description-v2">{surface.thread_header.thread_id}</p>
         </div>
       </div>
@@ -364,20 +366,27 @@ export function VideoThreadPage() {
         selectingResultId={selectingResultId}
         onSelectResult={onSelectResult}
       />
-      <VideoThreadWorkbench
-        surface={surface}
-        iterationDetail={iterationDetail}
-        selectedIterationId={selectedIterationId}
-        iterationLoading={iterationLoading}
-        participantSubmitting={participantSubmitting}
-        participantDraft={participantDraft}
-        onSelectIteration={setSelectedIterationId}
-        onParticipantDraftChange={(field, value) =>
-          setParticipantDraft((current) => ({ ...current, [field]: value }))
-        }
-        onInviteParticipant={onInviteParticipant}
-        onRemoveParticipant={onRemoveParticipant}
-      />
+      <ProcessDetailsAccordion
+        iterationCount={surface.iteration_workbench.iterations.length}
+        participantCount={surface.participants.items.length}
+        runCount={surface.process.runs.length}
+      >
+        <VideoThreadWorkbench
+          surface={surface}
+          iterationDetail={iterationDetail}
+          selectedIterationId={selectedIterationId}
+          iterationLoading={iterationLoading}
+          showThreadHeader={false}
+          participantSubmitting={participantSubmitting}
+          participantDraft={participantDraft}
+          onSelectIteration={setSelectedIterationId}
+          onParticipantDraftChange={(field, value) =>
+            setParticipantDraft((current) => ({ ...current, [field]: value }))
+          }
+          onInviteParticipant={onInviteParticipant}
+          onRemoveParticipant={onRemoveParticipant}
+        />
+      </ProcessDetailsAccordion>
     </div>
   );
 }

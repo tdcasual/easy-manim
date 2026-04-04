@@ -59,7 +59,7 @@ test("renders translated task status and phase labels", async () => {
   expect(screen.getAllByText("渲染中").length).toBeGreaterThanOrEqual(1);
 });
 
-test("task detail links to the video thread workbench instead of embedding the old discussion placeholder", async () => {
+test("task detail promotes the thread workspace as the canonical collaboration page", async () => {
   writeSessionToken("sess-token-1");
 
   // @ts-expect-error - test shim
@@ -108,10 +108,15 @@ test("task detail links to the video thread workbench instead of embedding the o
   );
 
   expect(await screen.findByRole("heading", { name: "Threaded video" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /open video workbench/i })).toHaveAttribute(
+  expect(screen.getByRole("heading", { name: /thread workspace/i })).toBeInTheDocument();
+  expect(
+    screen.getByText(/open the canonical video page for discussion, versions, and revision history/i)
+  ).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /open thread workspace/i })).toHaveAttribute(
     "href",
-    "/videos/thread-42"
+    "/threads/thread-42"
   );
+  expect(screen.queryByText(/video collaboration workbench/i)).not.toBeInTheDocument();
   expect(screen.queryByLabelText(/discussion/i)).not.toBeInTheDocument();
 });
 
@@ -1013,15 +1018,15 @@ test("task detail with thread id stays on the thread-native workbench path", asy
       <ToastProvider>
         <Routes>
           <Route path="/tasks/:taskId" element={<TaskDetailPageV2 />} />
-          <Route path="/videos/:threadId" element={<div>Thread route placeholder</div>} />
+          <Route path="/threads/:threadId" element={<div>Thread route placeholder</div>} />
         </Routes>
       </ToastProvider>
     </MemoryRouter>
   );
 
   expect(await screen.findByRole("heading", { name: "Thread-native detail" })).toBeInTheDocument();
-  const link = screen.getByRole("link", { name: /open video workbench/i });
-  expect(link).toHaveAttribute("href", "/videos/thread-99");
+  const link = screen.getByRole("link", { name: /open thread workspace/i });
+  expect(link).toHaveAttribute("href", "/threads/thread-99");
   await user.click(link);
   expect(await screen.findByText("Thread route placeholder")).toBeInTheDocument();
   expect(

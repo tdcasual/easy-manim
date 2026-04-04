@@ -11,6 +11,7 @@ type VideoThreadWorkbenchProps = {
   iterationDetail: VideoThreadIterationDetail | null;
   selectedIterationId: string | null;
   iterationLoading: boolean;
+  showThreadHeader?: boolean;
   participantSubmitting: boolean;
   participantDraft: {
     agentId: string;
@@ -28,6 +29,7 @@ export function VideoThreadWorkbench({
   iterationDetail,
   selectedIterationId,
   iterationLoading,
+  showThreadHeader = true,
   participantSubmitting,
   participantDraft,
   onSelectIteration,
@@ -138,21 +140,23 @@ export function VideoThreadWorkbench({
     <section
       className={`video-thread-workbench video-thread-workbench--${surface.render_contract.panel_tone} video-thread-workbench--${surface.render_contract.display_priority}`}
     >
-      <header className="video-thread-workbench__hero">
-        <div>
-          <h1 className="video-thread-workbench__title">{surface.thread_header.title}</h1>
-          <p className="video-thread-workbench__summary">{surface.thread_summary}</p>
-          {surface.render_contract.badge_order.length ? (
-            <p className="video-thread-workbench__meta">
-              Priority badges: {surface.render_contract.badge_order.join(" / ")}
-            </p>
-          ) : null}
-        </div>
-        <div className="video-thread-workbench__status">
-          <span>Status</span>
-          <strong>{surface.thread_header.status}</strong>
-        </div>
-      </header>
+      {showThreadHeader ? (
+        <header className="video-thread-workbench__hero">
+          <div>
+            <h1 className="video-thread-workbench__title">{surface.thread_header.title}</h1>
+            <p className="video-thread-workbench__summary">{surface.thread_summary}</p>
+            {surface.render_contract.badge_order.length ? (
+              <p className="video-thread-workbench__meta">
+                Priority badges: {surface.render_contract.badge_order.join(" / ")}
+              </p>
+            ) : null}
+          </div>
+          <div className="video-thread-workbench__status">
+            <span>Status</span>
+            <strong>{surface.thread_header.status}</strong>
+          </div>
+        </header>
+      ) : null}
 
       <section className={getPanelClassName("current_focus")}>
         <h2>Selected result with current focus</h2>

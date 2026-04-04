@@ -802,6 +802,12 @@ test("video thread page renders the collaboration workbench from thread surface"
     "href",
     "/api/tasks/task-2/artifacts/validations/validation_report_v1.json"
   );
+  expect(screen.getByRole("button", { name: "Show process details" })).toBeInTheDocument();
+  expect(screen.queryByText("How This Video Got Here")).not.toBeInTheDocument();
+  expect(screen.queryByText("Participants")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Show process details" }));
+
   expect(screen.getByText("Selected result with current focus")).toBeInTheDocument();
   expect(
     screen.getAllByText("Slow the opener and make the title entrance more deliberate.").length
@@ -1386,6 +1392,7 @@ test("video thread page invites and removes participants from the owner panel", 
   );
 
   expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Show process details" }));
 
   await user.type(screen.getByLabelText("Participant agent id"), "reviewer-1");
   await user.type(screen.getByLabelText("Participant display name"), "Reviewer");
