@@ -7,6 +7,347 @@ import { ToastProvider } from "../../components/Toast";
 import { writeSessionToken } from "../../lib/session";
 import { VideoThreadPage } from "./VideoThreadPage";
 
+function createThreadSurface(overrides: Record<string, any> = {}) {
+  const base = {
+    thread_header: {
+      thread_id: "thread-1",
+      title: "Circle explainer",
+      status: "active",
+      current_iteration_id: "iter-1",
+      selected_result_id: "result-1",
+    },
+    thread_summary: "A durable collaboration thread for iterating on this video.",
+    current_focus: {
+      current_iteration_id: "iter-1",
+      current_iteration_goal: "Slow the opener a little.",
+      current_result_id: "result-1",
+      current_result_summary: "Selected cut with a slower title entrance.",
+      current_result_author_display_name: "Repairer",
+      current_result_author_role: "repairer",
+      current_result_selection_reason: "The current cut remains the preferred version.",
+    },
+    selection_summary: {
+      title: "Why this version is selected",
+      summary: "The current cut remains the preferred version.",
+      selected_result_id: "result-1",
+      author_display_name: "Repairer",
+      author_role: "repairer",
+    },
+    latest_explanation: {
+      title: "Latest visible explanation",
+      summary: "The slower opener gives the title room to land.",
+      turn_id: "turn-2",
+      speaker_display_name: "Repairer",
+      speaker_role: "repairer",
+    },
+    authorship: {
+      title: "Who shaped this version",
+      summary: "Repairer shaped the latest selected cut.",
+      primary_agent_display_name: "Repairer",
+      primary_agent_role: "repairer",
+      source_iteration_id: "iter-1",
+      source_turn_id: "turn-2",
+    },
+    decision_notes: { title: "Decision Notes", items: [] },
+    artifact_lineage: { title: "Artifact Lineage", summary: "", selected_result_id: "result-1", items: [] },
+    rationale_snapshots: { title: "Rationale Snapshots", summary: "", current_iteration_id: "iter-1", items: [] },
+    iteration_compare: {
+      title: "Iteration Compare",
+      summary: "",
+      previous_iteration_id: null,
+      current_iteration_id: "iter-1",
+      previous_result_id: null,
+      current_result_id: "result-1",
+      change_summary: "",
+      rationale_shift_summary: "",
+      continuity_status: "preserved",
+      continuity_summary: "",
+    },
+    next_recommended_move: {
+      title: "Recommended next move",
+      summary: "Record focused feedback for the shaping agent.",
+      recommended_action_id: "discuss",
+      recommended_action_label: "Add note",
+      owner_action_required: "share_feedback",
+      tone: "active",
+    },
+    responsibility: {
+      owner_action_required: "share_feedback",
+      expected_agent_role: "repairer",
+      expected_agent_id: "repairer-1",
+    },
+    iteration_workbench: {
+      selected_iteration_id: "iter-1",
+      latest_iteration_id: "iter-1",
+      iterations: [
+        {
+          iteration_id: "iter-1",
+          title: "Slow the opener",
+          goal: "Slow the opener a little.",
+          status: "active",
+          resolution_state: "open",
+          requested_action: "revise",
+          result_summary: "Selected cut with a slower title entrance.",
+          responsible_role: "repairer",
+          responsible_agent_id: "repairer-1",
+        },
+      ],
+    },
+    iteration_detail: {
+      title: "Iteration Detail",
+      summary: "This iteration currently tracks one visible turn, no runs, and one result.",
+      selected_iteration_id: "iter-1",
+      resource_uri: "video-thread://thread-1/iterations/iter-1.json",
+      turn_count: 1,
+      run_count: 0,
+      result_count: 1,
+    },
+    conversation: { turns: [] },
+    history: { cards: [] },
+    production_journal: { title: "Production Journal", summary: "", entries: [] },
+    discussion_groups: { groups: [] },
+    discussion_runtime: {
+      title: "Discussion Runtime",
+      summary: "Discuss the currently selected cut.",
+      active_iteration_id: "iter-1",
+      active_discussion_group_id: null,
+      continuity_scope: "iteration",
+      reply_policy: "continue_thread",
+      default_intent_type: "discuss",
+      default_reply_to_turn_id: "turn-1",
+      default_related_result_id: "result-1",
+      addressed_participant_id: "repairer-1",
+      addressed_agent_id: "repairer-1",
+      addressed_display_name: "Repairer",
+      suggested_follow_up_modes: [],
+      active_thread_title: "Version review",
+      active_thread_summary: "Choose the cut you want to carry forward.",
+      latest_owner_turn_id: "turn-1",
+      latest_agent_turn_id: null,
+      latest_agent_summary: "",
+    },
+    participant_runtime: {
+      title: "Participant Runtime",
+      summary: "",
+      active_iteration_id: "iter-1",
+      expected_participant_id: "repairer-1",
+      expected_agent_id: "repairer-1",
+      expected_display_name: "Repairer",
+      expected_role: "repairer",
+      continuity_mode: "keep_current_participant",
+      follow_up_target_locked: true,
+      recent_contributors: [],
+    },
+    process: { runs: [] },
+    participants: {
+      items: [
+        {
+          participant_id: "owner",
+          participant_type: "owner",
+          role: "owner",
+          display_name: "Owner",
+          agent_id: "agent-a",
+        },
+        {
+          participant_id: "repairer-1",
+          participant_type: "agent",
+          role: "repairer",
+          display_name: "Repairer",
+          agent_id: "repairer-1",
+        },
+      ],
+      management: {
+        can_manage: true,
+        can_invite: true,
+        can_remove: true,
+        invite_label: "Invite participant",
+        invite_placeholder: "Agent id",
+        default_role: "reviewer",
+        default_capabilities: ["review_bundle:read"],
+        remove_label: "Remove participant",
+        removable_participant_ids: ["repairer-1"],
+        disabled_reason: "",
+        context_hint: "Invite reviewers or helper agents into this thread.",
+      },
+    },
+    actions: {
+      items: [
+        {
+          action_id: "request_revision",
+          label: "Request revision",
+          description: "Create the next revision from the selected result and current goal.",
+          tone: "strong",
+          disabled: false,
+          disabled_reason: "",
+        },
+        {
+          action_id: "request_explanation",
+          label: "Ask why",
+          description: "Request a product-safe explanation for the current direction.",
+          tone: "neutral",
+          disabled: false,
+          disabled_reason: "",
+        },
+        {
+          action_id: "discuss",
+          label: "Add note",
+          description: "Record feedback for the current shaping agent.",
+          tone: "muted",
+          disabled: false,
+          disabled_reason: "",
+        },
+      ],
+    },
+    composer: {
+      placeholder: "Ask why this version was made or request the next change.",
+      submit_label: "Send",
+      disabled: false,
+      disabled_reason: "",
+      context_hint: "The selected cut is ready for focused follow-up.",
+      target: {
+        iteration_id: "iter-1",
+        result_id: "result-1",
+        addressed_participant_id: "repairer-1",
+        addressed_agent_id: "repairer-1",
+        addressed_display_name: "Repairer",
+        agent_role: "repairer",
+        agent_display_name: "Repairer",
+        summary: "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
+      },
+    },
+    render_contract: {
+      default_focus_panel: "composer",
+      panel_tone: "active",
+      display_priority: "normal",
+      badge_order: ["owner_action_required"],
+      panel_order: ["composer", "iteration_detail"],
+      default_expanded_panels: ["composer", "iteration_detail"],
+      sticky_primary_action_id: "discuss",
+      sticky_primary_action_emphasis: "normal",
+      panel_presentations: [
+        {
+          panel_id: "iteration_detail",
+          tone: "neutral",
+          emphasis: "supporting",
+          default_open: true,
+          collapsible: true,
+        },
+      ],
+    },
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    thread_header: { ...base.thread_header, ...overrides.thread_header },
+    current_focus: { ...base.current_focus, ...overrides.current_focus },
+    selection_summary: { ...base.selection_summary, ...overrides.selection_summary },
+    latest_explanation: { ...base.latest_explanation, ...overrides.latest_explanation },
+    authorship: { ...base.authorship, ...overrides.authorship },
+    decision_notes: { ...base.decision_notes, ...overrides.decision_notes },
+    artifact_lineage: { ...base.artifact_lineage, ...overrides.artifact_lineage },
+    rationale_snapshots: { ...base.rationale_snapshots, ...overrides.rationale_snapshots },
+    iteration_compare: { ...base.iteration_compare, ...overrides.iteration_compare },
+    next_recommended_move: { ...base.next_recommended_move, ...overrides.next_recommended_move },
+    responsibility: { ...base.responsibility, ...overrides.responsibility },
+    iteration_workbench: { ...base.iteration_workbench, ...overrides.iteration_workbench },
+    iteration_detail: { ...base.iteration_detail, ...overrides.iteration_detail },
+    conversation: { ...base.conversation, ...overrides.conversation },
+    history: { ...base.history, ...overrides.history },
+    production_journal: { ...base.production_journal, ...overrides.production_journal },
+    discussion_groups: { ...base.discussion_groups, ...overrides.discussion_groups },
+    discussion_runtime: { ...base.discussion_runtime, ...overrides.discussion_runtime },
+    participant_runtime: { ...base.participant_runtime, ...overrides.participant_runtime },
+    process: { ...base.process, ...overrides.process },
+    participants: {
+      ...base.participants,
+      ...overrides.participants,
+      management: {
+        ...base.participants.management,
+        ...(overrides.participants?.management ?? {}),
+      },
+    },
+    actions: { ...base.actions, ...overrides.actions },
+    composer: {
+      ...base.composer,
+      ...overrides.composer,
+      target: {
+        ...base.composer.target,
+        ...(overrides.composer?.target ?? {}),
+      },
+    },
+    render_contract: { ...base.render_contract, ...overrides.render_contract },
+  };
+}
+
+function createIterationDetail(overrides: Record<string, any> = {}) {
+  const base = {
+    thread_id: "thread-1",
+    iteration_id: "iter-1",
+    title: "Iteration Detail",
+    summary: "Initial iteration detail.",
+    execution_summary: {
+      title: "Execution Summary",
+      summary: "Repairer is currently repairing for task task-1 while shaping result result-1.",
+      task_id: "task-1",
+      run_id: "thread-run:task-1",
+      status: "running",
+      phase: "repairing",
+      agent_id: "repairer-1",
+      agent_display_name: "Repairer",
+      agent_role: "repairer",
+      result_id: "result-1",
+      discussion_group_id: "group-turn-1",
+      reply_to_turn_id: "turn-1",
+      latest_owner_turn_id: "turn-1",
+      latest_agent_turn_id: "turn-2",
+      is_active: true,
+    },
+    composer_target: {
+      iteration_id: "iter-1",
+      result_id: "result-1",
+      addressed_participant_id: "repairer-1",
+      addressed_agent_id: "repairer-1",
+      addressed_display_name: "Repairer",
+      agent_role: "repairer",
+      agent_display_name: "Repairer",
+      summary: "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
+    },
+    iteration: {
+      iteration_id: "iter-1",
+      thread_id: "thread-1",
+      goal: "Slow the opener a little.",
+      requested_action: "revise",
+      preserve_working_parts: true,
+      status: "active",
+      resolution_state: "open",
+      selected_result_id: "result-1",
+      source_result_id: null,
+      responsible_role: "repairer",
+      responsible_agent_id: "repairer-1",
+    },
+    turns: [],
+    runs: [],
+    results: [
+      {
+        result_id: "result-1",
+        status: "ready",
+        result_summary: "Selected cut with a slower title entrance.",
+        selected: true,
+        video_resource: "video-task://task-1/artifacts/final.mp4",
+      },
+    ],
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    execution_summary: { ...base.execution_summary, ...overrides.execution_summary },
+    composer_target: { ...base.composer_target, ...overrides.composer_target },
+    iteration: { ...base.iteration, ...overrides.iteration },
+  };
+}
+
 test("video thread page renders the collaboration workbench from thread surface", async () => {
   writeSessionToken("sess-token-1");
   const user = userEvent.setup();
@@ -1799,6 +2140,659 @@ test("video thread page routes discussion actions through the selected composer 
       )
     ).toBe(true);
   });
+});
+
+test("video thread page follows the refreshed iteration after requesting a revision", async () => {
+  writeSessionToken("sess-token-1");
+  const user = userEvent.setup();
+  const requests: Array<{ method: string; path: string; body?: string | null }> = [];
+  const surfaces = [
+    createThreadSurface(),
+    createThreadSurface({
+      thread_header: {
+        current_iteration_id: "iter-2",
+        selected_result_id: "result-2",
+      },
+      current_focus: {
+        current_iteration_id: "iter-2",
+        current_iteration_goal: "Keep the pacing but soften the landing.",
+        current_result_id: "result-2",
+        current_result_summary: "A softer title landing is now selected.",
+        current_result_author_display_name: "Finisher",
+        current_result_author_role: "finisher",
+        current_result_selection_reason: "The new revision now carries the thread forward.",
+      },
+      selection_summary: {
+        selected_result_id: "result-2",
+        summary: "The new revision now carries the thread forward.",
+        author_display_name: "Finisher",
+        author_role: "finisher",
+      },
+      latest_explanation: {
+        summary: "The landing was softened without losing the clearer opener.",
+        turn_id: "turn-10",
+        speaker_display_name: "Finisher",
+        speaker_role: "finisher",
+      },
+      authorship: {
+        summary: "Finisher shaped the newly selected revision.",
+        primary_agent_display_name: "Finisher",
+        primary_agent_role: "finisher",
+        source_iteration_id: "iter-2",
+        source_turn_id: "turn-10",
+      },
+      iteration_compare: {
+        previous_iteration_id: "iter-1",
+        current_iteration_id: "iter-2",
+        previous_result_id: "result-1",
+        current_result_id: "result-2",
+        change_summary: "The current revision softens the title landing.",
+        rationale_shift_summary: "The owner asked to preserve the pacing while easing the final title beat.",
+        continuity_status: "changed",
+        continuity_summary: "The iteration focus moved from Repairer to Finisher.",
+      },
+      next_recommended_move: {
+        recommended_action_id: "discuss",
+        recommended_action_label: "Add note",
+        summary: "Review the new revision before deciding on another pass.",
+      },
+      responsibility: {
+        owner_action_required: "review_latest_result",
+        expected_agent_role: "finisher",
+        expected_agent_id: "finisher-1",
+      },
+      iteration_workbench: {
+        selected_iteration_id: "iter-2",
+        latest_iteration_id: "iter-2",
+        iterations: [
+          {
+            iteration_id: "iter-1",
+            title: "Slow the opener",
+            goal: "Slow the opener a little.",
+            status: "closed",
+            resolution_state: "resolved",
+            requested_action: "revise",
+            result_summary: "Selected cut with a slower title entrance.",
+            responsible_role: "repairer",
+            responsible_agent_id: "repairer-1",
+          },
+          {
+            iteration_id: "iter-2",
+            title: "Soften the title landing",
+            goal: "Keep the pacing but soften the landing.",
+            status: "active",
+            resolution_state: "open",
+            requested_action: "revise",
+            result_summary: "A softer title landing is now selected.",
+            responsible_role: "finisher",
+            responsible_agent_id: "finisher-1",
+          },
+        ],
+      },
+      iteration_detail: {
+        summary: "The newest revision is now the selected process focus.",
+        selected_iteration_id: "iter-2",
+        resource_uri: "video-thread://thread-1/iterations/iter-2.json",
+        turn_count: 1,
+        run_count: 1,
+        result_count: 1,
+      },
+      discussion_runtime: {
+        active_iteration_id: "iter-2",
+        default_reply_to_turn_id: "turn-9",
+        default_related_result_id: "result-2",
+        addressed_participant_id: "finisher-1",
+        addressed_agent_id: "finisher-1",
+        addressed_display_name: "Finisher",
+        active_thread_title: "Revision handoff",
+        active_thread_summary: "The new revision is ready for follow-up.",
+      },
+      participant_runtime: {
+        active_iteration_id: "iter-2",
+        expected_participant_id: "finisher-1",
+        expected_agent_id: "finisher-1",
+        expected_display_name: "Finisher",
+        expected_role: "finisher",
+      },
+      process: {
+        runs: [{ run_id: "run-2", iteration_id: "iter-2", task_id: "task-2" }],
+      },
+      participants: {
+        items: [
+          {
+            participant_id: "owner",
+            participant_type: "owner",
+            role: "owner",
+            display_name: "Owner",
+            agent_id: "agent-a",
+          },
+          {
+            participant_id: "finisher-1",
+            participant_type: "agent",
+            role: "finisher",
+            display_name: "Finisher",
+            agent_id: "finisher-1",
+          },
+        ],
+        management: {
+          removable_participant_ids: ["finisher-1"],
+        },
+      },
+      composer: {
+        target: {
+          iteration_id: "iter-2",
+          result_id: "result-2",
+          addressed_participant_id: "finisher-1",
+          addressed_agent_id: "finisher-1",
+          addressed_display_name: "Finisher",
+          agent_role: "finisher",
+          agent_display_name: "Finisher",
+          summary:
+            "New messages will attach to iter-2, stay anchored to result-2, and hand off to Finisher.",
+        },
+      },
+    }),
+  ];
+  let surfaceIndex = 0;
+
+  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    const path = new URL(String(url), "http://example.test").pathname;
+    requests.push({
+      path,
+      method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? init.body : null,
+    });
+
+    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+      const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
+      surfaceIndex += 1;
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify(createIterationDetail()), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/video-threads/thread-1/iterations/iter-2" && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify(
+          createIterationDetail({
+            iteration_id: "iter-2",
+            summary: "Revision request opened iter-2 and shifted the live detail focus.",
+            execution_summary: {
+              summary: "Finisher is now shaping result result-2 for task task-2.",
+              task_id: "task-2",
+              run_id: "thread-run:task-2",
+              status: "running",
+              phase: "planning",
+              agent_id: "finisher-1",
+              agent_display_name: "Finisher",
+              agent_role: "finisher",
+              result_id: "result-2",
+              reply_to_turn_id: "turn-9",
+              latest_owner_turn_id: "turn-9",
+              latest_agent_turn_id: "turn-10",
+            },
+            composer_target: {
+              iteration_id: "iter-2",
+              result_id: "result-2",
+              addressed_participant_id: "finisher-1",
+              addressed_agent_id: "finisher-1",
+              addressed_display_name: "Finisher",
+              agent_role: "finisher",
+              agent_display_name: "Finisher",
+              summary:
+                "New messages will attach to iter-2, stay anchored to result-2, and hand off to Finisher.",
+            },
+            iteration: {
+              iteration_id: "iter-2",
+              goal: "Keep the pacing but soften the landing.",
+              selected_result_id: "result-2",
+              source_result_id: "result-1",
+              responsible_role: "finisher",
+              responsible_agent_id: "finisher-1",
+            },
+            runs: [
+              {
+                run_id: "run-2",
+                agent_id: "finisher-1",
+                agent_display_name: "Finisher",
+                role: "finisher",
+                status: "running",
+                phase: "planning",
+                output_summary: "Preparing a softer title landing.",
+                task_id: "task-2",
+              },
+            ],
+            results: [
+              {
+                result_id: "result-2",
+                status: "ready",
+                result_summary: "A softer title landing is now selected.",
+                selected: true,
+                video_resource: "video-task://task-2/artifacts/final.mp4",
+              },
+            ],
+          })
+        ),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }
+      );
+    }
+
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1/request-revision" &&
+      init?.method === "POST"
+    ) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response("not found", { status: 404 });
+  }) as typeof fetch;
+
+  render(
+    <MemoryRouter initialEntries={["/videos/thread-1"]}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/videos/:threadId" element={<VideoThreadPage />} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Show process details" }));
+  expect(await screen.findByText("Initial iteration detail.")).toBeInTheDocument();
+
+  const discussion = screen.getByRole("region", { name: "Discussion" });
+  await user.type(within(discussion).getByLabelText("Request revision"), "Please soften the title landing.");
+  await user.click(within(discussion).getByRole("button", { name: "Send" }));
+
+  await waitFor(() => {
+    expect(
+      requests.some(
+        (request) =>
+          request.method === "POST" &&
+          request.path === "/api/video-threads/thread-1/iterations/iter-1/request-revision" &&
+          request.body?.includes('"summary":"Please soften the title landing."')
+      )
+    ).toBe(true);
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText("Revision request opened iter-2 and shifted the live detail focus.")).toBeInTheDocument();
+  });
+  expect(screen.getByText("Finisher is now shaping result result-2 for task task-2.")).toBeInTheDocument();
+  expect(within(discussion).getByText("Reply to: turn-9")).toBeInTheDocument();
+  expect(within(discussion).getByText("Result: result-2")).toBeInTheDocument();
+  expect(within(discussion).getAllByText("Reply target: Finisher").length).toBeGreaterThan(0);
+  expect(
+    within(discussion).getByText(
+      "New messages will attach to iter-2, stay anchored to result-2, and hand off to Finisher."
+    )
+  ).toBeInTheDocument();
+  expect(screen.getByText("Selected result: result-2")).toBeInTheDocument();
+});
+
+test("video thread page refreshes the inspected iteration detail after adding a discussion note", async () => {
+  writeSessionToken("sess-token-1");
+  const user = userEvent.setup();
+  const requests: Array<{ method: string; path: string; body?: string | null }> = [];
+  const surfaces = [
+    createThreadSurface(),
+    createThreadSurface({
+      current_focus: {
+        current_iteration_id: "iter-1",
+        current_result_id: "result-1",
+        current_result_summary: "Selected cut with a slower title entrance and recorded owner follow-up.",
+      },
+      latest_explanation: {
+        summary: "The latest note asked for a softer landing while preserving pacing.",
+        turn_id: "turn-9",
+      },
+      iteration_detail: {
+        summary: "The selected iteration now includes the newly recorded discussion turn.",
+      },
+      conversation: {
+        turns: [
+          {
+            turn_id: "turn-9",
+            iteration_id: "iter-1",
+            title: "Owner note recorded",
+            summary: "Please keep the pacing but soften the final title beat.",
+            intent_type: "discuss",
+            reply_to_turn_id: "turn-1",
+            related_result_id: "result-1",
+            speaker_type: "owner",
+            speaker_role: "owner",
+          },
+        ],
+      },
+      discussion_runtime: {
+        default_reply_to_turn_id: "turn-9",
+        active_thread_summary: "The latest owner note should guide the next response.",
+      },
+      composer: {
+        target: {
+          iteration_id: "iter-1",
+          result_id: "result-1",
+          addressed_participant_id: "repairer-1",
+          addressed_agent_id: "repairer-1",
+          addressed_display_name: "Repairer",
+          agent_role: "repairer",
+          agent_display_name: "Repairer",
+          summary:
+            "The surface refreshed, but the iteration detail must also refresh to show the new owner note.",
+        },
+      },
+    }),
+  ];
+  const iter1Details = [
+    createIterationDetail(),
+    createIterationDetail({
+      summary: "Updated iteration detail after note.",
+      execution_summary: {
+        summary: "Repairer is now responding to the latest owner note on result result-1.",
+        reply_to_turn_id: "turn-9",
+        latest_owner_turn_id: "turn-9",
+        latest_agent_turn_id: "turn-10",
+      },
+      composer_target: {
+        summary:
+          "New messages will attach to iter-1, stay anchored to result-1, and continue from the new owner note.",
+      },
+      turns: [
+        {
+          turn_id: "turn-9",
+          title: "Owner note recorded",
+          summary: "Please keep the pacing but soften the final title beat.",
+          turn_type: "owner_request",
+          speaker_display_name: "Owner",
+          speaker_role: "owner",
+          addressed_display_name: "Repairer",
+          addressed_participant_id: "repairer-1",
+        },
+      ],
+    }),
+  ];
+  let surfaceIndex = 0;
+  let iter1DetailIndex = 0;
+
+  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    const path = new URL(String(url), "http://example.test").pathname;
+    requests.push({
+      path,
+      method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? init.body : null,
+    });
+
+    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+      const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
+      surfaceIndex += 1;
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+      const payload = iter1Details[Math.min(iter1DetailIndex, iter1Details.length - 1)];
+      iter1DetailIndex += 1;
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/video-threads/thread-1/turns" && init?.method === "POST") {
+      return new Response(
+        JSON.stringify({
+          thread: { thread_id: "thread-1" },
+          iteration: { iteration_id: "iter-1" },
+          turn: {
+            turn_id: "turn-9",
+            turn_type: "owner_request",
+            intent_type: "discuss",
+            addressed_participant_id: "repairer-1",
+            addressed_agent_id: "repairer-1",
+          },
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }
+      );
+    }
+
+    return new Response("not found", { status: 404 });
+  }) as typeof fetch;
+
+  render(
+    <MemoryRouter initialEntries={["/videos/thread-1"]}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/videos/:threadId" element={<VideoThreadPage />} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Show process details" }));
+  expect(await screen.findByText("Initial iteration detail.")).toBeInTheDocument();
+  expect(screen.getByText("Repairer is currently repairing for task task-1 while shaping result result-1.")).toBeInTheDocument();
+
+  const discussion = screen.getByRole("region", { name: "Discussion" });
+  await user.click(within(discussion).getByRole("button", { name: "Add note" }));
+  await user.type(
+    within(discussion).getByLabelText("Add note"),
+    "Please keep the pacing but soften the final title beat."
+  );
+  await user.click(within(discussion).getByRole("button", { name: "Send" }));
+
+  await waitFor(() => {
+    expect(
+      requests.some(
+        (request) =>
+          request.method === "POST" &&
+          request.path === "/api/video-threads/thread-1/turns" &&
+          request.body?.includes('"title":"Please keep the pacing but soften the final title beat."')
+      )
+    ).toBe(true);
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText("Updated iteration detail after note.")).toBeInTheDocument();
+  });
+  expect(
+    screen.getByText("Repairer is now responding to the latest owner note on result result-1.")
+  ).toBeInTheDocument();
+  expect(screen.getAllByText("Owner note recorded").length).toBeGreaterThan(0);
+  expect(within(discussion).getByText("Reply to: turn-9")).toBeInTheDocument();
+  expect(
+    within(discussion).getByText(
+      "New messages will attach to iter-1, stay anchored to result-1, and continue from the new owner note."
+    )
+  ).toBeInTheDocument();
+});
+
+test("video thread page refreshes the inspected iteration detail after requesting an explanation", async () => {
+  writeSessionToken("sess-token-1");
+  const user = userEvent.setup();
+  const requests: Array<{ method: string; path: string; body?: string | null }> = [];
+  const surfaces = [
+    createThreadSurface(),
+    createThreadSurface({
+      latest_explanation: {
+        summary: "The latest explanation clarifies why the slower landing was preferred.",
+        turn_id: "turn-11",
+        speaker_display_name: "Repairer",
+        speaker_role: "repairer",
+      },
+      iteration_detail: {
+        summary: "The selected iteration now includes the refreshed explanation context.",
+      },
+      conversation: {
+        turns: [
+          {
+            turn_id: "turn-11",
+            iteration_id: "iter-1",
+            title: "Visible explanation",
+            summary: "The slower landing gives the title beat more breathing room.",
+            intent_type: "request_explanation",
+            reply_to_turn_id: "turn-1",
+            related_result_id: "result-1",
+            speaker_type: "agent",
+            speaker_role: "repairer",
+          },
+        ],
+      },
+      discussion_runtime: {
+        default_reply_to_turn_id: "turn-11",
+        active_thread_summary: "The explanation response should stay attached to the selected iteration.",
+      },
+      composer: {
+        target: {
+          iteration_id: "iter-1",
+          result_id: "result-1",
+          addressed_participant_id: "repairer-1",
+          addressed_agent_id: "repairer-1",
+          addressed_display_name: "Repairer",
+          agent_role: "repairer",
+          agent_display_name: "Repairer",
+          summary:
+            "The refreshed explanation keeps the composer anchored to iter-1 and result-1.",
+        },
+      },
+    }),
+  ];
+  const iter1Details = [
+    createIterationDetail(),
+    createIterationDetail({
+      summary: "Updated iteration detail after explanation.",
+      execution_summary: {
+        summary: "Repairer has now answered the explanation request for result result-1.",
+        reply_to_turn_id: "turn-11",
+        latest_owner_turn_id: "turn-1",
+        latest_agent_turn_id: "turn-11",
+      },
+      composer_target: {
+        summary:
+          "New messages will attach to iter-1, stay anchored to result-1, and continue from the latest explanation.",
+      },
+      turns: [
+        {
+          turn_id: "turn-11",
+          title: "Visible explanation",
+          summary: "The slower landing gives the title beat more breathing room.",
+          turn_type: "agent_reply",
+          speaker_display_name: "Repairer",
+          speaker_role: "repairer",
+          addressed_display_name: "Owner",
+          addressed_participant_id: "owner",
+        },
+      ],
+    }),
+  ];
+  let surfaceIndex = 0;
+  let iter1DetailIndex = 0;
+
+  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    const path = new URL(String(url), "http://example.test").pathname;
+    requests.push({
+      path,
+      method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? init.body : null,
+    });
+
+    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+      const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
+      surfaceIndex += 1;
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+      const payload = iter1Details[Math.min(iter1DetailIndex, iter1Details.length - 1)];
+      iter1DetailIndex += 1;
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1/request-explanation" &&
+      init?.method === "POST"
+    ) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response("not found", { status: 404 });
+  }) as typeof fetch;
+
+  render(
+    <MemoryRouter initialEntries={["/videos/thread-1"]}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/videos/:threadId" element={<VideoThreadPage />} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Show process details" }));
+  expect(await screen.findByText("Initial iteration detail.")).toBeInTheDocument();
+
+  const discussion = screen.getByRole("region", { name: "Discussion" });
+  await user.click(within(discussion).getByRole("button", { name: "Ask why" }));
+  await user.type(
+    within(discussion).getByLabelText("Ask why"),
+    "Why does the slower landing feel more deliberate?"
+  );
+  await user.click(within(discussion).getByRole("button", { name: "Send" }));
+
+  await waitFor(() => {
+    expect(
+      requests.some(
+        (request) =>
+          request.method === "POST" &&
+          request.path === "/api/video-threads/thread-1/iterations/iter-1/request-explanation" &&
+          request.body?.includes('"summary":"Why does the slower landing feel more deliberate?"')
+      )
+    ).toBe(true);
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText("Updated iteration detail after explanation.")).toBeInTheDocument();
+  });
+  expect(
+    screen.getByText("Repairer has now answered the explanation request for result result-1.")
+  ).toBeInTheDocument();
+  expect(screen.getAllByText("Visible explanation").length).toBeGreaterThan(0);
+  expect(within(discussion).getByText("Reply to: turn-11")).toBeInTheDocument();
+  expect(
+    within(discussion).getByText(
+      "New messages will attach to iter-1, stay anchored to result-1, and continue from the latest explanation."
+    )
+  ).toBeInTheDocument();
 });
 
 test("video thread page shows version cards with select and task actions", async () => {

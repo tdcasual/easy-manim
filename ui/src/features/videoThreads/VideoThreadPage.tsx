@@ -54,6 +54,31 @@ function selectedTaskIdFromSurface(surface: VideoThreadSurface | null, iteration
   return null;
 }
 
+function defaultSelectedIterationId(surface: VideoThreadSurface): string | null {
+  return (
+    surface.iteration_detail?.selected_iteration_id ??
+    surface.current_focus.current_iteration_id ??
+    surface.iteration_workbench.selected_iteration_id ??
+    null
+  );
+}
+
+function resolveSelectedIterationId(
+  surface: VideoThreadSurface,
+  currentIterationId: string | null,
+  options?: { preserveCurrent?: boolean }
+): string | null {
+  if (
+    options?.preserveCurrent !== false &&
+    currentIterationId &&
+    surface.iteration_workbench.iterations.some((item) => item.iteration_id === currentIterationId)
+  ) {
+    return currentIterationId;
+  }
+
+  return defaultSelectedIterationId(surface);
+}
+
 export function VideoThreadPage() {
   const { threadId } = useParams();
   const { sessionToken } = useSession();
@@ -97,12 +122,7 @@ export function VideoThreadPage() {
         }
         setSurface(nextSurface);
         setActiveActionId(nextSurface.actions.items[0]?.action_id ?? null);
-        setSelectedIterationId(
-          nextSurface.iteration_detail?.selected_iteration_id ??
-            nextSurface.current_focus.current_iteration_id ??
-            nextSurface.iteration_workbench.selected_iteration_id ??
-            null
-        );
+        setSelectedIterationId(resolveSelectedIterationId(nextSurface, null, { preserveCurrent: false }));
         setParticipantDraft((current) => ({
           ...current,
           role: current.role || nextSurface.participants.management.default_role || "reviewer",
@@ -153,24 +173,25 @@ export function VideoThreadPage() {
     if (!threadId || !sessionToken) {
       return;
     }
-    const detail = await getVideoThreadIteration(threadId, iterationId, sessionToken);
-    setIterationDetail(detail);
+    setIterationLoading(true);
+    try {
+      const detail = await getVideoThreadIteration(threadId, iterationId, sessionToken);
+      setIterationDetail(detail);
+    } finally {
+      setIterationLoading(false);
+    }
   }
 
-  async function refreshSurface() {
+  async function refreshSurface(options?: { preserveCurrentIteration?: boolean }) {
     if (!threadId || !sessionToken) {
       return;
     }
     const nextSurface = await getVideoThreadSurface(threadId, sessionToken);
+    const nextSelectedIterationId = resolveSelectedIterationId(nextSurface, selectedIterationId, {
+      preserveCurrent: options?.preserveCurrentIteration !== false,
+    });
     setSurface(nextSurface);
-    setSelectedIterationId((current) =>
-      current && nextSurface.iteration_workbench.iterations.some((item) => item.iteration_id === current)
-        ? current
-        : nextSurface.iteration_detail?.selected_iteration_id ??
-          nextSurface.current_focus.current_iteration_id ??
-          nextSurface.iteration_workbench.selected_iteration_id ??
-          null
-    );
+    setSelectedIterationId(nextSelectedIterationId);
     setActiveActionId((current) =>
       current && nextSurface.actions.items.some((item) => item.action_id === current)
         ? current
@@ -180,6 +201,7 @@ export function VideoThreadPage() {
       ...current,
       role: current.role || nextSurface.participants.management.default_role || "reviewer",
     }));
+    return nextSelectedIterationId;
   }
 
   async function onSubmit() {
@@ -198,6 +220,7 @@ export function VideoThreadPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const preserveCurrentIteration = activeActionId !== "request_revision";
       if (activeActionId === "request_revision") {
         await requestVideoRevision(
           threadId,
@@ -225,7 +248,16 @@ export function VideoThreadPage() {
         );
       }
       setDraft("");
-      await refreshSurface();
+      const nextIterationId = await refreshSurface({
+        preserveCurrentIteration,
+      });
+      if (!nextIterationId) {
+        setIterationDetail(null);
+      } else if (nextIterationId === selectedIterationId) {
+        await refreshIterationDetail(nextIterationId);
+      } else {
+        setIterationDetail(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update thread");
     } finally {
