@@ -6,6 +6,10 @@ __pycache__/
 *.egg-info/
 .playwright-cli/
 output/playwright/
+ui/node_modules/
+ui/dist/
+ui/coverage/
+*.bak
 uv.lock
 data/
 media/
