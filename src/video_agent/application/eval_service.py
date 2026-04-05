@@ -20,7 +20,7 @@ from video_agent.evaluation.repair_reporting import build_repair_report
 from video_agent.evaluation.run_manifest import EvalCaseState, EvalRunManifest
 from video_agent.evaluation.reviewer_digest import render_reviewer_digest
 from video_agent.evaluation.reporting import build_eval_report, render_eval_report_markdown
-from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_models import AgentToken
 from video_agent.domain.strategy_models import StrategyProfile
 
 if TYPE_CHECKING:

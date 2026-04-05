@@ -1,5 +1,4 @@
 from pathlib import Path
-from urllib.parse import quote
 
 from fastapi.testclient import TestClient
 

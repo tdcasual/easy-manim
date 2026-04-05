@@ -11,7 +11,6 @@ from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.branch_arbitration import build_arbitration_summary, build_branch_scoreboard
 from video_agent.application.task_service import TaskService
 from video_agent.config import Settings
-from video_agent.domain.enums import TaskStatus
 from video_agent.worker.worker_loop import WorkerLoop
 
 DEFAULT_DELIVERY_CANARY_PROMPT = "draw a circle"

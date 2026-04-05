@@ -11,6 +11,14 @@ from video_agent.domain.agent_session_models import AgentSession
 from video_agent.domain.models import VideoTask
 from video_agent.domain.quality_models import QualityScorecard
 from video_agent.domain.review_workflow_models import WorkflowParticipant
+from video_agent.domain.video_thread_models import (
+    VideoAgentRun,
+    VideoIteration,
+    VideoResult,
+    VideoThread,
+    VideoThreadParticipant,
+    VideoTurn,
+)
 
 
 def _build_store(tmp_path) -> SQLiteTaskStore:
@@ -424,6 +432,138 @@ def test_store_round_trips_workflow_participants(tmp_path) -> None:
     assert [participant.agent_id for participant in participants] == ["agent-b", "agent-c"]
     assert participants[0].created_at == reviewer.created_at
     assert participants[1].created_at == repairer.created_at
+
+
+def test_store_round_trips_video_thread_runtime_entities(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    thread = store.upsert_video_thread(
+        VideoThread(
+            thread_id="thread-1",
+            owner_agent_id="agent-a",
+            title="Circle lesson",
+            origin_prompt="draw a circle",
+        )
+    )
+    iteration = store.upsert_video_iteration(
+        VideoIteration(
+            iteration_id="iter-1",
+            thread_id=thread.thread_id,
+            goal="Draft the first version",
+        )
+    )
+    turn = store.upsert_video_turn(
+        VideoTurn(
+            turn_id="turn-1",
+            thread_id=thread.thread_id,
+            iteration_id=iteration.iteration_id,
+            turn_type="owner_request",
+            speaker_type="owner",
+            title="Initial request",
+            summary="Please draw a circle",
+        )
+    )
+    result = store.upsert_video_result(
+        VideoResult(
+            result_id="result-1",
+            thread_id=thread.thread_id,
+            iteration_id=iteration.iteration_id,
+            source_task_id="task-1",
+            status="completed",
+            result_summary="Produced a blue circle",
+        )
+    )
+    participant = store.upsert_video_thread_participant(
+        VideoThreadParticipant(
+            thread_id=thread.thread_id,
+            participant_id="participant-1",
+            participant_type="agent",
+            agent_id="agent-b",
+            role="reviewer",
+            display_name="Reviewer",
+        )
+    )
+    run = store.upsert_video_agent_run(
+        VideoAgentRun(
+            run_id="run-1",
+            thread_id=thread.thread_id,
+            iteration_id=iteration.iteration_id,
+            agent_id="agent-b",
+            role="reviewer",
+            status="completed",
+        )
+    )
+
+    loaded_thread = store.get_video_thread(thread.thread_id)
+    loaded_iteration = store.get_video_iteration(iteration.iteration_id)
+    loaded_turn = store.get_video_turn(turn.turn_id)
+    loaded_result = store.get_video_result(result.result_id)
+    loaded_participant = store.get_video_thread_participant(thread.thread_id, participant.participant_id)
+    loaded_run = store.get_video_agent_run(run.run_id)
+
+    assert loaded_thread is not None
+    assert loaded_thread.title == "Circle lesson"
+    assert loaded_iteration is not None
+    assert loaded_iteration.goal == "Draft the first version"
+    assert loaded_turn is not None
+    assert loaded_turn.summary == "Please draw a circle"
+    assert loaded_result is not None
+    assert loaded_result.result_summary == "Produced a blue circle"
+    assert loaded_participant is not None
+    assert loaded_participant.display_name == "Reviewer"
+    assert loaded_run is not None
+    assert loaded_run.role == "reviewer"
+
+    assert [item.iteration_id for item in store.list_video_iterations(thread.thread_id)] == ["iter-1"]
+    assert [item.turn_id for item in store.list_video_turns(thread.thread_id)] == ["turn-1"]
+    assert [item.result_id for item in store.list_video_results(thread.thread_id)] == ["result-1"]
+    assert [item.participant_id for item in store.list_video_thread_participants(thread.thread_id)] == ["participant-1"]
+    assert [item.run_id for item in store.list_video_agent_runs(thread.thread_id)] == ["run-1"]
+
+
+def test_store_video_thread_runtime_upserts_preserve_created_at(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    thread = store.upsert_video_thread(
+        VideoThread(
+            thread_id="thread-1",
+            owner_agent_id="agent-a",
+            title="Circle lesson",
+            origin_prompt="draw a circle",
+        )
+    )
+    iteration = store.upsert_video_iteration(
+        VideoIteration(
+            iteration_id="iter-1",
+            thread_id=thread.thread_id,
+            goal="Draft the first version",
+        )
+    )
+    result = store.upsert_video_result(
+        VideoResult(
+            result_id="result-1",
+            thread_id=thread.thread_id,
+            iteration_id=iteration.iteration_id,
+            result_summary="First result",
+        )
+    )
+    run = store.upsert_video_agent_run(
+        VideoAgentRun(
+            run_id="run-1",
+            thread_id=thread.thread_id,
+            iteration_id=iteration.iteration_id,
+            agent_id="agent-b",
+            role="reviewer",
+        )
+    )
+
+    updated_thread = store.upsert_video_thread(thread.model_copy(update={"title": "Updated title"}))
+    updated_iteration = store.upsert_video_iteration(iteration.model_copy(update={"goal": "Refine the version"}))
+    updated_result = store.upsert_video_result(result.model_copy(update={"result_summary": "Updated result"}))
+    updated_run = store.upsert_video_agent_run(run.model_copy(update={"status": "completed"}))
+
+    assert updated_thread.created_at == thread.created_at
+    assert updated_iteration.created_at == iteration.created_at
+    assert updated_result.created_at == result.created_at
+    assert updated_run.created_at == run.created_at
 
 
 def test_store_round_trips_agent_profile_revision(tmp_path) -> None:

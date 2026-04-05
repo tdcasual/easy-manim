@@ -18,6 +18,7 @@ A local-first validated video agent for Manim generation.
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e '.[dev]'
+python -m ruff check src tests scripts
 python -m pytest -q
 python scripts/beta_smoke.py --mode ci
 python scripts/release_candidate_gate.py --mode ci

@@ -56,6 +56,7 @@ easy-manim-doctor --json
 ## Run tests
 ```bash
 source .venv/bin/activate
+python -m ruff check src tests scripts
 python -m pytest -q
 ```
 

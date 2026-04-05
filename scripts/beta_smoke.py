@@ -11,8 +11,6 @@ import tempfile
 import time
 from pathlib import Path
 
-from mcp.client.session import ClientSession
-from mcp.client.streamable_http import streamable_http_client
 from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 
 
@@ -101,6 +99,9 @@ def stop_process(process: subprocess.Popen[str]) -> None:
 
 
 async def run_client_flow(url: str) -> dict[str, object]:
+    from mcp.client.session import ClientSession
+    from mcp.client.streamable_http import streamable_http_client
+
     async with streamable_http_client(url) as streams:
         read_stream, write_stream, _session_id = streams
         async with ClientSession(read_stream, write_stream) as session:

@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import uvicorn
-
 from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError
 from video_agent.server.http_api import create_http_api
 from video_agent.server.main import build_settings
@@ -30,6 +28,8 @@ def main() -> None:
         app = create_http_api(settings)
     except DatabaseBootstrapRequiredError as exc:
         raise SystemExit(str(exc)) from exc
+    import uvicorn
+
     uvicorn.run(app, host=args.host, port=args.port)
 
 

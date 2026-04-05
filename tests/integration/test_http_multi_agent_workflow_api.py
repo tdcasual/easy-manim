@@ -11,7 +11,6 @@ from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.review_workflow_models import WorkflowParticipant
-from video_agent.domain.validation_models import ValidationReport
 from tests.support import bootstrapped_settings
 
 
