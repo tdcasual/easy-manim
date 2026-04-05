@@ -10,8 +10,6 @@ from collections.abc import Callable
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
-from video_agent.domain.enums import TaskPhase, TaskStatus
-from video_agent.domain.validation_models import ValidationReport
 from tests.support import bootstrapped_settings
 
 
@@ -130,6 +128,25 @@ def _load_fastmcp_server():
     return _with_temporary_mcp_shim(_load)
 
 
+def _load_fastmcp_registration_modules():
+    def _load():
+        from mcp.server.fastmcp import FastMCP
+        from video_agent.server.fastmcp_server_memory_registration import register_memory_tools
+        from video_agent.server.fastmcp_server_resource_registration import register_resources
+        from video_agent.server.fastmcp_server_task_registration import register_task_tools
+        from video_agent.server.fastmcp_server_thread_registration import register_thread_tools
+
+        return (
+            FastMCP,
+            register_memory_tools,
+            register_resources,
+            register_task_tools,
+            register_thread_tools,
+        )
+
+    return _with_temporary_mcp_shim(_load)
+
+
 def _create_mcp_server(settings: Settings):
     _, create_mcp_server = _load_fastmcp_server()
     return create_mcp_server(settings)
@@ -142,6 +159,27 @@ def _create_app_context(settings: Settings):
         return create_app_context(settings)
 
     return _with_temporary_mcp_shim(_load)
+
+
+def _session_key_for_ctx(ctx) -> str:
+    return f"session:{getattr(ctx, 'client_id', 'unknown')}"
+
+
+def _current_principal(app_context, ctx):
+    if ctx is None:
+        return None
+    return app_context.session_auth.get(_session_key_for_ctx(ctx))
+
+
+def _current_session_id(app_context, ctx):
+    if ctx is None:
+        return None
+    principal = _current_principal(app_context, ctx)
+    handle = app_context.session_memory_registry.ensure_session(
+        _session_key_for_ctx(ctx),
+        agent_id=None if principal is None else principal.agent_id,
+    )
+    return handle.session_id
 
 
 
@@ -251,6 +289,117 @@ def test_fastmcp_registers_persistent_memory_tools(tmp_path: Path) -> None:
             "disable_agent_memory",
             "query_agent_memories",
         } <= tool_names
+
+    asyncio.run(run())
+
+
+def test_fastmcp_registration_modules_register_expected_tool_names(tmp_path: Path) -> None:
+    async def run() -> None:
+        FastMCP, register_memory_tools, _, register_task_tools, register_thread_tools = (
+            _load_fastmcp_registration_modules()
+        )
+        settings = _build_fake_pipeline_settings(tmp_path)
+        app_context = _create_app_context(settings)
+        mcp = FastMCP(name="registration-test")
+
+        register_memory_tools(
+            mcp=mcp,
+            context=app_context,
+            current_principal=lambda ctx: _current_principal(app_context, ctx),
+            current_session_id=lambda ctx: _current_session_id(app_context, ctx),
+            session_key_for_ctx=_session_key_for_ctx,
+        )
+        register_task_tools(
+            mcp=mcp,
+            context=app_context,
+            current_principal=lambda ctx: _current_principal(app_context, ctx),
+            current_session_id=lambda ctx: _current_session_id(app_context, ctx),
+        )
+        register_thread_tools(
+            mcp=mcp,
+            context=app_context,
+            current_principal=lambda ctx: _current_principal(app_context, ctx),
+            current_session_id=lambda ctx: _current_session_id(app_context, ctx),
+        )
+
+        tool_names = {tool.name for tool in await mcp.list_tools()}
+        assert {
+            "authenticate_agent",
+            "create_video_task",
+            "get_video_task",
+            "append_video_turn",
+            "get_session_memory",
+            "query_agent_memories",
+        } <= tool_names
+
+    asyncio.run(run())
+
+
+def test_fastmcp_resource_registration_module_preserves_resource_templates(tmp_path: Path) -> None:
+    async def run() -> None:
+        FastMCP, _, register_resources, _, _ = _load_fastmcp_registration_modules()
+        settings = _build_fake_pipeline_settings(tmp_path)
+        app_context = _create_app_context(settings)
+        mcp = FastMCP(name="resource-registration-test")
+
+        register_resources(
+            mcp=mcp,
+            context=app_context,
+            current_principal=lambda ctx: _current_principal(app_context, ctx),
+        )
+
+        created = app_context.task_service.create_video_task(prompt="draw a circle", session_id="session-1")
+        thread = app_context.video_thread_service.create_thread(
+            owner_agent_id="local-anonymous",
+            title="Draw a circle",
+            prompt="draw a circle",
+            session_id="session-1",
+        )
+
+        task_resource = list(await mcp.read_resource(f"video-task://{created.task_id}/task.json"))
+        thread_resource = list(await mcp.read_resource(f"video-thread://{thread.thread.thread_id}/surface.json"))
+
+        assert created.task_id in task_resource[0].content
+        assert thread.thread.thread_id in thread_resource[0].content
+
+    asyncio.run(run())
+
+
+def test_fastmcp_registration_modules_preserve_auth_and_session_context(tmp_path: Path) -> None:
+    async def run() -> None:
+        FastMCP, register_memory_tools, _, register_task_tools, _ = _load_fastmcp_registration_modules()
+        settings = _build_fake_pipeline_settings(tmp_path)
+        settings.auth_mode = "required"
+        settings.run_embedded_worker = False
+        _seed_agent(settings)
+        app_context = _create_app_context(settings)
+        mcp = FastMCP(name="auth-session-test")
+
+        register_memory_tools(
+            mcp=mcp,
+            context=app_context,
+            current_principal=lambda ctx: _current_principal(app_context, ctx),
+            current_session_id=lambda ctx: _current_session_id(app_context, ctx),
+            session_key_for_ctx=_session_key_for_ctx,
+        )
+        register_task_tools(
+            mcp=mcp,
+            context=app_context,
+            current_principal=lambda ctx: _current_principal(app_context, ctx),
+            current_session_id=lambda ctx: _current_session_id(app_context, ctx),
+        )
+
+        _, auth_payload = await mcp.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})
+        _, created = await mcp.call_tool("create_video_task", {"prompt": "draw a circle"})
+        _, session_memory = await mcp.call_tool("get_session_memory", {})
+
+        task = app_context.store.get_task(created["task_id"])
+
+        assert auth_payload["authenticated"] is True
+        assert task is not None
+        assert task.agent_id == "agent-a"
+        assert task.session_id
+        assert session_memory["entry_count"] == 1
 
     asyncio.run(run())
 
