@@ -8,6 +8,7 @@ from typing import Any
 
 from video_agent.adapters.storage.sqlite_bootstrap import DatabaseBootstrapRequiredError, SQLiteBootstrapper
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
+from video_agent.application.agent_runtime_service import AgentRuntimeDefinitionService
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.server.main import build_settings
@@ -26,6 +27,10 @@ def build_parser() -> argparse.ArgumentParser:
     create_profile.add_argument("--name", required=True)
     create_profile.add_argument("--profile-json", default="{}")
     create_profile.add_argument("--policy-json", default="{}")
+    create_profile.add_argument("--workspace")
+    create_profile.add_argument("--agent-dir")
+    create_profile.add_argument("--tools-allow-json", default='["read","exec","message","sessions_history","sessions_list"]')
+    create_profile.add_argument("--channels-json", default="[]")
 
     issue_token = subparsers.add_parser("issue-token", help="Issue a new agent token")
     issue_token.add_argument("--agent-id", required=True)
@@ -44,8 +49,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    settings = build_settings(args.data_dir)
     try:
-        store = _build_store(args.data_dir)
+        store = _build_store(settings)
     except DatabaseBootstrapRequiredError as exc:
         raise SystemExit(str(exc)) from exc
 
@@ -57,6 +63,22 @@ def main() -> None:
             policy_json=_parse_json(args.policy_json, label="policy-json"),
         )
         store.upsert_agent_profile(profile)
+        runtime_service = AgentRuntimeDefinitionService(
+            definition_lookup=store.get_agent_runtime_definition,
+            default_workspace_root=settings.agent_runtime_root,
+        )
+        runtime_definition = runtime_service.build_default_definition(profile)
+        runtime_definition = runtime_definition.model_copy(
+            update={
+                "workspace": args.workspace or runtime_definition.workspace,
+                "agent_dir": args.agent_dir or runtime_definition.agent_dir,
+                "tools_allow": _parse_json_list(args.tools_allow_json, label="tools-allow-json"),
+                "channels": _parse_json_list_of_objects(args.channels_json, label="channels-json"),
+                "definition_source": "explicit",
+            },
+            deep=True,
+        )
+        store.upsert_agent_runtime_definition(runtime_definition)
         print(
             json.dumps(
                 {
@@ -65,6 +87,7 @@ def main() -> None:
                     "status": profile.status,
                     "profile_json": profile.profile_json,
                     "policy_json": profile.policy_json,
+                    "runtime_definition": runtime_definition.model_dump(mode="json"),
                 }
             )
         )
@@ -107,14 +130,26 @@ def main() -> None:
         if profile is None:
             raise SystemExit(f"Unknown agent profile: {args.agent_id}")
         tokens = [token.model_dump(mode="json") for token in store.list_agent_tokens(args.agent_id)]
-        print(json.dumps({"profile": profile.model_dump(mode="json"), "tokens": tokens}))
+        runtime_definition = store.get_agent_runtime_definition(args.agent_id)
+        print(
+            json.dumps(
+                {
+                    "profile": profile.model_dump(mode="json"),
+                    "runtime_definition": (
+                        None
+                        if runtime_definition is None
+                        else runtime_definition.model_dump(mode="json")
+                    ),
+                    "tokens": tokens,
+                }
+            )
+        )
         return
 
     raise SystemExit(f"Unsupported command: {args.command}")
 
 
-def _build_store(data_dir: Path) -> SQLiteTaskStore:
-    settings = build_settings(data_dir)
+def _build_store(settings) -> SQLiteTaskStore:
     SQLiteBootstrapper(settings.database_path).require_bootstrapped(data_dir=settings.data_dir)
     return SQLiteTaskStore(settings.database_path)
 
@@ -127,6 +162,26 @@ def _parse_json(raw: str, *, label: str) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise SystemExit(f"{label} must decode to a JSON object")
     return parsed
+
+
+def _parse_json_list(raw: str, *, label: str) -> list[str]:
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid JSON for {label}: {exc}") from exc
+    if not isinstance(parsed, list):
+        raise SystemExit(f"{label} must decode to a JSON array")
+    return [str(item) for item in parsed if str(item).strip()]
+
+
+def _parse_json_list_of_objects(raw: str, *, label: str) -> list[dict[str, Any]]:
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid JSON for {label}: {exc}") from exc
+    if not isinstance(parsed, list) or any(not isinstance(item, dict) for item in parsed):
+        raise SystemExit(f"{label} must decode to a JSON array of objects")
+    return [dict(item) for item in parsed]
 
 
 def _generate_agent_token(agent_id: str) -> str:

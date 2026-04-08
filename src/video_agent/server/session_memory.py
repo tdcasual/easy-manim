@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from uuid import uuid4
 
-from video_agent.domain.session_memory_models import SessionHandle, SessionMemorySnapshot
+from video_agent.domain.session_memory_models import (
+    SessionHandle,
+    SessionMemorySnapshot,
+)
 
 
 class SessionMemoryRegistry:
@@ -41,6 +44,17 @@ class SessionMemoryRegistry:
                 )
 
         return handle
+
+    def ensure_session_id(self, session_id: str, agent_id: str | None = None) -> SessionMemorySnapshot:
+        snapshot = self.find_snapshot(session_id)
+        if snapshot is None:
+            snapshot = SessionMemorySnapshot(
+                session_id=session_id,
+                agent_id=agent_id,
+            )
+        elif agent_id is not None and snapshot.agent_id != agent_id:
+            snapshot = snapshot.model_copy(update={"agent_id": agent_id}, deep=True)
+        return self.store_snapshot(snapshot)
 
     def get_session_id(self, session_key: str) -> str | None:
         handle = self._handles_by_session_key.get(session_key)

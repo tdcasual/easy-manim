@@ -48,4 +48,7 @@ def test_agent_admin_cli_can_create_profile_and_issue_token(tmp_path: Path) -> N
     store = SQLiteTaskStore(data_dir / "video_agent.db")
     SQLiteBootstrapper(data_dir / "video_agent.db").bootstrap()
     assert store.get_agent_profile("agent-a") is not None
+    runtime_definition = store.get_agent_runtime_definition("agent-a")
+    assert runtime_definition is not None
+    assert runtime_definition.definition_source == "explicit"
     assert store.get_agent_token(hash_agent_token(payload["agent_token"])) is not None

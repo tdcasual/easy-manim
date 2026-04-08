@@ -3,16 +3,12 @@ from __future__ import annotations
 import hashlib
 from typing import Callable
 
-from pydantic import BaseModel
-
 from video_agent.application.agent_authorization_service import AgentAuthorizationService
-from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_models import AgentProfile, AgentRuntimePrincipal, AgentToken
+from video_agent.domain.agent_runtime_models import AgentRuntimeDefinition
 
 
-class AgentPrincipal(BaseModel):
-    agent_id: str
-    profile: AgentProfile
-    token: AgentToken
+AgentPrincipal = AgentRuntimePrincipal
 
 
 class AgentIdentityService:
@@ -20,10 +16,12 @@ class AgentIdentityService:
         self,
         profile_lookup: Callable[[str], AgentProfile | None],
         token_lookup: Callable[[str], AgentToken | None],
+        runtime_definition_resolver: Callable[[str, AgentProfile], AgentRuntimeDefinition] | None = None,
         authorization_service: AgentAuthorizationService | None = None,
     ) -> None:
         self._profile_lookup = profile_lookup
         self._token_lookup = token_lookup
+        self._runtime_definition_resolver = runtime_definition_resolver
         self._authorization_service = authorization_service or AgentAuthorizationService()
 
     def authenticate(self, plain_token: str) -> AgentPrincipal:
@@ -37,10 +35,33 @@ class AgentIdentityService:
         profile = self._profile_lookup(token.agent_id)
         if profile is None:
             raise ValueError("agent profile not found")
+        return self.resolve_principal(profile=profile, token=token)
+
+    def resolve_principal(
+        self,
+        *,
+        profile: AgentProfile,
+        token: AgentToken,
+    ) -> AgentPrincipal:
         if profile.status != "active":
             raise ValueError("inactive agent profile")
+        if token.status != "active":
+            raise ValueError("inactive agent token")
+        if token.agent_id != profile.agent_id:
+            raise ValueError("agent token does not match profile")
 
-        return AgentPrincipal(agent_id=profile.agent_id, profile=profile, token=token)
+        if self._runtime_definition_resolver is None:
+            raise ValueError("agent runtime definition not found")
+        runtime_definition = self._runtime_definition_resolver(profile.agent_id, profile)
+        if getattr(runtime_definition, "status", None) != "active":
+            raise ValueError("inactive agent runtime definition")
+
+        return AgentPrincipal(
+            agent_id=profile.agent_id,
+            profile=profile,
+            token=token,
+            runtime_definition=runtime_definition,
+        )
 
     def require_action(self, principal: AgentPrincipal, action: str) -> None:
         self._authorization_service.require_allowed(principal.profile, principal.token, action)

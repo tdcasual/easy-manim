@@ -229,6 +229,41 @@ def test_owner_revision_inherits_root_workflow_pinned_memory_when_memory_ids_omi
     assert "high-contrast diagrams" in (task.persistent_memory_context_summary or "")
 
 
+def test_owner_revision_inherits_structured_root_workflow_memory_when_legacy_fields_are_empty(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        session_id="session-1",
+    )
+    _seed_agent_memory(
+        app_context,
+        memory_id="mem-a",
+        agent_id="local-anonymous",
+        summary_text="Prefer high-contrast diagrams and concise labels.",
+    )
+    app_context.workflow_collaboration_service.pin_workflow_memory(
+        created.task_id,
+        memory_id="mem-a",
+    )
+    root_task = app_context.store.get_task(created.task_id)
+    assert root_task is not None
+    root_task.selected_memory_ids = []
+    root_task.persistent_memory_context_summary = None
+    root_task.persistent_memory_context_digest = None
+    app_context.store.update_task(root_task)
+
+    child = app_context.task_service.revise_video_task(
+        created.task_id,
+        feedback="add labels",
+        session_id="session-1",
+    )
+    task = app_context.store.get_task(child.task_id)
+
+    assert task is not None
+    assert task.selected_memory_ids == ["mem-a"]
+    assert "high-contrast diagrams" in (task.persistent_memory_context_summary or "")
+
+
 def test_owner_revision_can_explicitly_clear_root_workflow_pinned_memory(tmp_path: Path) -> None:
     app_context = create_app_context(_build_fake_pipeline_settings(tmp_path))
     created = app_context.task_service.create_video_task(

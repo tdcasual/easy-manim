@@ -624,9 +624,11 @@ def test_http_owner_can_manage_workflow_memory(tmp_path: Path) -> None:
     assert pinned.json()["memory_id"] == "mem-a"
     assert pinned.json()["pinned_memory_ids"] == ["mem-a"]
     assert "high-contrast diagrams" in (pinned.json()["persistent_memory_context_summary"] or "")
+    assert pinned.json()["task_memory_context"]["persistent"]["memory_ids"] == ["mem-a"]
     assert unpinned.status_code == 200
     assert unpinned.json()["memory_id"] == "mem-a"
     assert unpinned.json()["pinned_memory_ids"] == []
+    assert unpinned.json()["task_memory_context"]["persistent"]["memory_ids"] == []
 
 
 def test_http_review_bundle_exposes_owner_review_panel_contract(tmp_path: Path) -> None:

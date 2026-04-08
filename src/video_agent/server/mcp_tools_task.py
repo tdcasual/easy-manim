@@ -38,6 +38,18 @@ def create_video_task_tool(
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         return _error_payload(_permission_error_code(exc), str(exc))
+    if agent_principal is not None and payload.get("session_id"):
+        task = context.store.get_task(result.task_id)
+        context.agent_runtime_run_service.record_task_invocation(
+            session_id=str(payload["session_id"]),
+            principal=agent_principal,
+            source_kind=str(payload.get("source_kind", "task_api")),
+            trigger_kind="create_video_task",
+            task_id=result.task_id,
+            thread_id=None if task is None else task.thread_id,
+            iteration_id=None if task is None else task.iteration_id,
+            summary=f"Created video task for prompt: {payload['prompt']}",
+        )
     return result.model_dump(mode="json")
 
 
@@ -219,6 +231,18 @@ def retry_video_task_tool(
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         return _error_payload(_permission_error_code(exc), str(exc))
+    if agent_principal is not None and payload.get("session_id"):
+        task = context.store.get_task(result.task_id)
+        context.agent_runtime_run_service.record_task_invocation(
+            session_id=str(payload["session_id"]),
+            principal=agent_principal,
+            source_kind=str(payload.get("source_kind", "task_api")),
+            trigger_kind="retry_video_task",
+            task_id=result.task_id,
+            thread_id=None if task is None else task.thread_id,
+            iteration_id=None if task is None else task.iteration_id,
+            summary=f"Retried task {payload['task_id']}",
+        )
     return result.model_dump(mode="json")
 
 
@@ -243,6 +267,18 @@ def revise_video_task_tool(
         return _error_payload(exc.code, str(exc))
     except PermissionError as exc:
         return _error_payload(_permission_error_code(exc), str(exc))
+    if agent_principal is not None and payload.get("session_id"):
+        task = context.store.get_task(result.task_id)
+        context.agent_runtime_run_service.record_task_invocation(
+            session_id=str(payload["session_id"]),
+            principal=agent_principal,
+            source_kind=str(payload.get("source_kind", "task_api")),
+            trigger_kind="revise_video_task",
+            task_id=result.task_id,
+            thread_id=None if task is None else task.thread_id,
+            iteration_id=None if task is None else task.iteration_id,
+            summary=f"Created revision from {payload['base_task_id']}",
+        )
     return result.model_dump(mode="json")
 
 

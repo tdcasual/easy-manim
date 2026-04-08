@@ -10,6 +10,7 @@ from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.errors import AdmissionControlError
 from video_agent.application.recovery_policy_service import RecoveryPolicyService
 from video_agent.application.repair_prompt_builder import build_targeted_repair_feedback
+from video_agent.application.task_memory_context import session_memory_summary_from_task
 from video_agent.application.task_service import TaskService
 from video_agent.config import Settings
 from video_agent.domain.enums import TaskStatus
@@ -87,14 +88,22 @@ class AutoRepairService:
 
     def _build_feedback(self, task: VideoTask, issue_code: str) -> str:
         failure_context = self._load_failure_context(task.task_id)
-        memory_context_summary = None
+        memory_context_summary = session_memory_summary_from_task(task)
+        task_memory_context = dict(task.task_memory_context) if isinstance(task.task_memory_context, dict) else None
         if self.task_service.session_memory_service is not None and task.session_id is not None:
-            summary = self.task_service.session_memory_service.summarize_session_memory(task.session_id)
-            memory_context_summary = summary.summary_text or None
+            session_memory_service = self.task_service.session_memory_service
+            if hasattr(session_memory_service, "build_continuity_context"):
+                context = dict(task_memory_context or {})
+                context["session"] = session_memory_service.build_continuity_context(task.session_id)
+                task_memory_context = context
+            if not memory_context_summary:
+                summary = session_memory_service.summarize_session_memory(task.session_id)
+                memory_context_summary = summary.summary_text or None
 
         feedback = build_targeted_repair_feedback(
             issue_code=issue_code,
             failure_context=failure_context,
+            task_memory_context=task_memory_context,
             memory_context_summary=memory_context_summary,
         )
         feedback = self._append_preserved_constraint_feedback(task, feedback, current_issue_code=issue_code)

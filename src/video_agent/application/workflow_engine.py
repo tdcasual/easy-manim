@@ -32,6 +32,11 @@ from video_agent.application.runtime_service import RuntimeService
 from video_agent.application.scene_spec_service import SceneSpecService
 from video_agent.application.scene_plan import build_scene_plan
 from video_agent.application.session_memory_service import SessionMemoryService
+from video_agent.application.task_memory_context import (
+    persistent_memory_ids_from_task,
+    persistent_memory_summary_from_task,
+    session_memory_summary_from_task,
+)
 from video_agent.application.task_risk_service import TaskRiskService
 from video_agent.application.workflow_quality_escalation import (
     build_quality_challenger_feedback,
@@ -256,8 +261,9 @@ class WorkflowEngine:
                 output_profile=render_profile,
                 feedback=task.feedback,
                 style_hints=task.style_hints,
-                memory_context_summary=task.memory_context_summary,
-                persistent_memory_context=task.persistent_memory_context_summary,
+                task_memory_context=task.task_memory_context,
+                memory_context_summary=session_memory_summary_from_task(task),
+                persistent_memory_context=persistent_memory_summary_from_task(task),
                 scene_plan=scene_plan,
             )
 
@@ -825,7 +831,7 @@ class WorkflowEngine:
                     quality_passed=quality_passed,
                 ),
                 profile_digest=task.effective_profile_digest,
-                memory_ids=task.selected_memory_ids,
+                memory_ids=persistent_memory_ids_from_task(task),
             )
         except Exception as exc:
             try:

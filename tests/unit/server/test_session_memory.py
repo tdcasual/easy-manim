@@ -44,3 +44,13 @@ def test_store_snapshot_moves_updated_session_to_most_recent_position() -> None:
     snapshots = registry.list_snapshots("agent-a")
 
     assert [snapshot.session_id for snapshot in snapshots] == [session_b.session_id, session_a.session_id]
+
+
+def test_registry_can_bind_snapshot_to_existing_gateway_session_id() -> None:
+    registry = SessionMemoryRegistry()
+
+    snapshot = registry.ensure_session_id("gw-sess-fixed", agent_id="agent-a")
+
+    assert snapshot.session_id == "gw-sess-fixed"
+    assert snapshot.agent_id == "agent-a"
+    assert registry.get_snapshot("gw-sess-fixed").session_id == "gw-sess-fixed"

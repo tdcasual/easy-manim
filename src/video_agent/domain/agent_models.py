@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from video_agent.domain.agent_runtime_models import AgentRuntimeDefinition
+
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -50,3 +52,10 @@ class AgentToken(BaseModel):
         if not isinstance(raw, list):
             return set()
         return {str(item) for item in raw}
+
+
+class AgentRuntimePrincipal(BaseModel):
+    agent_id: str
+    profile: AgentProfile
+    token: AgentToken
+    runtime_definition: AgentRuntimeDefinition

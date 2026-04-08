@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from video_agent.application.agent_identity_service import AgentPrincipal
+from video_agent.openclaw.gateway_sessions import GatewayRoute
 from video_agent.server.app import AppContext
 
 
@@ -15,12 +16,28 @@ def authenticate_agent_tool(
     principal = context.agent_identity_service.authenticate(payload["agent_token"])
     if session_key is not None:
         context.session_auth.authenticate(session_key, principal)
-        context.session_memory_registry.ensure_session(session_key, agent_id=principal.agent_id)
+        gateway_session = context.gateway_session_service.resolve(
+            GatewayRoute(
+                source_kind="mcp_transport",
+                source_id=session_key,
+                agent_id=principal.agent_id,
+            )
+        )
+        context.session_memory_registry.ensure_session_id(
+            gateway_session.session_id,
+            agent_id=principal.agent_id,
+        )
+        context.agent_runtime_run_service.record_authentication(
+            session_id=gateway_session.session_id,
+            principal=principal,
+            source_kind="mcp_transport",
+        )
     return {
         "authenticated": True,
         "agent_id": principal.agent_id,
         "name": principal.profile.name,
         "profile": principal.profile.profile_json,
+        "runtime_definition": principal.runtime_definition.model_dump(mode="json"),
     }
 
 

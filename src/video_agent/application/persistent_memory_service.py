@@ -26,6 +26,7 @@ class PersistentMemoryContext(BaseModel):
     memory_ids: list[str] = Field(default_factory=list)
     summary_text: str | None = None
     summary_digest: str | None = None
+    items: list[dict[str, object]] = Field(default_factory=list)
 
 
 class PersistentMemoryBackendHit(BaseModel):
@@ -265,6 +266,16 @@ class PersistentMemoryService:
             memory_ids=selected_ids,
             summary_text=summary_text,
             summary_digest=None if summary_text is None else self._compute_summary_digest(summary_text),
+            items=[
+                {
+                    "memory_id": record.memory_id,
+                    "summary_text": record.summary_text,
+                    "summary_digest": record.summary_digest,
+                    "lineage_refs": list(record.lineage_refs),
+                    "enhancement": dict(record.enhancement),
+                }
+                for record in records
+            ],
         )
 
     def _build_enhancement(self, record: AgentMemoryRecord) -> dict[str, object]:

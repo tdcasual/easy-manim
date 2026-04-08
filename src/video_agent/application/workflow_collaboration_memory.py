@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, cast
 
+from video_agent.application.task_memory_context import persistent_memory_ids_from_task
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.models import VideoTask
 from video_agent.domain.review_workflow_models import (
@@ -21,8 +22,8 @@ def build_workflow_memory_context(
     root_task_id = root_task.task_id
     shared_memory_ids = list(
         dict.fromkeys(
-            list(task.selected_memory_ids)
-            + list(root_task.selected_memory_ids)
+            persistent_memory_ids_from_task(task)
+            + persistent_memory_ids_from_task(root_task)
         )
     )
     task_context_summary = resolve_task_memory_context_summary(task=task, root_task=root_task)
@@ -91,6 +92,22 @@ def build_role_memory_context(
 
 
 def resolve_task_memory_context_summary(*, task: VideoTask, root_task: VideoTask) -> str | None:
+    for candidate in (task, root_task):
+        task_memory_context = candidate.task_memory_context if isinstance(candidate.task_memory_context, dict) else {}
+        persistent = task_memory_context.get("persistent")
+        if not isinstance(persistent, dict):
+            continue
+        items = persistent.get("items")
+        if isinstance(items, list):
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                text = str(item.get("summary_text") or "").strip()
+                if text:
+                    return text
+        summary_text = str(persistent.get("summary_text") or "").strip()
+        if summary_text:
+            return summary_text
     for candidate in (
         task.persistent_memory_context_summary,
         root_task.persistent_memory_context_summary,

@@ -32,6 +32,7 @@ class VideoTask(BaseModel):
     phase: TaskPhase = TaskPhase.QUEUED
     prompt: str
     feedback: Optional[str] = None
+    task_memory_context: dict[str, Any] = Field(default_factory=dict)
     memory_context_summary: Optional[str] = None
     memory_context_digest: Optional[str] = None
     selected_memory_ids: list[str] = Field(default_factory=list)
@@ -97,6 +98,7 @@ class VideoTask(BaseModel):
             session_id=parent.session_id,
             prompt=parent.prompt,
             feedback=feedback,
+            task_memory_context={},
             memory_context_summary=None,
             memory_context_digest=None,
             selected_memory_ids=[],

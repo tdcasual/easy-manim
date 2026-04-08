@@ -10,6 +10,8 @@ from collections.abc import Callable
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.openclaw.gateway_sessions import GatewayRoute
+from video_agent.server.session_auth import session_key_for_context
 from tests.support import bootstrapped_settings
 
 
@@ -162,7 +164,7 @@ def _create_app_context(settings: Settings):
 
 
 def _session_key_for_ctx(ctx) -> str:
-    return f"session:{getattr(ctx, 'client_id', 'unknown')}"
+    return session_key_for_context(ctx)
 
 
 def _current_principal(app_context, ctx):
@@ -175,11 +177,18 @@ def _current_session_id(app_context, ctx):
     if ctx is None:
         return None
     principal = _current_principal(app_context, ctx)
-    handle = app_context.session_memory_registry.ensure_session(
-        _session_key_for_ctx(ctx),
+    gateway_session = app_context.gateway_session_service.resolve(
+        GatewayRoute(
+            source_kind="mcp_transport",
+            source_id=_session_key_for_ctx(ctx),
+            agent_id=None if principal is None else principal.agent_id,
+        )
+    )
+    app_context.session_memory_registry.ensure_session_id(
+        gateway_session.session_id,
         agent_id=None if principal is None else principal.agent_id,
     )
-    return handle.session_id
+    return gateway_session.session_id
 
 
 
@@ -476,6 +485,31 @@ def test_fastmcp_authenticate_agent_enables_followup_task_creation(tmp_path: Pat
         _, created = await mcp.call_tool("create_video_task", {"prompt": "draw a circle"})
         assert created["task_id"]
         assert created["status"] == "queued"
+
+    asyncio.run(run())
+
+
+def test_fastmcp_gateway_session_id_is_reused_for_authenticated_followup_calls(tmp_path: Path) -> None:
+    async def run() -> None:
+        settings = _build_fake_pipeline_settings(tmp_path)
+        settings.auth_mode = "required"
+        settings.run_embedded_worker = False
+        _seed_agent(settings)
+        app_context = _create_app_context(settings)
+        mcp = _create_mcp_server(settings)
+
+        _, auth_payload = await mcp.call_tool("authenticate_agent", {"agent_token": "agent-a-secret"})
+        _, created = await mcp.call_tool("create_video_task", {"prompt": "draw a circle"})
+
+        task = app_context.store.get_task(created["task_id"])
+        runs = app_context.store.list_agent_runtime_runs(agent_id="agent-a")
+
+        assert auth_payload["authenticated"] is True
+        assert task is not None
+        assert len(runs) == 2
+        assert runs[0].trigger_kind == "authenticate"
+        assert runs[1].trigger_kind == "create_video_task"
+        assert runs[0].session_id == runs[1].session_id == task.session_id
 
     asyncio.run(run())
 

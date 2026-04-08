@@ -13,6 +13,7 @@ from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.agent_learning_service import quality_score_for_task_outcome, select_quality_issue_codes
 from video_agent.application.outcome_signals import is_delivery_passed, is_quality_passed
 from video_agent.application.policy_promotion_service import PolicyPromotionService
+from video_agent.application.task_memory_context import persistent_memory_ids_from_task
 from video_agent.evaluation.corpus import load_prompt_suite
 from video_agent.evaluation.live_reporting import build_live_report
 from video_agent.evaluation.quality_reporting import build_quality_report
@@ -219,7 +220,7 @@ class EvaluationService:
             manual_review_required=case.manual_review_required,
             agent_id=agent_id,
             profile_digest=None if terminal_task is None else terminal_task.effective_profile_digest,
-            memory_ids=[] if terminal_task is None else list(terminal_task.selected_memory_ids),
+            memory_ids=[] if terminal_task is None else persistent_memory_ids_from_task(terminal_task),
             risk_signals=[str(item) for item in scene_spec_payload.get("risk_signals", []) if isinstance(item, str)],
             capability_gate_signals=[
                 str(item) for item in scene_spec_payload.get("capability_gate_signals", []) if isinstance(item, str)
@@ -381,8 +382,7 @@ class EvaluationService:
         profile = self.context.store.get_agent_profile(agent_id)
         if profile is None:
             raise ValueError(f"Unknown agent profile: {agent_id}")
-        return AgentPrincipal(
-            agent_id=profile.agent_id,
+        return self.context.agent_identity_service.resolve_principal(
             profile=profile,
             token=AgentToken(token_hash=f"eval:{profile.agent_id}", agent_id=profile.agent_id),
         )

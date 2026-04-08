@@ -114,6 +114,83 @@ def test_build_workflow_memory_context_prefers_shared_records_over_attached_task
     assert without_shared_records.planner.summary == "Attached workflow memory: Attached workflow memory from child"
 
 
+def test_build_workflow_memory_context_uses_structured_persistent_memory_ids_when_legacy_fields_are_empty() -> None:
+    module = _load_module()
+    root_task = VideoTask(
+        task_id="task-root",
+        root_task_id="task-root",
+        agent_id="agent-a",
+        prompt="draw a circle",
+        task_memory_context={
+            "persistent": {
+                "memory_ids": ["mem-style"],
+                "summary_text": "Prefer light backgrounds and visible motion.",
+                "summary_digest": "digest-style",
+                "items": [
+                    {
+                        "memory_id": "mem-style",
+                        "summary_text": "Prefer light backgrounds and visible motion.",
+                        "summary_digest": "digest-style",
+                        "lineage_refs": ["video-task://task-root/task.json"],
+                        "enhancement": {},
+                    }
+                ],
+            }
+        },
+    )
+    child_task = VideoTask(
+        task_id="task-child",
+        root_task_id="task-root",
+        agent_id="agent-a",
+        prompt="draw a circle",
+    )
+
+    context = module.build_workflow_memory_context(
+        task=child_task,
+        root_task=root_task,
+        shared_records=[_memory_record("mem-style", "Prefer light backgrounds and visible motion.")],
+        case_memory={},
+    )
+
+    assert context.shared_memory_ids == ["mem-style"]
+
+
+def test_resolve_task_memory_context_summary_prefers_structured_persistent_items() -> None:
+    module = _load_module()
+    root_task = VideoTask(
+        task_id="task-root",
+        root_task_id="task-root",
+        agent_id="agent-a",
+        prompt="draw a circle",
+    )
+    child_task = VideoTask(
+        task_id="task-child",
+        root_task_id="task-root",
+        agent_id="agent-a",
+        prompt="draw a circle",
+        task_memory_context={
+            "persistent": {
+                "memory_ids": ["mem-style"],
+                "summary_text": "Attached workflow memory from structured task context",
+                "summary_digest": "digest-style",
+                "items": [
+                    {
+                        "memory_id": "mem-style",
+                        "summary_text": "Prefer light backgrounds and visible motion.",
+                        "summary_digest": "digest-style",
+                        "lineage_refs": ["video-task://task-root/task.json"],
+                        "enhancement": {},
+                    }
+                ],
+            }
+        },
+    )
+
+    summary = module.resolve_task_memory_context_summary(task=child_task, root_task=root_task)
+
+    assert summary == "Prefer light backgrounds and visible motion."
+
+
 def test_build_workflow_memory_query_combines_prompt_review_summary_and_repair_strategy() -> None:
     module = _load_module()
     root_task = VideoTask(

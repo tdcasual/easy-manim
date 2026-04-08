@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from typing import Callable
@@ -42,6 +43,10 @@ CREATE TABLE IF NOT EXISTS video_tasks (
     feedback TEXT,
     memory_context_summary TEXT,
     memory_context_digest TEXT,
+    task_memory_context_json TEXT,
+    selected_memory_ids_json TEXT,
+    persistent_memory_context_summary TEXT,
+    persistent_memory_context_digest TEXT,
     idempotency_key TEXT UNIQUE,
     current_script_artifact_id TEXT,
     best_result_artifact_id TEXT,
@@ -59,6 +64,37 @@ CREATE TABLE IF NOT EXISTS agent_profiles (
     profile_version INTEGER NOT NULL DEFAULT 1,
     profile_json TEXT NOT NULL,
     policy_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_runtime_definitions (
+    agent_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    workspace TEXT NOT NULL,
+    agent_dir TEXT NOT NULL,
+    tools_allow_json TEXT NOT NULL,
+    channels_json TEXT NOT NULL,
+    delegate_metadata_json TEXT NOT NULL,
+    definition_source TEXT NOT NULL,
+    runtime_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_runtime_runs (
+    run_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    trigger_kind TEXT NOT NULL,
+    status TEXT NOT NULL,
+    task_id TEXT,
+    thread_id TEXT,
+    iteration_id TEXT,
+    summary TEXT,
+    run_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -321,6 +357,44 @@ def apply_legacy_shape_reconciliation(connection: sqlite3.Connection) -> None:
 def apply_task_display_title_fields(connection: sqlite3.Connection) -> None:
     ensure_column(connection, "video_tasks", "display_title", "TEXT")
     ensure_column(connection, "video_tasks", "title_source", "TEXT")
+
+
+def apply_task_memory_context_projection(connection: sqlite3.Connection) -> None:
+    if not has_table(connection, "video_tasks"):
+        return
+
+    ensure_column(connection, "video_tasks", "task_memory_context_json", "TEXT")
+    ensure_column(connection, "video_tasks", "selected_memory_ids_json", "TEXT")
+    ensure_column(connection, "video_tasks", "persistent_memory_context_summary", "TEXT")
+    ensure_column(connection, "video_tasks", "persistent_memory_context_digest", "TEXT")
+
+    rows = connection.execute(
+        """
+        SELECT task_id, task_json
+        FROM video_tasks
+        """
+    ).fetchall()
+    for row in rows:
+        payload = json.loads(row["task_json"] or "{}")
+        task_memory_context = payload.get("task_memory_context")
+        selected_memory_ids = payload.get("selected_memory_ids")
+        connection.execute(
+            """
+            UPDATE video_tasks
+            SET task_memory_context_json = ?,
+                selected_memory_ids_json = ?,
+                persistent_memory_context_summary = ?,
+                persistent_memory_context_digest = ?
+            WHERE task_id = ?
+            """,
+            (
+                json.dumps(task_memory_context or {}, sort_keys=True, separators=(",", ":")),
+                json.dumps(selected_memory_ids or [], sort_keys=True, separators=(",", ":")),
+                payload.get("persistent_memory_context_summary"),
+                payload.get("persistent_memory_context_digest"),
+                row["task_id"],
+            ),
+        )
 
 
 def apply_task_event_ordering_indexes(connection: sqlite3.Connection) -> None:

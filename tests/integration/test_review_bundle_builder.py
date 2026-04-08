@@ -598,8 +598,12 @@ def test_review_bundle_builder_exposes_owner_workflow_review_controls(tmp_path: 
 
     assert bundle.workflow_review_controls is not None
     assert bundle.workflow_review_controls.can_manage_workflow_memory is True
+    assert bundle.task_memory_context["persistent"]["memory_ids"] == ["mem-pinned"]
     assert bundle.workflow_review_controls.workflow_memory_state.pinned_memory_ids == ["mem-pinned"]
     assert bundle.workflow_review_controls.workflow_memory_state.root_task_id == created.task_id
+    assert bundle.workflow_review_controls.workflow_memory_state.task_memory_context["persistent"]["memory_ids"] == [
+        "mem-pinned"
+    ]
     assert [event.event_type for event in bundle.workflow_review_controls.recent_memory_events] == [
         "workflow_memory_pinned"
     ]

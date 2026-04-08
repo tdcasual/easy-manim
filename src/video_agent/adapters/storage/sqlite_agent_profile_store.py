@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 from video_agent.application.preference_resolver import resolve_effective_request_config
@@ -10,6 +11,7 @@ from video_agent.domain.agent_learning_models import AgentLearningEvent
 from video_agent.domain.agent_models import AgentProfile
 from video_agent.domain.agent_profile_revision_models import AgentProfileRevision
 from video_agent.domain.agent_profile_suggestion_models import AgentProfileSuggestion
+from video_agent.domain.agent_runtime_models import AgentRuntimeDefinition
 
 
 def _utcnow() -> datetime:
@@ -69,6 +71,7 @@ class SQLiteAgentProfileStoreMixin:
                     profile.updated_at.isoformat(),
                 ),
             )
+            self._ensure_runtime_definition_for_profile(connection, profile)
 
     def get_agent_profile(self, agent_id: str) -> Optional[AgentProfile]:
         with self._connect() as connection:
@@ -83,6 +86,20 @@ class SQLiteAgentProfileStoreMixin:
         if row is None:
             return None
         return self._row_to_agent_profile(row)
+
+    def list_agent_profiles(self, *, status: str | None = None) -> list[AgentProfile]:
+        query = """
+            SELECT agent_id, name, status, profile_version, profile_json, policy_json, created_at, updated_at
+            FROM agent_profiles
+        """
+        params: list[object] = []
+        if status is not None:
+            query += " WHERE status = ?"
+            params.append(status)
+        query += " ORDER BY created_at ASC, agent_id ASC"
+        with self._connect() as connection:
+            rows = connection.execute(query, tuple(params)).fetchall()
+        return [self._row_to_agent_profile(row) for row in rows]
 
     def apply_agent_profile_patch(
         self,
@@ -458,6 +475,119 @@ class SQLiteAgentProfileStoreMixin:
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
         )
+
+    def _ensure_runtime_definition_for_profile(
+        self,
+        connection: sqlite3.Connection,
+        profile: AgentProfile,
+    ) -> None:
+        if connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'agent_runtime_definitions'"
+        ).fetchone() is None:
+            return
+
+        row = connection.execute(
+            """
+            SELECT runtime_json
+            FROM agent_runtime_definitions
+            WHERE agent_id = ?
+            """,
+            (profile.agent_id,),
+        ).fetchone()
+        default_definition = self._build_default_runtime_definition(profile)
+        if row is None:
+            self._upsert_agent_runtime_definition_in_connection(connection, default_definition)
+            return
+
+        existing = AgentRuntimeDefinition.model_validate_json(row["runtime_json"])
+        if existing.definition_source != "materialized":
+            return
+
+        updated = existing.model_copy(
+            update={
+                "name": profile.name,
+                "status": profile.status,
+                "workspace": default_definition.workspace,
+                "agent_dir": default_definition.agent_dir,
+            },
+            deep=True,
+        )
+        self._upsert_agent_runtime_definition_in_connection(connection, updated)
+
+    def _build_default_runtime_definition(self, profile: AgentProfile) -> AgentRuntimeDefinition:
+        runtime_root = Path(getattr(self, "agent_runtime_root", Path("data/agents"))) / profile.agent_id
+        tools_allow = list(
+            getattr(
+                self,
+                "default_agent_runtime_tools_allow",
+                ["read", "exec", "message", "sessions_history", "sessions_list"],
+            )
+        )
+        return AgentRuntimeDefinition(
+            agent_id=profile.agent_id,
+            name=profile.name,
+            status=profile.status,
+            workspace=str(runtime_root / "workspace"),
+            agent_dir=str(runtime_root / "agent"),
+            tools_allow=tools_allow,
+            channels=[],
+            delegate_metadata={},
+            definition_source="materialized",
+            created_at=profile.created_at,
+            updated_at=profile.updated_at,
+        )
+
+    @staticmethod
+    def _upsert_agent_runtime_definition_in_connection(
+        connection: sqlite3.Connection,
+        definition: AgentRuntimeDefinition,
+    ) -> AgentRuntimeDefinition:
+        definition.updated_at = _utcnow()
+        existing = connection.execute(
+            """
+            SELECT created_at
+            FROM agent_runtime_definitions
+            WHERE agent_id = ?
+            """,
+            (definition.agent_id,),
+        ).fetchone()
+        if existing is not None:
+            definition.created_at = datetime.fromisoformat(existing["created_at"])
+        connection.execute(
+            """
+            INSERT INTO agent_runtime_definitions (
+                agent_id, name, status, workspace, agent_dir, tools_allow_json,
+                channels_json, delegate_metadata_json, definition_source, runtime_json,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(agent_id) DO UPDATE SET
+                name = excluded.name,
+                status = excluded.status,
+                workspace = excluded.workspace,
+                agent_dir = excluded.agent_dir,
+                tools_allow_json = excluded.tools_allow_json,
+                channels_json = excluded.channels_json,
+                delegate_metadata_json = excluded.delegate_metadata_json,
+                definition_source = excluded.definition_source,
+                runtime_json = excluded.runtime_json,
+                updated_at = excluded.updated_at
+            """,
+            (
+                definition.agent_id,
+                definition.name,
+                definition.status,
+                definition.workspace,
+                definition.agent_dir,
+                json.dumps(definition.tools_allow),
+                json.dumps(definition.channels),
+                json.dumps(definition.delegate_metadata),
+                definition.definition_source,
+                definition.model_dump_json(),
+                definition.created_at.isoformat(),
+                definition.updated_at.isoformat(),
+            ),
+        )
+        return definition
 
     @staticmethod
     def _row_to_agent_learning_event(row: sqlite3.Row) -> AgentLearningEvent:

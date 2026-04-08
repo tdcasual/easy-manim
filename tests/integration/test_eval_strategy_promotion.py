@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from video_agent.application.eval_service import EvaluationService
 from video_agent.config import Settings
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
+from video_agent.domain.agent_models import AgentProfile
 from video_agent.domain.strategy_models import StrategyProfile
 from video_agent.server.app import create_app_context
 from tests.support import bootstrapped_settings
@@ -126,6 +129,56 @@ def test_eval_service_records_capped_newest_first_shadow_timeline(tmp_path: Path
     assert len(timeline) == 5
     assert timeline == sorted(timeline, key=lambda item: item["recorded_at"], reverse=True)
     assert all(item["kind"] == "strategy_promotion_shadow" for item in timeline)
+
+
+def test_eval_service_prefers_structured_memory_ids_when_legacy_fields_are_empty(tmp_path: Path) -> None:
+    app_context = create_app_context(_build_fake_eval_settings(tmp_path))
+    app_context.store.upsert_agent_profile(AgentProfile(agent_id="agent-a", name="agent-a"))
+    app_context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-a",
+            summary_text="Prefer high-contrast diagrams and concise labels.",
+            summary_digest="digest-mem-a",
+        )
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        memory_ids=["mem-a"],
+        agent_principal=EvaluationService(app_context)._resolve_agent_principal("agent-a"),
+    )
+    task = app_context.store.get_task(created.task_id)
+    assert task is not None
+    task.selected_memory_ids = []
+    task.persistent_memory_context_summary = None
+    task.persistent_memory_context_digest = None
+    app_context.store.update_task(task)
+
+    result = EvaluationService(app_context)._build_case_result(
+        case=SimpleNamespace(
+            case_id="case-1",
+            tags=[],
+            risk_domains=[],
+            review_focus=[],
+            baseline_group=None,
+            manual_review_required=False,
+        ),
+        root_task_id=created.task_id,
+        root_snapshot=SimpleNamespace(repair_state={}),
+        terminal_snapshot=SimpleNamespace(
+            task_id=created.task_id,
+            latest_validation_summary={"issues": []},
+            status="completed",
+            delivery_status="delivered",
+            quality_gate_status="accepted",
+            completion_mode="initial",
+        ),
+        started=0.0,
+        agent_id="agent-a",
+    )
+
+    assert result.memory_ids == ["mem-a"]
 
 
 def test_eval_service_guarded_auto_applies_after_consecutive_shadow_passes(tmp_path: Path) -> None:

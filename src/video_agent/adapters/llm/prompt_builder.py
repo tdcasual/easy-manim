@@ -11,6 +11,7 @@ def build_generation_prompt(
     output_profile: dict[str, Any] | None = None,
     feedback: Optional[str] = None,
     style_hints: dict[str, Any] | None = None,
+    task_memory_context: dict[str, Any] | None = None,
     memory_context_summary: str | None = None,
     persistent_memory_context: str | None = None,
     scene_plan: ScenePlan | None = None,
@@ -20,9 +21,15 @@ def build_generation_prompt(
         lines.append(f"Output profile: {output_profile}")
     if style_hints:
         lines.append(f"Style hints: {style_hints}")
-    if memory_context_summary:
+    session_memory_lines = _render_session_memory_context(task_memory_context)
+    persistent_memory_lines = _render_persistent_memory_context(task_memory_context)
+    if session_memory_lines:
+        lines.extend(session_memory_lines)
+    elif memory_context_summary:
         lines.append(f"Session memory context: {memory_context_summary}")
-    if persistent_memory_context:
+    if persistent_memory_lines:
+        lines.extend(persistent_memory_lines)
+    elif persistent_memory_context:
         lines.append(f"Persistent memory context: {persistent_memory_context}")
     if scene_plan:
         lines.append(f"Scene class: {scene_plan.scene_class}")
@@ -41,6 +48,67 @@ def build_generation_prompt(
         lines.append(f"Revision feedback: {feedback}")
     lines.append("Return only Python code.")
     return "\n".join(lines)
+
+
+def _render_session_memory_context(task_memory_context: dict[str, Any] | None) -> list[str]:
+    if not isinstance(task_memory_context, dict):
+        return []
+    session = task_memory_context.get("session")
+    if not isinstance(session, dict):
+        return []
+
+    summary_text = str(session.get("summary_text") or "").strip()
+    entries = session.get("entries")
+    entry_list = entries if isinstance(entries, list) else []
+    if not summary_text and not entry_list:
+        return []
+
+    lines: list[str] = []
+    if summary_text:
+        lines.append(f"Session memory context: {summary_text}")
+        lines.append(f"Session continuity: {summary_text}")
+    rendered_entries: list[str] = []
+    for entry in entry_list[:3]:
+        if not isinstance(entry, dict):
+            continue
+        goal = str(entry.get("task_goal_summary") or "").strip()
+        latest = str(entry.get("latest_result_summary") or entry.get("latest_status") or "").strip()
+        if goal and latest:
+            rendered_entries.append(f"{goal} -> {latest}")
+        elif goal:
+            rendered_entries.append(goal)
+    if rendered_entries:
+        lines.append(f"Recent session entries: {' | '.join(rendered_entries)}")
+    return lines
+
+
+def _render_persistent_memory_context(task_memory_context: dict[str, Any] | None) -> list[str]:
+    if not isinstance(task_memory_context, dict):
+        return []
+    persistent = task_memory_context.get("persistent")
+    if not isinstance(persistent, dict):
+        return []
+
+    items = persistent.get("items")
+    item_list = items if isinstance(items, list) else []
+    summary_text = str(persistent.get("summary_text") or "").strip()
+    if not item_list and not summary_text:
+        return []
+
+    lines: list[str] = []
+    if summary_text:
+        lines.append(f"Persistent memory context: {summary_text}")
+    if item_list:
+        lines.append("Persistent memory items:")
+        for item in item_list[:5]:
+            if not isinstance(item, dict):
+                continue
+            memory_id = str(item.get("memory_id") or "").strip()
+            item_summary = str(item.get("summary_text") or "").strip()
+            label = memory_id or "memory"
+            if item_summary:
+                lines.append(f"- {label}: {item_summary}")
+    return lines
 
 
 def _expand_quality_directives(quality_directives: list[str]) -> list[str]:

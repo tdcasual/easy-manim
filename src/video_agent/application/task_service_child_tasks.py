@@ -4,21 +4,29 @@ from types import SimpleNamespace
 from typing import Any, Callable
 
 from video_agent.application.persistent_memory_service import PersistentMemoryContext
+from video_agent.application.task_memory_context import (
+    apply_persistent_memory_context_to_task,
+    persistent_memory_digest_from_task,
+    persistent_memory_ids_from_task,
+    persistent_memory_items_from_task,
+    persistent_memory_summary_from_task,
+)
 from video_agent.domain.enums import TaskStatus
 from video_agent.domain.models import VideoTask
 
 
 def inherit_persistent_memory_context(base_task: VideoTask) -> PersistentMemoryContext | None:
-    if not (
-        base_task.selected_memory_ids
-        or base_task.persistent_memory_context_summary
-        or base_task.persistent_memory_context_digest
-    ):
+    memory_ids = persistent_memory_ids_from_task(base_task)
+    summary_text = persistent_memory_summary_from_task(base_task)
+    summary_digest = persistent_memory_digest_from_task(base_task)
+    items = persistent_memory_items_from_task(base_task)
+    if not (memory_ids or summary_text or summary_digest or items):
         return None
     return PersistentMemoryContext(
-        memory_ids=list(base_task.selected_memory_ids),
-        summary_text=base_task.persistent_memory_context_summary,
-        summary_digest=base_task.persistent_memory_context_digest,
+        memory_ids=memory_ids,
+        summary_text=summary_text,
+        summary_digest=summary_digest,
+        items=items,
     )
 
 
@@ -152,6 +160,8 @@ def apply_memory_context(*, session_id: str | None, child_task: VideoTask, sessi
     if not summary.summary_text:
         return
 
+    session_payload = _build_session_memory_payload(session_id=session_id, session_memory_service=session_memory_service, summary=summary)
+    _apply_task_memory_section(child_task, "session", session_payload)
     child_task.memory_context_summary = summary.summary_text
     child_task.memory_context_digest = summary.summary_digest
 
@@ -161,9 +171,30 @@ def apply_persistent_memory_context(
     child_task: VideoTask,
     persistent_memory: PersistentMemoryContext | None,
 ) -> None:
-    if persistent_memory is None:
-        return
+    apply_persistent_memory_context_to_task(child_task, persistent_memory)
 
-    child_task.selected_memory_ids = list(persistent_memory.memory_ids)
-    child_task.persistent_memory_context_summary = persistent_memory.summary_text
-    child_task.persistent_memory_context_digest = persistent_memory.summary_digest
+
+def _apply_task_memory_section(child_task: VideoTask, section: str, payload: dict[str, Any]) -> None:
+    context = dict(child_task.task_memory_context or {})
+    context[section] = payload
+    child_task.task_memory_context = context
+
+
+def _build_session_memory_payload(
+    *,
+    session_id: str,
+    session_memory_service,
+    summary,
+) -> dict[str, Any]:
+    if hasattr(session_memory_service, "build_continuity_context"):
+        payload = session_memory_service.build_continuity_context(session_id)
+        if isinstance(payload, dict):
+            return dict(payload)
+    return {
+        "session_id": session_id,
+        "summary_text": summary.summary_text,
+        "summary_digest": summary.summary_digest,
+        "entry_count": len(getattr(summary, "entries", []) or []),
+        "lineage_refs": list(getattr(summary, "lineage_refs", []) or []),
+        "entries": [entry.model_dump(mode="json") for entry in getattr(summary, "entries", []) or []],
+    }

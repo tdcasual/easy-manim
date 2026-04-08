@@ -33,6 +33,7 @@ def build_video_task_snapshot(
     repair_state = build_repair_state_snapshot(root_task, repair_children)
     return result_factory(
         task_id=task.task_id,
+        task_memory_context=dict(task.task_memory_context),
         thread_id=task.thread_id,
         iteration_id=task.iteration_id,
         agent_id=task.agent_id,

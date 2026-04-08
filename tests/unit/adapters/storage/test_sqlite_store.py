@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
@@ -80,6 +81,22 @@ def test_sqlite_bootstrapper_adds_task_title_columns(tmp_path) -> None:
 
     assert "display_title" in columns
     assert "title_source" in columns
+
+
+def test_sqlite_bootstrapper_adds_task_memory_projection_columns(tmp_path) -> None:
+    database_path = tmp_path / "agent.db"
+    SQLiteBootstrapper(database_path).bootstrap()
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(video_tasks)").fetchall()
+        }
+
+    assert "task_memory_context_json" in columns
+    assert "selected_memory_ids_json" in columns
+    assert "persistent_memory_context_summary" in columns
+    assert "persistent_memory_context_digest" in columns
 
 
 def test_sqlite_bootstrapper_adds_reliability_columns_and_tables(tmp_path) -> None:
@@ -203,10 +220,14 @@ def test_store_round_trips_agent_profile(tmp_path) -> None:
     store.upsert_agent_profile(profile)
 
     loaded = store.get_agent_profile("agent-a")
+    runtime_definition = store.get_agent_runtime_definition("agent-a")
 
     assert loaded is not None
     assert loaded.profile_json["style_hints"]["tone"] == "teaching"
     assert loaded.profile_version == 1
+    assert runtime_definition is not None
+    assert runtime_definition.definition_source == "materialized"
+    assert runtime_definition.workspace.endswith("/agent-a/workspace")
 
 
 def test_store_increments_profile_version_on_profile_update(tmp_path) -> None:
@@ -279,6 +300,73 @@ def test_store_persists_task_session_id_and_memory_context(tmp_path) -> None:
     assert loaded.session_id == "session-1"
     assert loaded.memory_context_summary == "Recent attempts already established a light background."
     assert loaded.memory_context_digest == "digest-1"
+
+
+def test_store_projects_structured_task_memory_context_into_dedicated_columns(tmp_path) -> None:
+    store = _build_store(tmp_path)
+    task = VideoTask(
+        prompt="draw a circle",
+        task_memory_context={
+            "session": {
+                "session_id": "session-1",
+                "summary_text": "Recent attempts already established a light background.",
+            },
+            "persistent": {
+                "memory_ids": ["mem-a"],
+                "summary_text": "Prefer high-contrast diagrams and concise labels.",
+                "summary_digest": "digest-mem-a",
+                "items": [
+                    {
+                        "memory_id": "mem-a",
+                        "summary_text": "Prefer high-contrast diagrams and concise labels.",
+                        "summary_digest": "digest-mem-a",
+                        "lineage_refs": ["video-task://task-1/task.json"],
+                        "enhancement": {},
+                    }
+                ],
+            },
+        },
+        selected_memory_ids=["mem-a"],
+        persistent_memory_context_summary="Prefer high-contrast diagrams and concise labels.",
+        persistent_memory_context_digest="digest-mem-a",
+    )
+
+    store.create_task(task, idempotency_key="task-memory-projection")
+    task.feedback = "add labels"
+    task.selected_memory_ids = ["mem-a", "mem-b"]
+    task.task_memory_context["persistent"]["memory_ids"] = ["mem-a", "mem-b"]
+    task.task_memory_context["persistent"]["items"].append(
+        {
+            "memory_id": "mem-b",
+            "summary_text": "Add concise labels to every key step.",
+            "summary_digest": "digest-mem-b",
+            "lineage_refs": ["video-task://task-1/task.json"],
+            "enhancement": {},
+        }
+    )
+    task.persistent_memory_context_summary = "Prefer high-contrast diagrams and concise labels.\nAdd concise labels."
+    task.persistent_memory_context_digest = "digest-mem-ab"
+    store.update_task(task)
+
+    with sqlite3.connect(store.database_path) as connection:
+        row = connection.execute(
+            """
+            SELECT
+                task_memory_context_json,
+                selected_memory_ids_json,
+                persistent_memory_context_summary,
+                persistent_memory_context_digest
+            FROM video_tasks
+            WHERE task_id = ?
+            """,
+            (task.task_id,),
+        ).fetchone()
+
+    assert row is not None
+    assert json.loads(row[0])["persistent"]["memory_ids"] == ["mem-a", "mem-b"]
+    assert json.loads(row[1]) == ["mem-a", "mem-b"]
+    assert row[2] == "Prefer high-contrast diagrams and concise labels.\nAdd concise labels."
+    assert row[3] == "digest-mem-ab"
 
 
 def test_sqlite_store_persists_reliability_task_fields(tmp_path) -> None:

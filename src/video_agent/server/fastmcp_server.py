@@ -8,6 +8,7 @@ from mcp.server.fastmcp import Context, FastMCP
 
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.config import Settings
+from video_agent.openclaw.gateway_sessions import GatewayRoute
 from video_agent.server.app import AppContext, create_app_context
 from video_agent.server.fastmcp_server_memory_registration import register_memory_tools
 from video_agent.server.fastmcp_server_resource_registration import register_resources
@@ -34,11 +35,18 @@ def create_mcp_server(
         if ctx is None:
             return None
         principal = current_principal(ctx)
-        handle = context.session_memory_registry.ensure_session(
-            session_key_for_context(ctx),
+        session = context.gateway_session_service.resolve(
+            GatewayRoute(
+                source_kind="mcp_transport",
+                source_id=session_key_for_context(ctx),
+                agent_id=None if principal is None else principal.agent_id,
+            )
+        )
+        context.session_memory_registry.ensure_session_id(
+            session.session_id,
             agent_id=None if principal is None else principal.agent_id,
         )
-        return handle.session_id
+        return session.session_id
 
     mcp = FastMCP(
         name="easy-manim",

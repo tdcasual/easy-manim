@@ -7,6 +7,7 @@ from video_agent.adapters.storage.sqlite_schema_core import (
     SQLiteMigration,
     apply_initial_schema,
     apply_legacy_shape_reconciliation,
+    apply_task_memory_context_projection,
     apply_task_display_title_fields,
     apply_task_event_ordering_indexes,
     ensure_column,
@@ -26,6 +27,7 @@ from video_agent.adapters.storage.sqlite_schema_learning import (
     apply_strategy_profiles,
 )
 from video_agent.adapters.storage.sqlite_schema_threads import apply_video_thread_runtime_scaffold
+from video_agent.adapters.storage.sqlite_schema_runtime import apply_agent_runtime_definition_scaffold
 
 
 SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
@@ -98,6 +100,16 @@ SQLITE_MIGRATIONS: tuple[SQLiteMigration, ...] = (
         migration_id="014_video_thread_runtime_scaffold",
         description="persist video thread runtime entities and task bindings",
         apply=apply_video_thread_runtime_scaffold,
+    ),
+    SQLiteMigration(
+        migration_id="015_agent_runtime_definition_scaffold",
+        description="persist openclaw-style agent runtime definitions",
+        apply=apply_agent_runtime_definition_scaffold,
+    ),
+    SQLiteMigration(
+        migration_id="016_task_memory_context_projection",
+        description="project structured task memory context into dedicated sqlite columns",
+        apply=apply_task_memory_context_projection,
     ),
 )
 

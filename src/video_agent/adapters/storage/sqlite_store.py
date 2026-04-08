@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
+from video_agent.adapters.storage.sqlite_agent_runtime_definition_store import SQLiteAgentRuntimeDefinitionStoreMixin
 from video_agent.adapters.storage.sqlite_agent_profile_store import SQLiteAgentProfileStoreMixin
 from video_agent.adapters.storage.sqlite_agent_runtime_store import SQLiteAgentRuntimeStoreMixin
 from video_agent.adapters.storage.sqlite_strategy_store import SQLiteStrategyStoreMixin
@@ -35,14 +36,26 @@ def _canonical_json(data: Any) -> str:
 
 class SQLiteTaskStore(
     SQLiteVideoThreadStoreMixin,
+    SQLiteAgentRuntimeDefinitionStoreMixin,
     SQLiteAgentProfileStoreMixin,
     SQLiteAgentRuntimeStoreMixin,
     SQLiteStrategyStoreMixin,
 ):
     STRATEGY_DECISION_TIMELINE_LIMIT = 5
 
-    def __init__(self, database_path: Path) -> None:
+    def __init__(
+        self,
+        database_path: Path,
+        *,
+        agent_runtime_root: Path | None = None,
+        default_agent_runtime_tools_allow: list[str] | None = None,
+    ) -> None:
         self.database_path = Path(database_path)
+        self.agent_runtime_root = Path("data/agents") if agent_runtime_root is None else Path(agent_runtime_root)
+        self.default_agent_runtime_tools_allow = list(
+            default_agent_runtime_tools_allow
+            or ["read", "exec", "message", "sessions_history", "sessions_list"]
+        )
 
     def create_task(self, task: VideoTask, idempotency_key: Optional[str] = None) -> VideoTask:
         with self._connect() as connection:
@@ -59,11 +72,14 @@ class SQLiteTaskStore(
                 INSERT INTO video_tasks (
                     task_id, root_task_id, parent_task_id, thread_id, iteration_id, result_id, execution_kind,
                     agent_id, session_id, status, phase, prompt, feedback,
-                    memory_context_summary, memory_context_digest, idempotency_key,
+                    memory_context_summary, memory_context_digest,
+                    task_memory_context_json, selected_memory_ids_json,
+                    persistent_memory_context_summary, persistent_memory_context_digest,
+                    idempotency_key,
                     current_script_artifact_id, best_result_artifact_id, display_title, title_source,
                     risk_level, generation_mode, strategy_profile_id, scene_spec_id, quality_gate_status,
                     accepted_as_best, accepted_version_rank, task_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task.task_id,
@@ -81,6 +97,10 @@ class SQLiteTaskStore(
                     task.feedback,
                     task.memory_context_summary,
                     task.memory_context_digest,
+                    _canonical_json(task.task_memory_context),
+                    _canonical_json(task.selected_memory_ids),
+                    task.persistent_memory_context_summary,
+                    task.persistent_memory_context_digest,
                     idempotency_key,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
@@ -118,10 +138,13 @@ class SQLiteTaskStore(
                 UPDATE video_tasks
                 SET root_task_id = ?, parent_task_id = ?, thread_id = ?, iteration_id = ?, result_id = ?,
                     execution_kind = ?, agent_id = ?, session_id = ?, status = ?, phase = ?, prompt = ?,
-                    feedback = ?, memory_context_summary = ?, memory_context_digest = ?, current_script_artifact_id = ?,
-                    best_result_artifact_id = ?, display_title = ?, title_source = ?, risk_level = ?,
-                    generation_mode = ?, strategy_profile_id = ?, scene_spec_id = ?, quality_gate_status = ?,
-                    accepted_as_best = ?, accepted_version_rank = ?, task_json = ?, updated_at = ?
+                    feedback = ?, memory_context_summary = ?, memory_context_digest = ?,
+                    task_memory_context_json = ?, selected_memory_ids_json = ?,
+                    persistent_memory_context_summary = ?, persistent_memory_context_digest = ?,
+                    current_script_artifact_id = ?, best_result_artifact_id = ?, display_title = ?,
+                    title_source = ?, risk_level = ?, generation_mode = ?, strategy_profile_id = ?,
+                    scene_spec_id = ?, quality_gate_status = ?, accepted_as_best = ?,
+                    accepted_version_rank = ?, task_json = ?, updated_at = ?
                 WHERE task_id = ?
                 """,
                 (
@@ -139,6 +162,10 @@ class SQLiteTaskStore(
                     task.feedback,
                     task.memory_context_summary,
                     task.memory_context_digest,
+                    _canonical_json(task.task_memory_context),
+                    _canonical_json(task.selected_memory_ids),
+                    task.persistent_memory_context_summary,
+                    task.persistent_memory_context_digest,
                     task.current_script_artifact_id,
                     task.best_result_artifact_id,
                     task.display_title,

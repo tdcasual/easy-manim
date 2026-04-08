@@ -3,6 +3,7 @@ import pytest
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.agent_session_service import AgentSessionService
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_runtime_models import AgentRuntimeDefinition
 from video_agent.domain.agent_session_models import AgentSession
 
 
@@ -14,6 +15,14 @@ def test_create_session_returns_plaintext_secret_and_persisted_record() -> None:
             agent_id="agent-a",
             profile=AgentProfile(agent_id="agent-a", name="Agent A"),
             token=AgentToken(token_hash="token-hash", agent_id="agent-a"),
+            runtime_definition=AgentRuntimeDefinition(
+                agent_id="agent-a",
+                name="Agent A",
+                workspace="/tmp/agent-a/workspace",
+                agent_dir="/tmp/agent-a/agent",
+                tools_allow=["read", "exec"],
+                definition_source="test",
+            ),
         ),
         create_session_record=lambda record: created_records.append(record) or record,
     )
@@ -23,6 +32,8 @@ def test_create_session_returns_plaintext_secret_and_persisted_record() -> None:
     assert payload.session_token.startswith("esm_sess.")
     assert created_records[0].agent_id == "agent-a"
     assert created_records[0].session_hash != payload.session_token
+    assert payload.principal.agent_id == "agent-a"
+    assert payload.principal.runtime_definition.agent_dir == "/tmp/agent-a/agent"
 
 
 def test_resolve_session_returns_persisted_record_and_touches_last_seen() -> None:

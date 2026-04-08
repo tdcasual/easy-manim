@@ -6,6 +6,7 @@ from typing import Any
 def build_targeted_repair_feedback(
     issue_code: str,
     failure_context: dict[str, Any],
+    task_memory_context: dict[str, Any] | None = None,
     memory_context_summary: str | None = None,
 ) -> str:
     lines = [
@@ -16,8 +17,14 @@ def build_targeted_repair_feedback(
         "Return a full updated Python script.",
         f"Failure code: {issue_code}.",
     ]
-    if memory_context_summary:
-        lines.append(f"Session memory context: {_condense(memory_context_summary)}.")
+    session_memory_summary = _resolve_session_memory_summary(
+        task_memory_context=task_memory_context,
+        memory_context_summary=memory_context_summary,
+    )
+    if session_memory_summary:
+        lines.append(f"Session memory context: {_condense(session_memory_summary)}.")
+        if task_memory_context:
+            lines.append(f"Session continuity: {_condense(session_memory_summary)}.")
 
     if focus_summary := _focus_summary(failure_context):
         lines.append(f"Primary repair target: {focus_summary}.")
@@ -43,6 +50,21 @@ def build_targeted_repair_feedback(
         lines.append(f"Use {script_resource} as the starting point for the revision.")
 
     return " ".join(lines)
+
+
+def _resolve_session_memory_summary(
+    *,
+    task_memory_context: dict[str, Any] | None,
+    memory_context_summary: str | None,
+) -> str | None:
+    if isinstance(task_memory_context, dict):
+        session = task_memory_context.get("session")
+        if isinstance(session, dict):
+            summary = str(session.get("summary_text") or "").strip()
+            if summary:
+                return summary
+    summary = str(memory_context_summary or "").strip()
+    return summary or None
 
 
 def _focus_summary(failure_context: dict[str, Any]) -> str | None:

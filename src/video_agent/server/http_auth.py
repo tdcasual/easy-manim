@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from fastapi import Header, HTTPException, Request, status
 
 from video_agent.application.agent_identity_service import AgentPrincipal
+from video_agent.openclaw.gateway_sessions import GatewayRoute
 
 
 @dataclass
@@ -45,17 +46,29 @@ def resolve_agent_session(
     ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token")
 
-    principal = AgentPrincipal(
-        agent_id=session.agent_id,
-        profile=profile,
-        token=bound_token,
+    try:
+        principal = context.agent_identity_service.resolve_principal(
+            profile=profile,
+            token=bound_token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_session_token") from exc
+    gateway_session = context.gateway_session_service.resolve(
+        GatewayRoute(
+            source_kind="http_control",
+            source_id=session.session_id,
+            agent_id=session.agent_id,
+        )
     )
-    context.session_auth.authenticate(session.session_id, principal)
+    context.session_auth.authenticate(gateway_session.session_id, principal)
 
-    context.session_memory_registry.ensure_session(session.session_id, agent_id=session.agent_id)
+    context.session_memory_registry.ensure_session_id(
+        gateway_session.session_id,
+        agent_id=session.agent_id,
+    )
     return ResolvedAgentSession(
         session_token=plain_session_token,
-        session_id=session.session_id,
+        session_id=gateway_session.session_id,
         agent_principal=principal,
     )
 

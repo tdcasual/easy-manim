@@ -753,8 +753,10 @@ def test_owner_can_manage_workflow_memory_via_mcp_tools(tmp_path: Path) -> None:
     assert pinned["memory_id"] == "mem-a"
     assert pinned["pinned_memory_ids"] == ["mem-a"]
     assert "high-contrast diagrams" in (pinned["persistent_memory_context_summary"] or "")
+    assert pinned["task_memory_context"]["persistent"]["memory_ids"] == ["mem-a"]
     assert unpinned["memory_id"] == "mem-a"
     assert unpinned["pinned_memory_ids"] == []
+    assert unpinned["task_memory_context"]["persistent"]["memory_ids"] == []
 
 
 def test_non_owner_cannot_manage_workflow_memory_via_mcp_tools(tmp_path: Path) -> None:

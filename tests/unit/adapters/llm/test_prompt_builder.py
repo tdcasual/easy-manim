@@ -182,3 +182,48 @@ def test_prompt_builder_includes_persistent_memory_context_when_present() -> Non
 
     assert "Persistent memory context:" in prompt
     assert "warm light background" in prompt
+
+
+def test_prompt_builder_prefers_structured_task_memory_context_when_present() -> None:
+    prompt = build_generation_prompt(
+        prompt="draw a circle",
+        output_profile={"quality_preset": "production"},
+        feedback="add labels",
+        task_memory_context={
+            "session": {
+                "session_id": "session-a",
+                "summary_text": "Recent attempts succeeded with a light background.",
+                "summary_digest": "session-digest",
+                "entry_count": 1,
+                "entries": [
+                    {
+                        "root_task_id": "task-1",
+                        "latest_task_id": "task-1",
+                        "task_goal_summary": "draw a circle",
+                        "latest_status": "completed",
+                        "latest_result_summary": "Readable layout",
+                        "artifact_refs": ["video-task://task-1/task.json"],
+                        "attempts": [],
+                    }
+                ],
+            },
+            "persistent": {
+                "memory_ids": ["mem-a"],
+                "summary_text": "Always prefer a warm light background and explicit labels.",
+                "summary_digest": "persistent-digest",
+                "items": [
+                    {
+                        "memory_id": "mem-a",
+                        "summary_text": "Always prefer a warm light background and explicit labels.",
+                        "summary_digest": "digest-a",
+                        "lineage_refs": ["video-task://task-2/task.json"],
+                        "enhancement": {"keywords": ["warm", "labels"]},
+                    }
+                ],
+            },
+        },
+    )
+
+    assert "Session continuity:" in prompt
+    assert "Persistent memory items:" in prompt
+    assert "mem-a" in prompt

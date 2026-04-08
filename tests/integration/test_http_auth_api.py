@@ -40,6 +40,15 @@ def _seed_agent_profile_and_token(client: TestClient) -> None:
     )
 
 
+def _delete_runtime_definition(client: TestClient, agent_id: str) -> None:
+    context = client.app.state.app_context
+    with context.store._connect() as connection:
+        connection.execute(
+            "DELETE FROM agent_runtime_definitions WHERE agent_id = ?",
+            (agent_id,),
+        )
+
+
 def test_http_auth_login_whoami_logout_flow(tmp_path: Path) -> None:
     client = TestClient(create_http_api(_build_http_auth_settings(tmp_path)))
     _seed_agent_profile_and_token(client)
@@ -83,6 +92,20 @@ def test_login_rejects_invalid_agent_token(tmp_path: Path) -> None:
     client = TestClient(create_http_api(_build_http_auth_settings(tmp_path)))
 
     response = client.post("/api/sessions", json={"agent_token": "wrong-token"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "invalid_agent_token"
+
+
+def test_login_rejects_agent_missing_persisted_runtime_definition_after_restart(tmp_path: Path) -> None:
+    settings = _build_http_auth_settings(tmp_path)
+    initial = TestClient(create_http_api(settings))
+    _seed_agent_profile_and_token(initial)
+    _delete_runtime_definition(initial, "agent-a")
+
+    restarted = TestClient(create_http_api(settings))
+
+    response = restarted.post("/api/sessions", json={"agent_token": "agent-a-secret"})
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_agent_token"
@@ -166,3 +189,29 @@ def test_session_becomes_invalid_when_issuing_token_is_disabled(tmp_path: Path) 
     whoami = client.get("/api/whoami", headers={"Authorization": f"Bearer {session_token}"})
     assert whoami.status_code == 401
     assert whoami.json()["detail"] == "invalid_session_token"
+
+
+def test_http_task_and_runtime_runs_share_gateway_session_id(tmp_path: Path) -> None:
+    client = TestClient(create_http_api(_build_http_auth_settings(tmp_path)))
+    _seed_agent_profile_and_token(client)
+    context = client.app.state.app_context
+
+    login = client.post("/api/sessions", json={"agent_token": "agent-a-secret"})
+    assert login.status_code == 200
+    session_token = login.json()["session_token"]
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "draw a blue circle"},
+        headers={"Authorization": f"Bearer {session_token}"},
+    )
+    assert created.status_code == 200
+
+    task = context.store.get_task(created.json()["task_id"])
+    runs = context.store.list_agent_runtime_runs(agent_id="agent-a")
+
+    assert task is not None
+    assert len(runs) == 2
+    assert runs[0].trigger_kind == "authenticate"
+    assert runs[1].trigger_kind == "create_video_task"
+    assert runs[0].session_id == runs[1].session_id == task.session_id

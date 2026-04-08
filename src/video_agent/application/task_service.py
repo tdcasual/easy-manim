@@ -22,6 +22,7 @@ from video_agent.application.preference_resolver import (
 )
 from video_agent.application.revision_service import RevisionService
 from video_agent.application.session_memory_service import SessionMemoryService
+from video_agent.application.task_memory_context import persistent_memory_ids_from_task
 from video_agent.application.task_service_acceptance import accept_task_as_best
 from video_agent.application.task_service_child_tasks import (
     apply_memory_context,
@@ -40,6 +41,7 @@ from video_agent.application.task_service_projection import (
 )
 from video_agent.config import Settings
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_runtime_models import AgentRuntimeDefinition
 from video_agent.domain.enums import TaskPhase, TaskStatus
 from video_agent.domain.models import VideoTask
 from video_agent.domain.strategy_models import StrategyProfile
@@ -77,6 +79,7 @@ class CreateVideoTaskResult(BaseModel):
 
 class VideoTaskSnapshot(BaseModel):
     task_id: str
+    task_memory_context: dict[str, Any] = Field(default_factory=dict)
     thread_id: str | None = None
     iteration_id: str | None = None
     agent_id: Optional[str] = None
@@ -208,9 +211,6 @@ class TaskService:
             session_id=session_id,
             prompt=prompt,
             feedback=feedback,
-            selected_memory_ids=persistent_memory.memory_ids,
-            persistent_memory_context_summary=persistent_memory.summary_text,
-            persistent_memory_context_digest=persistent_memory.summary_digest,
             profile_version=principal.profile.profile_version,
             output_profile=effective_request_profile.get("output_profile", output_profile or {}),
             style_hints=effective_request_profile.get("style_hints", style_hints or {}),
@@ -222,6 +222,10 @@ class TaskService:
             title_source=title_source,
             strategy_profile_id=None if active_strategy is None else active_strategy.strategy_id,
             delivery_status="pending",
+        )
+        apply_persistent_memory_context(
+            child_task=task,
+            persistent_memory=persistent_memory,
         )
         persisted = self.store.create_task(task, idempotency_key=idempotency_key)
         self.artifact_store.ensure_task_dirs(persisted.task_id)
@@ -673,10 +677,21 @@ class TaskService:
             )
 
         anonymous_agent_id = self.settings.anonymous_agent_id
+        runtime_root = Path(self.settings.agent_runtime_root) / anonymous_agent_id
         return AgentPrincipal(
             agent_id=anonymous_agent_id,
             profile=AgentProfile(agent_id=anonymous_agent_id, name="Local Anonymous"),
             token=AgentToken(token_hash="anonymous", agent_id=anonymous_agent_id),
+            runtime_definition=AgentRuntimeDefinition(
+                agent_id=anonymous_agent_id,
+                name="Local Anonymous",
+                workspace=str(runtime_root / "workspace"),
+                agent_dir=str(runtime_root / "agent"),
+                tools_allow=["read", "exec", "message", "sessions_history", "sessions_list"],
+                channels=[],
+                delegate_metadata={},
+                definition_source="anonymous",
+            ),
         )
 
     def _require_authorized_task(self, task_id: str, principal: AgentPrincipal) -> VideoTask:
@@ -892,7 +907,7 @@ class TaskService:
         agent_id: str,
     ) -> PersistentMemoryContext | None:
         root_task = self._require_task(base_task.root_task_id or base_task.task_id)
-        workflow_memory_ids = list(root_task.selected_memory_ids)
+        workflow_memory_ids = persistent_memory_ids_from_task(root_task)
         if workflow_memory_ids:
             return self.resolve_persistent_memory_context_for_agent(agent_id, workflow_memory_ids)
         return None

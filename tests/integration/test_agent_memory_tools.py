@@ -7,6 +7,7 @@ from video_agent.application.persistent_memory_service import PersistentMemoryBa
 from video_agent.config import Settings
 from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_runtime_models import AgentRuntimeDefinition
 import video_agent.server.app as app_module
 from video_agent.server.app import create_app_context
 from video_agent.server.mcp_tools import (
@@ -74,6 +75,14 @@ def agent_principal(
         agent_id=agent_id,
         profile=AgentProfile(agent_id=agent_id, name=agent_id, policy_json=policy_json or {}),
         token=AgentToken(token_hash=f"token-{agent_id}", agent_id=agent_id, scopes_json=scopes_json or {}),
+        runtime_definition=AgentRuntimeDefinition(
+            agent_id=agent_id,
+            name=agent_id,
+            workspace=f"/tmp/{agent_id}/workspace",
+            agent_dir=f"/tmp/{agent_id}/agent",
+            tools_allow=["read", "exec", "message", "sessions_history", "sessions_list"],
+            definition_source="test",
+        ),
     )
 
 

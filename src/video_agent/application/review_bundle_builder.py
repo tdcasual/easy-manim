@@ -32,6 +32,7 @@ from video_agent.application.review_bundle_render_contract import (
     sticky_primary_action_emphasis,
 )
 from video_agent.application.session_memory_service import SessionMemoryService
+from video_agent.application.task_memory_context import persistent_memory_ids_from_task
 from video_agent.application.task_service import TaskService
 from video_agent.application.workflow_collaboration_service import WorkflowCollaborationService
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
@@ -201,6 +202,7 @@ class ReviewBundleBuilder:
         return ReviewBundle(
             task_id=snapshot.task_id,
             root_task_id=snapshot.root_task_id,
+            task_memory_context=dict(snapshot.task_memory_context),
             attempt_count=snapshot.attempt_count,
             child_attempt_count=child_attempt_count,
             prompt="" if task is None else task.prompt,
@@ -380,7 +382,7 @@ class ReviewBundleBuilder:
         action_sections = self._build_action_sections(available_actions)
         status_summary = self._build_workflow_review_status_summary(
             acceptance_blockers=acceptance_blockers,
-            pinned_memory_ids=list(root_task.selected_memory_ids),
+            pinned_memory_ids=persistent_memory_ids_from_task(root_task),
             recent_memory_events=recent_memory_events,
             suggested_next_actions=suggested_next_actions,
             workflow_memory_recommendations=workflow_memory_recommendations,
@@ -401,12 +403,7 @@ class ReviewBundleBuilder:
         )
         return WorkflowReviewControls(
             can_manage_workflow_memory=True,
-            workflow_memory_state=WorkflowMemoryState(
-                root_task_id=root_task.task_id,
-                pinned_memory_ids=list(root_task.selected_memory_ids),
-                persistent_memory_context_summary=root_task.persistent_memory_context_summary,
-                persistent_memory_context_digest=root_task.persistent_memory_context_digest,
-            ),
+            workflow_memory_state=self.collaboration_service._build_workflow_memory_state(root_task),
             recent_memory_events=recent_memory_events,
             workflow_memory_recommendations=workflow_memory_recommendations,
             workflow_memory_action_contract=workflow_memory_action_contract,

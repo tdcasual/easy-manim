@@ -47,14 +47,28 @@ def _seed_agent_profile_and_token(
     )
 
 
+def _delete_runtime_definition(store, agent_id: str) -> None:
+    with store._connect() as connection:
+        connection.execute(
+            "DELETE FROM agent_runtime_definitions WHERE agent_id = ?",
+            (agent_id,),
+        )
+
+
 def test_authenticate_agent_returns_profile_summary(tmp_path: Path) -> None:
     app = create_app_context(_build_agent_auth_settings(tmp_path))
     _seed_agent_profile_and_token(app.store)
 
     payload = authenticate_agent_tool(app, {"agent_token": "agent-a-secret"})
+    principal = app.agent_identity_service.authenticate("agent-a-secret")
+    stored_runtime_definition = app.store.get_agent_runtime_definition("agent-a")
 
     assert payload["agent_id"] == "agent-a"
     assert payload["authenticated"] is True
+    assert principal.runtime_definition.agent_id == "agent-a"
+    assert principal.runtime_definition.definition_source in {"explicit", "materialized"}
+    assert stored_runtime_definition is not None
+    assert stored_runtime_definition.definition_source in {"explicit", "materialized"}
 
 
 def test_create_video_task_uses_authenticated_agent_defaults(tmp_path: Path) -> None:
@@ -150,3 +164,31 @@ def test_create_video_task_persists_profile_version_and_resolved_defaults(tmp_pa
     assert task.profile_version == 1
     assert task.effective_request_profile
     assert task.effective_request_profile["output_profile"]["quality_preset"] == app.settings.default_quality_preset
+
+
+def test_restarted_app_uses_existing_persisted_runtime_definition(tmp_path: Path) -> None:
+    app = create_app_context(_build_agent_auth_settings(tmp_path))
+    _seed_agent_profile_and_token(app.store)
+
+    restarted = create_app_context(_build_agent_auth_settings(tmp_path))
+    runtime_definition = restarted.store.get_agent_runtime_definition("agent-a")
+
+    assert runtime_definition is not None
+    assert runtime_definition.agent_id == "agent-a"
+    assert runtime_definition.definition_source == "materialized"
+
+
+def test_authenticate_agent_rejects_missing_runtime_definition_after_restart(tmp_path: Path) -> None:
+    settings = _build_agent_auth_settings(tmp_path)
+    app = create_app_context(settings)
+    _seed_agent_profile_and_token(app.store)
+    _delete_runtime_definition(app.store, "agent-a")
+
+    restarted = create_app_context(settings)
+
+    try:
+        authenticate_agent_tool(restarted, {"agent_token": "agent-a-secret"})
+    except ValueError as exc:
+        assert str(exc) == "agent runtime definition not found"
+    else:
+        raise AssertionError("Expected authenticate_agent_tool to reject missing runtime definition")

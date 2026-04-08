@@ -279,3 +279,42 @@ def test_disable_agent_memory_propagates_delete_to_memo0_backend() -> None:
 
     assert updated.status == "disabled"
     assert backend.deleted_memory_ids == ["mem-1"]
+
+
+def test_resolve_memory_context_exposes_structured_memory_items() -> None:
+    records = {
+        "mem-a": AgentMemoryRecord(
+            memory_id="mem-a",
+            agent_id="agent-a",
+            source_session_id="session-a",
+            summary_text="Prefer a warm light background and explicit labels.",
+            summary_digest="digest-a",
+            lineage_refs=["video-task://task-1/task.json"],
+            enhancement={"keywords": ["warm", "labels"]},
+        ),
+        "mem-b": AgentMemoryRecord(
+            memory_id="mem-b",
+            agent_id="agent-a",
+            source_session_id="session-b",
+            summary_text="Keep transitions smooth and paced for teaching.",
+            summary_digest="digest-b",
+            lineage_refs=["video-task://task-2/task.json"],
+            enhancement={"keywords": ["transitions", "teaching"]},
+        ),
+    }
+    service = PersistentMemoryService(
+        create_record=lambda record: record,
+        get_session_summary=lambda session_id: SessionMemorySummary(
+            session_id=session_id,
+            entries=[],
+            summary_text="unused",
+        ),
+        get_record=lambda memory_id: records.get(memory_id),
+    )
+
+    context = service.resolve_memory_context("agent-a", ["mem-a", "mem-b"])
+
+    assert context.memory_ids == ["mem-a", "mem-b"]
+    assert [item["memory_id"] for item in context.items] == ["mem-a", "mem-b"]
+    assert context.items[0]["summary_text"] == "Prefer a warm light background and explicit labels."
+    assert context.items[1]["lineage_refs"] == ["video-task://task-2/task.json"]

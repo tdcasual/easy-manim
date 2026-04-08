@@ -167,9 +167,56 @@ def test_inherit_persistent_memory_context_clones_memory_fields() -> None:
         memory_ids=["mem-a"],
         summary_text="Keep labels concise.",
         summary_digest="digest-a",
+        items=[
+            {
+                "memory_id": "mem-a",
+                "summary_text": "Keep labels concise.",
+                "summary_digest": "digest-a",
+                "lineage_refs": [],
+                "enhancement": {},
+            }
+        ],
     )
     assert inherited is not None
     assert inherited.memory_ids is not base_task.selected_memory_ids
+
+
+def test_inherit_persistent_memory_context_prefers_structured_task_memory_context_when_legacy_fields_are_empty() -> None:
+    module = _load_module()
+    base_task = _task(session_id=None)
+    base_task.task_memory_context = {
+        "persistent": {
+            "memory_ids": ["mem-a"],
+            "summary_text": "Keep labels concise.",
+            "summary_digest": "digest-a",
+            "items": [
+                {
+                    "memory_id": "mem-a",
+                    "summary_text": "Keep labels concise.",
+                    "summary_digest": "digest-a",
+                    "lineage_refs": ["video-task://task-root/task.json"],
+                    "enhancement": {},
+                }
+            ],
+        }
+    }
+
+    inherited = module.inherit_persistent_memory_context(base_task)
+
+    assert inherited == PersistentMemoryContext(
+        memory_ids=["mem-a"],
+        summary_text="Keep labels concise.",
+        summary_digest="digest-a",
+        items=[
+            {
+                "memory_id": "mem-a",
+                "summary_text": "Keep labels concise.",
+                "summary_digest": "digest-a",
+                "lineage_refs": ["video-task://task-root/task.json"],
+                "enhancement": {},
+            }
+        ],
+    )
 
 
 def test_create_challenger_child_task_rejects_non_delivered_parent() -> None:
@@ -290,9 +337,13 @@ def test_persist_child_task_applies_memory_context_and_records_side_effects() ->
     assert persisted.result_id is None
     assert persisted.memory_context_summary == "Session memory context."
     assert persisted.memory_context_digest == "session-digest"
+    assert persisted.task_memory_context["session"]["summary_text"] == "Session memory context."
+    assert persisted.task_memory_context["session"]["entry_count"] == 0
     assert persisted.selected_memory_ids == ["mem-a"]
     assert persisted.persistent_memory_context_summary == "Persistent memory context."
     assert persisted.persistent_memory_context_digest == "persistent-digest"
+    assert persisted.task_memory_context["persistent"]["memory_ids"] == ["mem-a"]
+    assert persisted.task_memory_context["persistent"]["items"][0]["memory_id"] == "mem-a"
     assert artifact_store.ensured_task_ids == ["child-1"]
     assert store.events == [("child-1", "revision_created", {"parent_task_id": "task-1"})]
     assert delivery_case_service.ensured_task_ids == ["child-1"]

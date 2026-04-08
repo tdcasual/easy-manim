@@ -11,6 +11,8 @@ from video_agent.adapters.storage.artifact_store import ArtifactStore
 from video_agent.adapters.storage.sqlite_bootstrap import SQLiteBootstrapper
 from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_learning_service import AgentLearningService
+from video_agent.application.agent_runtime_service import AgentRuntimeDefinitionService
+from video_agent.application.agent_runtime_run_service import AgentRuntimeRunService
 from video_agent.application.agent_identity_service import AgentIdentityService
 from video_agent.application.agent_session_service import AgentSessionService
 from video_agent.application.auto_repair_service import AutoRepairService
@@ -43,6 +45,7 @@ from video_agent.application.workflow_loop_policy import WorkflowLoopPolicy
 from video_agent.application.workflow_engine import WorkflowEngine
 from video_agent.config import DEFAULT_STUB_LLM_MODEL, Settings
 from video_agent.observability.metrics import MetricsCollector
+from video_agent.openclaw.gateway_sessions import GatewaySessionPolicy, GatewaySessionService
 from video_agent.safety.runtime_policy import RuntimePolicy
 from video_agent.server.session_auth import SessionAuthRegistry
 from video_agent.server.session_memory import SessionMemoryRegistry
@@ -58,8 +61,11 @@ class AppContext:
     store: SQLiteTaskStore
     artifact_store: ArtifactStore
     agent_identity_service: AgentIdentityService
+    agent_runtime_definition_service: AgentRuntimeDefinitionService
+    agent_runtime_run_service: AgentRuntimeRunService
     agent_session_service: AgentSessionService
     session_auth: SessionAuthRegistry
+    gateway_session_service: GatewaySessionService
     session_memory_registry: SessionMemoryRegistry
     session_memory_service: SessionMemoryService
     persistent_memory_service: PersistentMemoryService
@@ -109,16 +115,29 @@ def _build_llm_client(settings: Settings) -> LLMClient:
 
 def _build_store(settings: Settings) -> SQLiteTaskStore:
     SQLiteBootstrapper(settings.database_path).require_bootstrapped(data_dir=settings.data_dir)
-    return SQLiteTaskStore(settings.database_path)
+    return SQLiteTaskStore(
+        settings.database_path,
+        agent_runtime_root=settings.agent_runtime_root,
+    )
 
 
 
 def create_app_context(settings: Settings) -> AppContext:
     store = _build_store(settings)
     artifact_store = ArtifactStore(settings.artifact_root, eval_root=settings.eval_root)
+    agent_runtime_definition_service = AgentRuntimeDefinitionService(
+        definition_lookup=store.get_agent_runtime_definition,
+        definition_upsert=store.upsert_agent_runtime_definition,
+        default_workspace_root=settings.agent_runtime_root,
+    )
     agent_identity_service = AgentIdentityService(
         profile_lookup=store.get_agent_profile,
         token_lookup=store.get_agent_token,
+        runtime_definition_resolver=lambda agent_id, profile: agent_runtime_definition_service.require_persisted(agent_id),
+    )
+    agent_runtime_run_service = AgentRuntimeRunService(
+        create_run=store.create_agent_runtime_run,
+        list_runs=store.list_agent_runtime_runs,
     )
     agent_session_service = AgentSessionService(
         authenticate_agent=agent_identity_service.authenticate,
@@ -128,6 +147,13 @@ def create_app_context(settings: Settings) -> AppContext:
         touch_session_record=store.touch_agent_session,
     )
     session_auth = SessionAuthRegistry()
+    gateway_session_service = GatewaySessionService(
+        policy=GatewaySessionPolicy(
+            dm_scope=settings.gateway_session_dm_scope,
+            daily_reset_hour_local=settings.gateway_session_daily_reset_hour_local,
+            idle_reset_minutes=settings.gateway_session_idle_reset_minutes,
+        )
+    )
     session_memory_registry = SessionMemoryRegistry(
         load_snapshot=store.get_session_memory_snapshot,
         persist_snapshot=store.upsert_session_memory_snapshot,
@@ -282,8 +308,11 @@ def create_app_context(settings: Settings) -> AppContext:
         store=store,
         artifact_store=artifact_store,
         agent_identity_service=agent_identity_service,
+        agent_runtime_definition_service=agent_runtime_definition_service,
+        agent_runtime_run_service=agent_runtime_run_service,
         agent_session_service=agent_session_service,
         session_auth=session_auth,
+        gateway_session_service=gateway_session_service,
         session_memory_registry=session_memory_registry,
         session_memory_service=session_memory_service,
         persistent_memory_service=persistent_memory_service,

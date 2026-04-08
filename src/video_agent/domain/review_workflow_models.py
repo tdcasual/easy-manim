@@ -72,6 +72,7 @@ class ReviewDecision(BaseModel):
 class ReviewBundle(BaseModel):
     task_id: str
     root_task_id: str | None = None
+    task_memory_context: dict[str, Any] = Field(default_factory=dict)
     attempt_count: int = 0
     child_attempt_count: int = 0
     prompt: str = ""
@@ -220,6 +221,7 @@ class WorkflowMemoryState(BaseModel):
     pinned_memory_ids: list[str] = Field(default_factory=list)
     persistent_memory_context_summary: str | None = None
     persistent_memory_context_digest: str | None = None
+    task_memory_context: dict[str, Any] = Field(default_factory=dict)
 
 
 class WorkflowMemoryActionExample(BaseModel):

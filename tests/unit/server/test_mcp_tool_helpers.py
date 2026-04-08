@@ -6,6 +6,7 @@ import pytest
 
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.domain.agent_models import AgentProfile, AgentToken
+from video_agent.domain.agent_runtime_models import AgentRuntimeDefinition
 
 
 def _load_module(module_name: str):
@@ -27,6 +28,14 @@ def _principal(agent_id: str = "agent-a") -> AgentPrincipal:
         agent_id=agent_id,
         profile=AgentProfile(agent_id=agent_id, name=agent_id),
         token=AgentToken(token_hash=f"token-{agent_id}", agent_id=agent_id),
+        runtime_definition=AgentRuntimeDefinition(
+            agent_id=agent_id,
+            name=agent_id,
+            workspace=f"/tmp/{agent_id}/workspace",
+            agent_dir=f"/tmp/{agent_id}/agent",
+            tools_allow=["read", "exec"],
+            definition_source="test",
+        ),
     )
 
 

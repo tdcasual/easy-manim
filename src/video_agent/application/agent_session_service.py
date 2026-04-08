@@ -22,6 +22,7 @@ class CreatedAgentSession:
     session: AgentSession
     profile: AgentProfile
     token: AgentToken
+    principal: AgentPrincipal
 
 
 class AgentSessionService:
@@ -55,6 +56,7 @@ class AgentSessionService:
             session=persisted,
             profile=principal.profile,
             token=principal.token,
+            principal=principal,
         )
 
     def resolve_session(self, plain_session_token: str) -> AgentSession:

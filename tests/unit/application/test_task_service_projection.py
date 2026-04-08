@@ -162,6 +162,22 @@ def test_build_video_task_snapshot_includes_repair_state_artifact_counts_and_fai
     root.repair_last_issue_code = "render_failed"
     root.repair_stop_reason = "budget_exhausted"
     child = _task(task_id="child-1", root_task_id="root-1", parent_task_id="root-1", status=TaskStatus.FAILED, phase=TaskPhase.FAILED, delivery_status="failed")
+    child.task_memory_context = {
+        "persistent": {
+            "memory_ids": ["mem-a"],
+            "summary_text": "Prefer high-contrast diagrams with concise labels.",
+            "summary_digest": "digest-mem-a",
+            "items": [
+                {
+                    "memory_id": "mem-a",
+                    "summary_text": "Prefer high-contrast diagrams with concise labels.",
+                    "summary_digest": "digest-mem-a",
+                    "lineage_refs": ["video-task://root-1/task.json"],
+                    "enhancement": {},
+                }
+            ],
+        }
+    }
     store = _FakeStore(
         [root, child],
         latest_validations={"child-1": ValidationReport(passed=False, summary="Validation failed")},
@@ -195,3 +211,5 @@ def test_build_video_task_snapshot_includes_repair_state_artifact_counts_and_fai
     }
     assert snapshot["auto_repair_summary"] == {"remaining_budget": 0}
     assert snapshot["failure_contract"] == {"issue_code": "render_failed"}
+    assert snapshot["task_memory_context"]["persistent"]["memory_ids"] == ["mem-a"]
+    assert snapshot["task_memory_context"]["persistent"]["items"][0]["memory_id"] == "mem-a"

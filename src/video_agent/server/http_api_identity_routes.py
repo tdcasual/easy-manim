@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 
-from video_agent.application.agent_identity_service import AgentPrincipal
+from video_agent.openclaw.gateway_sessions import GatewayRoute
 from video_agent.server.http_auth import ResolvedAgentSession, resolve_agent_session
 from video_agent.server.http_api_support import SessionLoginRequest, permission_http_error
 
@@ -38,22 +38,31 @@ def register_identity_routes(*, app: FastAPI, context) -> None:
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_agent_token") from exc
 
-        context.session_auth.authenticate(
-            created.session.session_id,
-            AgentPrincipal(
-                agent_id=created.profile.agent_id,
-                profile=created.profile,
-                token=created.token,
-            ),
+        principal = created.principal
+        gateway_session = context.gateway_session_service.resolve(
+            GatewayRoute(
+                source_kind="http_control",
+                source_id=created.session.session_id,
+                agent_id=principal.agent_id,
+            )
         )
-        context.session_memory_registry.ensure_session(
-            created.session.session_id,
+        context.session_auth.authenticate(
+            gateway_session.session_id,
+            principal,
+        )
+        context.session_memory_registry.ensure_session_id(
+            gateway_session.session_id,
             agent_id=created.profile.agent_id,
+        )
+        context.agent_runtime_run_service.record_authentication(
+            session_id=gateway_session.session_id,
+            principal=principal,
+            source_kind="http_control",
         )
         return {
             "session_token": created.session_token,
-            "agent_id": created.profile.agent_id,
-            "name": created.profile.name,
+            "agent_id": principal.agent_id,
+            "name": principal.profile.name,
             "expires_at": created.session.expires_at.isoformat(),
         }
 
@@ -67,6 +76,7 @@ def register_identity_routes(*, app: FastAPI, context) -> None:
             "agent_id": resolved.agent_principal.agent_id,
             "name": resolved.agent_principal.profile.name,
             "profile": resolved.agent_principal.profile.profile_json,
+            "runtime_definition": resolved.agent_principal.runtime_definition.model_dump(mode="json"),
         }
 
     @app.delete("/api/sessions/current")
@@ -96,6 +106,7 @@ def register_identity_routes(*, app: FastAPI, context) -> None:
             "updated_at": profile.updated_at.isoformat(),
             "profile": profile.profile_json,
             "policy": profile.policy_json,
+            "runtime_definition": resolved.agent_principal.runtime_definition.model_dump(mode="json"),
         }
 
     @app.get("/api/profile/scorecard")

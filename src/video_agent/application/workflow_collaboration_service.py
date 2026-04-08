@@ -9,6 +9,12 @@ from video_agent.adapters.storage.sqlite_store import SQLiteTaskStore
 from video_agent.application.agent_identity_service import AgentPrincipal
 from video_agent.application.case_memory_service import CaseMemoryService
 from video_agent.application.persistent_memory_service import PersistentMemoryService
+from video_agent.application.task_memory_context import (
+    apply_persistent_memory_context_to_task,
+    persistent_memory_digest_from_task,
+    persistent_memory_ids_from_task,
+    persistent_memory_summary_from_task,
+)
 from video_agent.application.task_service import CreateVideoTaskResult, TaskService, VideoTaskSnapshot
 from video_agent.application.workflow_collaboration_memory import (
     build_workflow_memory_context,
@@ -191,7 +197,7 @@ class WorkflowCollaborationService:
             root_task=root_task,
             case_memory=self._load_case_memory(root_task.task_id),
         )
-        pinned_memory_ids = list(root_task.selected_memory_ids)
+        pinned_memory_ids = persistent_memory_ids_from_task(root_task)
         if self.persistent_memory_service is None or not root_task.agent_id:
             return WorkflowMemoryRecommendations(
                 root_task_id=root_task.task_id,
@@ -230,8 +236,8 @@ class WorkflowCollaborationService:
             action="task:mutate",
         )
         root_task = self._require_task(task.root_task_id or task.task_id)
-        previous_memory_ids = list(root_task.selected_memory_ids)
-        pinned_memory_ids = list(dict.fromkeys(list(root_task.selected_memory_ids) + [memory_id]))
+        previous_memory_ids = persistent_memory_ids_from_task(root_task)
+        pinned_memory_ids = list(dict.fromkeys(previous_memory_ids + [memory_id]))
         state = self._update_root_workflow_memory(
             root_task=root_task,
             memory_ids=pinned_memory_ids,
@@ -265,8 +271,8 @@ class WorkflowCollaborationService:
             action="task:mutate",
         )
         root_task = self._require_task(task.root_task_id or task.task_id)
-        previous_memory_ids = list(root_task.selected_memory_ids)
-        pinned_memory_ids = [item for item in root_task.selected_memory_ids if item != memory_id]
+        previous_memory_ids = persistent_memory_ids_from_task(root_task)
+        pinned_memory_ids = [item for item in previous_memory_ids if item != memory_id]
         state = self._update_root_workflow_memory(
             root_task=root_task,
             memory_ids=pinned_memory_ids,
@@ -370,8 +376,8 @@ class WorkflowCollaborationService:
             agent_id=root_task.agent_id,
             memory_ids=list(
                 dict.fromkeys(
-                    list(task.selected_memory_ids)
-                    + list(root_task.selected_memory_ids)
+                    persistent_memory_ids_from_task(task)
+                    + persistent_memory_ids_from_task(root_task)
                 )
             ),
         )
@@ -553,9 +559,7 @@ class WorkflowCollaborationService:
     ) -> WorkflowMemoryState:
         agent_id = root_task.agent_id or ""
         persistent_memory = self.task_service.resolve_persistent_memory_context_for_agent(agent_id, memory_ids)
-        root_task.selected_memory_ids = list(persistent_memory.memory_ids)
-        root_task.persistent_memory_context_summary = persistent_memory.summary_text
-        root_task.persistent_memory_context_digest = persistent_memory.summary_digest
+        apply_persistent_memory_context_to_task(root_task, persistent_memory)
         self.store.update_task(root_task)
         self.task_service.artifact_store.write_task_snapshot(root_task)
         return self._build_workflow_memory_state(root_task)
@@ -564,7 +568,8 @@ class WorkflowCollaborationService:
     def _build_workflow_memory_state(root_task: VideoTask) -> WorkflowMemoryState:
         return WorkflowMemoryState(
             root_task_id=root_task.task_id,
-            pinned_memory_ids=list(root_task.selected_memory_ids),
-            persistent_memory_context_summary=root_task.persistent_memory_context_summary,
-            persistent_memory_context_digest=root_task.persistent_memory_context_digest,
+            pinned_memory_ids=persistent_memory_ids_from_task(root_task),
+            persistent_memory_context_summary=persistent_memory_summary_from_task(root_task),
+            persistent_memory_context_digest=persistent_memory_digest_from_task(root_task),
+            task_memory_context=dict(root_task.task_memory_context),
         )

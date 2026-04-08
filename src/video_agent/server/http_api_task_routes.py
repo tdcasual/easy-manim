@@ -61,6 +61,7 @@ def register_task_routes(*, app: FastAPI, context) -> None:
                     "strategy_prompt_cluster": payload.strategy_prompt_cluster,
                     "memory_ids": payload.memory_ids,
                     "session_id": current_internal_session_id(resolved),
+                    "source_kind": "http_control",
                 },
                 agent_principal=resolved.agent_principal,
             )
@@ -199,6 +200,7 @@ def register_task_routes(*, app: FastAPI, context) -> None:
                         "pin_workflow_memory_ids": payload.pin_workflow_memory_ids,
                         "unpin_workflow_memory_ids": payload.unpin_workflow_memory_ids,
                         "session_id": current_internal_session_id(resolved),
+                        "source_kind": "http_control",
                     },
                     agent_principal=resolved.agent_principal,
                 )

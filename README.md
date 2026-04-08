@@ -201,6 +201,58 @@ easy-manim-db-bootstrap --data-dir data
 easy-manim-mcp --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
+### Gateway Session Routing
+
+The runtime now starts aligning with OpenClaw's gateway-owned session model.
+
+- business `session_id` is no longer minted independently by each transport path
+- MCP and HTTP entrypoints both resolve a gateway session first, then attach session memory to that resolved `session_id`
+- direct-message style routes default to one shared session per agent
+- room-style routes isolate by room identity
+- cron-style routes create a fresh session on each run
+
+Relevant settings:
+
+- `EASY_MANIM_GATEWAY_SESSION_DM_SCOPE=main|per_peer`
+- `EASY_MANIM_GATEWAY_SESSION_DAILY_RESET_HOUR_LOCAL=4`
+- `EASY_MANIM_GATEWAY_SESSION_IDLE_RESET_MINUTES=<minutes>`
+
+This is the first backend cut toward an OpenClaw-style agent runtime. In this phase, the video workflow engine stays intact while session truth moves into a single gateway session service.
+
+### Agent Runtime Definitions
+
+Agent identity is now moving away from "profile only" and toward an OpenClaw-style runtime definition.
+
+- `agent_profile` remains the request-default and policy layer used by the video generation stack
+- `agent_runtime_definition` is now the runtime layer for workspace, `agent_dir`, tool allow-list, and delegate/channel metadata
+- `easy-manim-agent-admin create-profile ...` and normal profile upsert paths now persist a runtime definition by default
+- request-time authentication no longer materializes a temporary bridge definition; a persisted runtime definition is mandatory
+
+Relevant setting:
+
+- `EASY_MANIM_AGENT_RUNTIME_ROOT=<path>`
+
+### Structured Task Memory
+
+Task memory is now centered on structured `task_memory_context`.
+
+- session continuity and persistent memory are written into `task_memory_context["session"]` and `task_memory_context["persistent"]`
+- HTTP task snapshots and review bundles expose that structured memory shape directly
+- legacy fields such as `memory_context_summary`, `selected_memory_ids`, and `persistent_memory_context_summary` remain as compatibility mirrors only
+
+### Runtime Run Records
+
+The backend now also writes OpenClaw-style runtime run records for control-plane actions.
+
+- authentication creates a runtime run bound to the resolved gateway session
+- authenticated task creation/revision/retry creates a runtime run bound to the same session
+- these records are separate from `video_agent_runs`, which remain thread/video execution facts
+
+This gives the migration a clean split between:
+
+- control-plane agent runtime events
+- video-thread execution events
+
 ## Provision named agents
 ```bash
 source .venv/bin/activate

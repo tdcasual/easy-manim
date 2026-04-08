@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from video_agent.application.agent_identity_service import hash_agent_token
 from video_agent.config import Settings
+from video_agent.domain.agent_memory_models import AgentMemoryRecord
 from video_agent.domain.agent_models import AgentProfile, AgentToken
 from video_agent.domain.quality_models import QualityScorecard
 from video_agent.domain.strategy_models import StrategyProfile
@@ -98,6 +99,19 @@ def _login(client: TestClient, secret: str) -> str:
     return response.json()["session_token"]
 
 
+def _seed_memory(client: TestClient, *, memory_id: str, agent_id: str, summary_text: str) -> None:
+    context = client.app.state.app_context
+    context.store.create_agent_memory(
+        AgentMemoryRecord(
+            memory_id=memory_id,
+            agent_id=agent_id,
+            source_session_id=f"session-{agent_id}",
+            summary_text=summary_text,
+            summary_digest=f"digest-{memory_id}",
+        )
+    )
+
+
 def test_task_create_list_get_result_roundtrip(tmp_path: Path) -> None:
     client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
     _seed_agent(client, "agent-a", "agent-a-secret")
@@ -149,6 +163,35 @@ def test_task_create_list_get_result_roundtrip(tmp_path: Path) -> None:
     assert result_payload["delivery_tier"] is None
     assert result_payload["resolved_task_id"] is None
     assert result_payload["delivery_stop_reason"] is None
+
+
+def test_task_snapshot_exposes_structured_memory_context(tmp_path: Path) -> None:
+    client = TestClient(_create_http_api(_build_http_task_settings(tmp_path)))
+    _seed_agent(client, "agent-a", "agent-a-secret")
+    _seed_memory(
+        client,
+        memory_id="mem-a",
+        agent_id="agent-a",
+        summary_text="Prefer high-contrast diagrams with concise labels.",
+    )
+    login_token = _login(client, "agent-a-secret")
+
+    created = client.post(
+        "/api/tasks",
+        json={"prompt": "draw a circle", "memory_ids": ["mem-a"]},
+        headers={"Authorization": f"Bearer {login_token}"},
+    )
+    assert created.status_code == 200
+
+    snapshot = client.get(
+        f"/api/tasks/{created.json()['task_id']}",
+        headers={"Authorization": f"Bearer {login_token}"},
+    )
+
+    assert snapshot.status_code == 200
+    payload = snapshot.json()
+    assert payload["task_memory_context"]["persistent"]["memory_ids"] == ["mem-a"]
+    assert payload["task_memory_context"]["persistent"]["items"][0]["memory_id"] == "mem-a"
 
 
 def test_task_create_applies_cluster_strategy_when_requested(tmp_path: Path) -> None:

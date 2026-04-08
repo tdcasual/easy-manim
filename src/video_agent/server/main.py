@@ -154,6 +154,9 @@ def build_settings(data_dir: Path, run_embedded_worker: bool = True) -> Settings
         worker_stale_after_seconds=_env_int("EASY_MANIM_WORKER_STALE_AFTER_SECONDS", 30),
         max_queued_tasks=_env_int("EASY_MANIM_MAX_QUEUED_TASKS", 20),
         max_attempts_per_root_task=_env_int("EASY_MANIM_MAX_ATTEMPTS_PER_ROOT_TASK", 5),
+        agent_runtime_root=Path(
+            os.getenv("EASY_MANIM_AGENT_RUNTIME_ROOT", str(data_dir / "agents"))
+        ),
         persistent_memory_backend=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_BACKEND", "local"),
         persistent_memory_enable_embeddings=_env_bool("EASY_MANIM_PERSISTENT_MEMORY_ENABLE_EMBEDDINGS", False),
         persistent_memory_embedding_provider=os.getenv("EASY_MANIM_PERSISTENT_MEMORY_EMBEDDING_PROVIDER"),

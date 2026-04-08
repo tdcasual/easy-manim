@@ -41,3 +41,23 @@ def test_repair_feedback_includes_session_memory_context() -> None:
 
     assert "Session memory context:" in feedback
     assert "working light-background layout" in feedback
+
+
+def test_repair_feedback_prefers_structured_task_memory_context() -> None:
+    feedback = build_targeted_repair_feedback(
+        issue_code="near_blank_preview",
+        failure_context={"summary": "blank opening"},
+        task_memory_context={
+            "session": {
+                "session_id": "session-a",
+                "summary_text": "Earlier attempts already established a working light-background layout.",
+                "summary_digest": "digest-session",
+                "entry_count": 1,
+                "entries": [],
+            }
+        },
+    )
+
+    assert "Session memory context:" in feedback
+    assert "Session continuity:" in feedback
+    assert "working light-background layout" in feedback

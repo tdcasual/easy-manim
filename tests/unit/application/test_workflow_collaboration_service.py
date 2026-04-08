@@ -138,9 +138,12 @@ def test_workflow_collaboration_service_pins_and_unpins_root_memory_context(tmp_
     assert pinned.memory_id == "mem-style"
     assert pinned.pinned_memory_ids == ["mem-style"]
     assert "high-contrast diagrams" in (pinned.persistent_memory_context_summary or "")
+    assert pinned.task_memory_context["persistent"]["memory_ids"] == ["mem-style"]
+    assert pinned.task_memory_context["persistent"]["items"][0]["memory_id"] == "mem-style"
     assert root_after_pin is not None
     assert root_after_pin.selected_memory_ids == ["mem-style"]
     assert root_after_pin.persistent_memory_context_digest == pinned.persistent_memory_context_digest
+    assert root_after_pin.task_memory_context["persistent"]["memory_ids"] == ["mem-style"]
 
     unpinned = app_context.workflow_collaboration_service.unpin_workflow_memory(
         created.task_id,
@@ -155,13 +158,48 @@ def test_workflow_collaboration_service_pins_and_unpins_root_memory_context(tmp_
     assert unpinned.memory_id == "mem-style"
     assert unpinned.pinned_memory_ids == []
     assert unpinned.persistent_memory_context_summary is None
+    assert unpinned.task_memory_context["persistent"]["memory_ids"] == []
     assert root_after_unpin is not None
     assert root_after_unpin.selected_memory_ids == []
     assert root_after_unpin.persistent_memory_context_summary is None
+    assert root_after_unpin.task_memory_context["persistent"]["memory_ids"] == []
     assert [event["event_type"] for event in workflow_memory_events] == [
         "workflow_memory_pinned",
         "workflow_memory_unpinned",
     ]
+
+
+def test_workflow_collaboration_service_prefers_structured_root_memory_state_when_legacy_fields_are_empty(
+    tmp_path: Path,
+) -> None:
+    app_context = create_app_context(_build_settings(tmp_path))
+    owner = _seed_agent(app_context, agent_id="agent-a", secret="agent-a-secret")
+    _seed_memory(
+        app_context,
+        memory_id="mem-style",
+        agent_id="agent-a",
+        summary_text="Prefer high-contrast diagrams with concise annotations.",
+    )
+    created = app_context.task_service.create_video_task(
+        prompt="draw a circle",
+        memory_ids=["mem-style"],
+        agent_principal=owner,
+    )
+    root_task = app_context.store.get_task(created.task_id)
+    assert root_task is not None
+    root_task.selected_memory_ids = []
+    root_task.persistent_memory_context_summary = None
+    root_task.persistent_memory_context_digest = None
+    app_context.store.update_task(root_task)
+
+    recommendations = app_context.workflow_collaboration_service.list_workflow_memory_recommendations(
+        created.task_id,
+        agent_principal=owner,
+    )
+    memory_context = app_context.workflow_collaboration_service.build_workflow_memory_context(created.task_id)
+
+    assert recommendations.pinned_memory_ids == ["mem-style"]
+    assert memory_context.shared_memory_ids == ["mem-style"]
 
 
 def test_workflow_collaboration_service_denies_non_owner_workflow_memory_management(tmp_path: Path) -> None:

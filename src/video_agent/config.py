@@ -91,6 +91,10 @@ class Settings(BaseModel):
     worker_stale_after_seconds: int = 30
     max_queued_tasks: int = 20
     max_attempts_per_root_task: int = 5
+    agent_runtime_root: Path = Path("data/agents")
+    gateway_session_dm_scope: str = "main"
+    gateway_session_daily_reset_hour_local: int = 4
+    gateway_session_idle_reset_minutes: int | None = None
     session_memory_max_entries: int = 5
     session_memory_max_attempts_per_entry: int = 3
     session_memory_summary_char_limit: int = 2000
@@ -166,6 +170,8 @@ class Settings(BaseModel):
             self.artifact_root = self.data_dir / "tasks"
         if self.eval_root is None:
             self.eval_root = self.data_dir / "evals"
+        if self.agent_runtime_root == Path("data/agents"):
+            self.agent_runtime_root = self.data_dir / "agents"
         if self.sandbox_temp_root is None:
             self.sandbox_temp_root = self.artifact_root / ".sandbox" / "tmp"
         if self.sandbox_process_limit is not None and self.sandbox_process_limit <= 0:
@@ -178,6 +184,15 @@ class Settings(BaseModel):
             self.default_pixel_width = None
         if self.default_pixel_height is not None and self.default_pixel_height <= 0:
             self.default_pixel_height = None
+        self.gateway_session_daily_reset_hour_local = min(
+            max(self.gateway_session_daily_reset_hour_local, 0),
+            23,
+        )
+        if (
+            self.gateway_session_idle_reset_minutes is not None
+            and self.gateway_session_idle_reset_minutes <= 0
+        ):
+            self.gateway_session_idle_reset_minutes = None
         if self.strategy_promotion_guarded_auto_apply_min_shadow_passes <= 0:
             self.strategy_promotion_guarded_auto_apply_min_shadow_passes = 1
         self.multi_agent_workflow_guarded_min_delivery_rate = min(

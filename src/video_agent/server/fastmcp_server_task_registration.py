@@ -62,6 +62,7 @@ def register_task_tools(
                 "feedback": feedback,
                 "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
+                "source_kind": "mcp_transport",
             },
             agent_principal=current_principal(ctx),
         )
@@ -182,6 +183,7 @@ def register_task_tools(
                 "review_decision": review_decision,
                 "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
+                "source_kind": "mcp_transport",
             },
             agent_principal=current_principal(ctx),
         )
@@ -210,6 +212,7 @@ def register_task_tools(
                 "preserve_working_parts": preserve_working_parts,
                 "memory_ids": memory_ids,
                 "session_id": current_session_id(ctx),
+                "source_kind": "mcp_transport",
             },
             agent_principal=current_principal(ctx),
         )
@@ -218,7 +221,11 @@ def register_task_tools(
     def retry_video_task(task_id: str, ctx: Context | None = None) -> dict[str, Any]:
         return retry_video_task_tool(
             context,
-            {"task_id": task_id, "session_id": current_session_id(ctx)},
+            {
+                "task_id": task_id,
+                "session_id": current_session_id(ctx),
+                "source_kind": "mcp_transport",
+            },
             agent_principal=current_principal(ctx),
         )
 

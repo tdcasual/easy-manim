@@ -98,6 +98,17 @@ class SessionMemoryService:
             summary_digest=self.compute_summary_digest(summary_text) if summary_text else None,
         )
 
+    def build_continuity_context(self, session_id: str) -> dict[str, object]:
+        summary = self.summarize_session_memory(session_id)
+        return {
+            "session_id": summary.session_id,
+            "summary_text": summary.summary_text or None,
+            "summary_digest": summary.summary_digest,
+            "entry_count": summary.entry_count,
+            "lineage_refs": list(summary.lineage_refs),
+            "entries": [entry.model_dump(mode="json") for entry in summary.entries],
+        }
+
     def clear_session_memory(self, session_id: str) -> SessionMemorySnapshot:
         return self.registry.clear_session(session_id)
 
