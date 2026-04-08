@@ -4,6 +4,34 @@
  * 柔和、可爱、圆润
  */
 
+.button,
+.iconButton {
+  --button-gloss: color-mix(in srgb, var(--color-cloud-50) 30%, transparent);
+  --button-shadow-neutral-sm: 0 2px 8px color-mix(in srgb, var(--primary-950) 5%, transparent);
+  --button-shadow-neutral-md: 0 4px 12px color-mix(in srgb, var(--primary-950) 10%, transparent);
+  --button-shadow-pink-sm: 0 4px 16px color-mix(in srgb, var(--color-pink-500) 30%, transparent);
+  --button-shadow-pink-md: 0 8px 24px color-mix(in srgb, var(--color-pink-500) 40%, transparent);
+  --button-shadow-pink-icon: 0 4px 12px color-mix(in srgb, var(--color-pink-500) 30%, transparent);
+  --button-shadow-mint-sm: 0 4px 16px color-mix(in srgb, var(--color-mint-500) 30%, transparent);
+  --button-shadow-mint-md: 0 8px 24px color-mix(in srgb, var(--color-mint-500) 40%, transparent);
+  --button-shadow-mint-icon: 0 4px 12px color-mix(in srgb, var(--color-mint-500) 30%, transparent);
+  --button-shadow-sky-sm: 0 4px 16px color-mix(in srgb, var(--color-sky-500) 30%, transparent);
+  --button-shadow-sky-md: 0 8px 24px color-mix(in srgb, var(--color-sky-500) 40%, transparent);
+  --button-shadow-sky-icon: 0 4px 12px color-mix(in srgb, var(--color-sky-500) 30%, transparent);
+  --button-shadow-lavender-sm: 0 4px 16px color-mix(in srgb, var(--color-lavender-500) 30%, transparent);
+  --button-shadow-lavender-md: 0 8px 24px color-mix(in srgb, var(--color-lavender-500) 40%, transparent);
+  --button-shadow-peach-sm: 0 4px 16px color-mix(in srgb, var(--color-peach-500) 30%, transparent);
+  --button-shadow-peach-md: 0 8px 24px color-mix(in srgb, var(--color-peach-500) 40%, transparent);
+  --button-shadow-error-sm: 0 4px 16px color-mix(in srgb, var(--color-error-500) 30%, transparent);
+  --button-shadow-error-md: 0 8px 24px color-mix(in srgb, var(--color-error-500) 40%, transparent);
+  --button-shadow-success-sm: 0 4px 16px color-mix(in srgb, var(--color-success-500) 30%, transparent);
+  --button-shadow-success-md: 0 8px 24px color-mix(in srgb, var(--color-success-500) 40%, transparent);
+  --button-shadow-warning-sm: 0 4px 16px color-mix(in srgb, var(--color-warning-500) 30%, transparent);
+  --button-shadow-warning-md: 0 8px 24px color-mix(in srgb, var(--color-warning-500) 40%, transparent);
+  --button-shadow-info-sm: 0 4px 16px color-mix(in srgb, var(--color-info-500) 30%, transparent);
+  --button-shadow-info-md: 0 8px 24px color-mix(in srgb, var(--color-info-500) 40%, transparent);
+}
+
 /* 基础按钮 */
 .button {
   display: inline-flex;
@@ -35,7 +63,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.3),
+    var(--button-gloss),
     transparent
   );
   transition: left 0.5s ease;
@@ -49,14 +77,14 @@
 .button.xs {
   padding: 6px 12px;
   font-size: 12px;
-  min-height: 32px;
+  min-height: 44px;
   border-radius: 12px;
 }
 
 .button.sm {
   padding: 8px 14px;
   font-size: 13px;
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 14px;
 }
 
@@ -90,18 +118,18 @@
   background: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-pink-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(255, 107, 138, 0.3);
+  box-shadow: var(--button-shadow-pink-sm);
 }
 
 .button.pink:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-pink-500) 0%, var(--color-pink-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(255, 107, 138, 0.4);
+  box-shadow: var(--button-shadow-pink-md);
 }
 
 .button.pink:active:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 107, 138, 0.3);
+  box-shadow: var(--button-shadow-pink-icon);
 }
 
 /* 薄荷绿按钮 */
@@ -109,13 +137,13 @@
   background: linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-mint-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(77, 179, 144, 0.3);
+  box-shadow: var(--button-shadow-mint-sm);
 }
 
 .button.mint:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-mint-500) 0%, var(--color-mint-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(77, 179, 144, 0.4);
+  box-shadow: var(--button-shadow-mint-md);
 }
 
 .button.mint:active:not(:disabled) {
@@ -127,13 +155,13 @@
   background: linear-gradient(135deg, var(--color-sky-400) 0%, var(--color-sky-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(74, 163, 193, 0.3);
+  box-shadow: var(--button-shadow-sky-sm);
 }
 
 .button.sky:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-sky-500) 0%, var(--color-sky-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(74, 163, 193, 0.4);
+  box-shadow: var(--button-shadow-sky-md);
 }
 
 .button.sky:active:not(:disabled) {
@@ -145,13 +173,13 @@
   background: linear-gradient(135deg, var(--color-lavender-400) 0%, var(--color-lavender-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(168, 85, 168, 0.3);
+  box-shadow: var(--button-shadow-lavender-sm);
 }
 
 .button.lavender:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-lavender-500) 0%, var(--color-lavender-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(168, 85, 168, 0.4);
+  box-shadow: var(--button-shadow-lavender-md);
 }
 
 .button.lavender:active:not(:disabled) {
@@ -163,13 +191,13 @@
   background: linear-gradient(135deg, var(--color-peach-400) 0%, var(--color-peach-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(244, 140, 75, 0.3);
+  box-shadow: var(--button-shadow-peach-sm);
 }
 
 .button.peach:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-peach-500) 0%, var(--color-peach-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(244, 140, 75, 0.4);
+  box-shadow: var(--button-shadow-peach-md);
 }
 
 .button.peach:active:not(:disabled) {
@@ -185,13 +213,13 @@
   background: linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-mint-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(77, 179, 144, 0.3);
+  box-shadow: var(--button-shadow-mint-sm);
 }
 
 .button.primary:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-mint-500) 0%, var(--color-mint-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(77, 179, 144, 0.4);
+  box-shadow: var(--button-shadow-mint-md);
 }
 
 .button.primary:active:not(:disabled) {
@@ -203,7 +231,7 @@
   background: var(--color-cloud-100);
   color: var(--color-cloud-800);
   border-color: var(--color-cloud-300);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--button-shadow-neutral-sm);
 }
 
 [data-theme="night"] .button.secondary {
@@ -215,7 +243,7 @@
 .button.secondary:hover:not(:disabled) {
   background: var(--color-cloud-200);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--button-shadow-neutral-md);
 }
 
 /* 轮廓按钮 */
@@ -263,13 +291,13 @@
   background: linear-gradient(135deg, var(--color-error-400) 0%, var(--color-error-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+  box-shadow: var(--button-shadow-error-sm);
 }
 
 .button.danger:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-error-500) 0%, var(--color-error-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+  box-shadow: var(--button-shadow-error-md);
 }
 
 /* 成功按钮 */
@@ -277,13 +305,13 @@
   background: linear-gradient(135deg, var(--color-success-400) 0%, var(--color-success-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+  box-shadow: var(--button-shadow-success-sm);
 }
 
 .button.success:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-success-500) 0%, var(--color-success-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+  box-shadow: var(--button-shadow-success-md);
 }
 
 /* 警告按钮 */
@@ -291,13 +319,13 @@
   background: linear-gradient(135deg, var(--color-warning-400) 0%, var(--color-warning-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+  box-shadow: var(--button-shadow-warning-sm);
 }
 
 .button.warning:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-warning-500) 0%, var(--color-warning-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+  box-shadow: var(--button-shadow-warning-md);
 }
 
 /* 信息按钮 */
@@ -305,13 +333,13 @@
   background: linear-gradient(135deg, var(--color-info-400) 0%, var(--color-info-500) 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  box-shadow: var(--button-shadow-info-sm);
 }
 
 .button.info:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-info-500) 0%, var(--color-info-600) 100%);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  box-shadow: var(--button-shadow-info-md);
 }
 
 /* 禁用状态 */
@@ -389,15 +417,15 @@
 }
 
 .iconButton.xs {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   padding: 6px;
   border-radius: 10px;
 }
 
 .iconButton.sm {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   padding: 8px;
   border-radius: 12px;
 }
@@ -427,7 +455,7 @@
   background: var(--color-cloud-200);
   color: var(--color-cloud-800);
   transform: scale(1.1) rotate(3deg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--button-shadow-neutral-md);
 }
 
 .iconButton:active:not(:disabled) {
@@ -443,7 +471,7 @@
 .iconButton.pink:hover:not(:disabled) {
   background: var(--color-pink-200);
   color: var(--color-pink-600);
-  box-shadow: 0 4px 12px rgba(255, 107, 138, 0.3);
+  box-shadow: var(--button-shadow-pink-icon);
 }
 
 .iconButton.mint {
@@ -454,7 +482,7 @@
 .iconButton.mint:hover:not(:disabled) {
   background: var(--color-mint-200);
   color: var(--color-mint-600);
-  box-shadow: 0 4px 12px rgba(77, 179, 144, 0.3);
+  box-shadow: var(--button-shadow-mint-icon);
 }
 
 .iconButton.sky {
@@ -465,7 +493,7 @@
 .iconButton.sky:hover:not(:disabled) {
   background: var(--color-sky-200);
   color: var(--color-sky-600);
-  box-shadow: 0 4px 12px rgba(74, 163, 193, 0.3);
+  box-shadow: var(--button-shadow-sky-icon);
 }
 
 /* 按钮组 */

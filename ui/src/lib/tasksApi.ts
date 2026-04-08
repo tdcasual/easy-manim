@@ -58,12 +58,7 @@ export type WorkflowReviewPanelTone = "ready" | "attention" | "blocked";
 export type WorkflowReviewDisplayPriority = "normal" | "high";
 export type WorkflowReviewSectionId = "recommended" | "available" | "blocked";
 export type WorkflowReviewActionFamily = "review_decision" | "workflow_memory" | "combined";
-export type WorkflowReviewDecisionKind =
-  | "accept"
-  | "revise"
-  | "retry"
-  | "repair"
-  | "escalate";
+export type WorkflowReviewDecisionKind = "accept" | "revise" | "retry" | "repair" | "escalate";
 
 export type WorkflowReviewActionMemoryChange = {
   pin_memory_ids: string[];
@@ -252,9 +247,13 @@ export async function getTaskResult(taskId: string, token: string): Promise<Task
 }
 
 export async function getReviewBundle(taskId: string, token: string): Promise<ReviewBundle> {
-  return requestJson<ReviewBundle>(`/api/tasks/${encodeURIComponent(taskId)}/review-bundle`, token, {
-    method: "GET",
-  });
+  return requestJson<ReviewBundle>(
+    `/api/tasks/${encodeURIComponent(taskId)}/review-bundle`,
+    token,
+    {
+      method: "GET",
+    }
+  );
 }
 
 export async function applyReviewDecision(

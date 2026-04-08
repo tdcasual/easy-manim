@@ -1,11 +1,15 @@
 /* Skeleton Component Styles */
 
 .skeleton {
+  --skeleton-highlight-soft: color-mix(in srgb, var(--surface-primary) 35%, transparent);
+  --skeleton-highlight-strong: color-mix(in srgb, var(--surface-primary) 55%, transparent);
+  --skeleton-card-surface: color-mix(in srgb, var(--surface-primary) 34%, transparent);
+  --skeleton-card-surface-strong: color-mix(in srgb, var(--surface-primary) 48%, transparent);
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 25%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 75%
+    var(--skeleton-highlight-soft) 25%,
+    var(--skeleton-highlight-strong) 50%,
+    var(--skeleton-highlight-soft) 75%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-md);
@@ -44,8 +48,8 @@
 /* Skeleton Card */
 .skeleton-card {
   background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.01) 100%);
+    var(--skeleton-card-surface) 0%,
+    color-mix(in srgb, var(--surface-primary) 18%, transparent) 100%);
   backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
@@ -91,8 +95,8 @@
   gap: var(--space-4);
   padding: var(--space-5);
   background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
+    var(--skeleton-card-surface-strong) 0%,
+    color-mix(in srgb, var(--surface-primary) 22%, transparent) 100%);
   backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
@@ -136,8 +140,8 @@
 
 .page-skeleton__content {
   background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.01) 100%);
+    var(--skeleton-card-surface) 0%,
+    color-mix(in srgb, var(--surface-primary) 18%, transparent) 100%);
   backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);

@@ -5,7 +5,7 @@
 import { useRef } from "react";
 import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
-import { useDialogA11y } from "../../components/useDialogA11y";
+import { DialogShell } from "../../components/DialogShell/DialogShell";
 import styles from "../styles/HelpPanel.module.css";
 
 interface HelpPanelProps {
@@ -28,63 +28,51 @@ export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
     { key: "?", description: t("studio.help.shortcuts.help"), emoji: "❓" },
   ];
 
-  useDialogA11y({
-    isOpen,
-    onClose,
-    dialogRef: panelRef,
-    initialFocusRef: closeButtonRef,
-  });
-
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* 遮罩 */}
-      <div className={styles.overlay} onClick={onClose} />
-
-      {/* 面板 */}
-      <div
-        ref={panelRef}
-        className={styles.panel}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("studio.help.dialog")}
-      >
-        {/* 头部 */}
-        <div className={styles.header}>
-          <div className={styles.headerTitle}>
-            <EmojiIcon emoji="⌨️" color="sky" size="sm" />
-            <h2>{t("studio.help.title")}</h2>
-          </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label={t("studio.help.close")}
-            className={styles.closeButton}
-          >
-            <EmojiIcon emoji="✖️" color="white" size="xs" />
-          </button>
+    <DialogShell
+      isOpen={isOpen}
+      onClose={onClose}
+      dialogRef={panelRef}
+      initialFocusRef={closeButtonRef}
+      className={styles.panel}
+      ariaLabel={t("studio.help.dialog")}
+      overlayClassName={styles.overlay}
+      overlayAriaLabel="Dismiss help panel backdrop"
+    >
+      {/* 头部 */}
+      <div className={styles.header}>
+        <div className={styles.headerTitle}>
+          <EmojiIcon emoji="⌨️" color="sky" size="sm" />
+          <h2>{t("studio.help.title")}</h2>
         </div>
-
-        {/* 快捷键列表 */}
-        <div className={styles.shortcutList}>
-          {shortcuts.map((shortcut, index) => (
-            <div key={index} className={styles.shortcutItem}>
-              <div className={styles.shortcutDesc}>
-                <EmojiIcon emoji={shortcut.emoji} color="white" size="xs" />
-                <span>{shortcut.description}</span>
-              </div>
-              <kbd className={styles.kbd}>{shortcut.key}</kbd>
-            </div>
-          ))}
-        </div>
-
-        {/* 底部提示 */}
-        <div className={styles.footer}>
-          <p>💡 {t("studio.help.footer")}</p>
-        </div>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          onClick={onClose}
+          aria-label={t("studio.help.close")}
+          className={styles.closeButton}
+        >
+          <EmojiIcon emoji="✖️" color="white" size="xs" />
+        </button>
       </div>
-    </>
+
+      {/* 快捷键列表 */}
+      <div className={styles.shortcutList}>
+        {shortcuts.map((shortcut, index) => (
+          <div key={index} className={styles.shortcutItem}>
+            <div className={styles.shortcutDesc}>
+              <EmojiIcon emoji={shortcut.emoji} color="white" size="xs" />
+              <span>{shortcut.description}</span>
+            </div>
+            <kbd className={styles.kbd}>{shortcut.key}</kbd>
+          </div>
+        ))}
+      </div>
+
+      {/* 底部提示 */}
+      <div className={styles.footer}>
+        <p>💡 {t("studio.help.footer")}</p>
+      </div>
+    </DialogShell>
   );
 }

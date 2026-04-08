@@ -49,8 +49,18 @@ function createThreadSurface(overrides: Record<string, any> = {}) {
       source_turn_id: "turn-2",
     },
     decision_notes: { title: "Decision Notes", items: [] },
-    artifact_lineage: { title: "Artifact Lineage", summary: "", selected_result_id: "result-1", items: [] },
-    rationale_snapshots: { title: "Rationale Snapshots", summary: "", current_iteration_id: "iter-1", items: [] },
+    artifact_lineage: {
+      title: "Artifact Lineage",
+      summary: "",
+      selected_result_id: "result-1",
+      items: [],
+    },
+    rationale_snapshots: {
+      title: "Rationale Snapshots",
+      summary: "",
+      current_iteration_id: "iter-1",
+      items: [],
+    },
     iteration_compare: {
       title: "Iteration Compare",
       summary: "",
@@ -212,7 +222,8 @@ function createThreadSurface(overrides: Record<string, any> = {}) {
         addressed_display_name: "Repairer",
         agent_role: "repairer",
         agent_display_name: "Repairer",
-        summary: "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
+        summary:
+          "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
       },
     },
     render_contract: {
@@ -311,7 +322,8 @@ function createIterationDetail(overrides: Record<string, any> = {}) {
       addressed_display_name: "Repairer",
       agent_role: "repairer",
       agent_display_name: "Repairer",
-      summary: "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
+      summary:
+        "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
     },
     iteration: {
       iteration_id: "iter-1",
@@ -354,7 +366,10 @@ test("video thread page renders the collaboration workbench from thread surface"
 
   globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
     const path = new URL(String(url), "http://example.test").pathname;
-    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       return new Response(
         JSON.stringify({
           thread_header: {
@@ -392,7 +407,8 @@ test("video thread page renders the collaboration workbench from thread surface"
           },
           authorship: {
             title: "Who shaped this version",
-            summary: "Repairer is the latest visible agent shaping the selected cut for this iteration.",
+            summary:
+              "Repairer is the latest visible agent shaping the selected cut for this iteration.",
             primary_agent_display_name: "Repairer",
             primary_agent_role: "repairer",
             source_iteration_id: "iter-2",
@@ -512,7 +528,8 @@ test("video thread page renders the collaboration workbench from thread surface"
           },
           iteration_compare: {
             title: "Iteration Compare",
-            summary: "Compare the current selected cut against the nearest earlier visible iteration.",
+            summary:
+              "Compare the current selected cut against the nearest earlier visible iteration.",
             previous_iteration_id: "iter-1",
             current_iteration_id: "iter-2",
             previous_result_id: "result-1",
@@ -526,7 +543,8 @@ test("video thread page renders the collaboration workbench from thread surface"
           },
           next_recommended_move: {
             title: "Recommended next move",
-            summary: "Review the latest selected result, then request a focused revision or record a note.",
+            summary:
+              "Review the latest selected result, then request a focused revision or record a note.",
             recommended_action_id: "request_revision",
             recommended_action_label: "Request revision",
             owner_action_required: "review_latest_result",
@@ -567,7 +585,8 @@ test("video thread page renders the collaboration workbench from thread surface"
           },
           iteration_detail: {
             title: "Iteration Detail",
-            summary: "Inspect the selected iteration to review its visible discussion, runs, and results.",
+            summary:
+              "Inspect the selected iteration to review its visible discussion, runs, and results.",
             selected_iteration_id: "iter-2",
             resource_uri: "video-thread://thread-1/iterations/iter-2.json",
             turn_count: 2,
@@ -724,7 +743,8 @@ test("video thread page renders the collaboration workbench from thread surface"
           },
           discussion_runtime: {
             title: "Discussion Runtime",
-            summary: "Continue 'Why this pacing?' with Repairer while staying on the active iteration.",
+            summary:
+              "Continue 'Why this pacing?' with Repairer while staying on the active iteration.",
             active_iteration_id: "iter-2",
             active_discussion_group_id: "group-turn-1",
             continuity_scope: "iteration",
@@ -749,7 +769,8 @@ test("video thread page renders the collaboration workbench from thread surface"
           },
           participant_runtime: {
             title: "Participant Runtime",
-            summary: "Repairer is currently expected to respond, while Planner also shaped the active iteration.",
+            summary:
+              "Repairer is currently expected to respond, while Planner also shaped the active iteration.",
             active_iteration_id: "iter-2",
             expected_participant_id: "repairer-1",
             expected_agent_id: "repairer-1",
@@ -857,7 +878,8 @@ test("video thread page renders the collaboration workbench from thread surface"
               addressed_display_name: "Repairer",
               agent_role: "repairer",
               agent_display_name: "Repairer",
-              summary: "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.",
+              summary:
+                "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.",
             },
           },
           render_contract: {
@@ -885,7 +907,17 @@ test("video thread page renders the collaboration workbench from thread surface"
               "actions",
               "composer",
             ],
-            default_expanded_panels: ["current_focus", "decision_notes", "artifact_lineage", "rationale_snapshots", "iteration_compare", "next_recommended_move", "production_journal", "history", "composer"],
+            default_expanded_panels: [
+              "current_focus",
+              "decision_notes",
+              "artifact_lineage",
+              "rationale_snapshots",
+              "iteration_compare",
+              "next_recommended_move",
+              "production_journal",
+              "history",
+              "composer",
+            ],
             sticky_primary_action_emphasis: "strong",
             panel_presentations: [
               {
@@ -965,7 +997,10 @@ test("video thread page renders the collaboration workbench from thread surface"
         { status: 200, headers: { "content-type": "application/json" } }
       );
     }
-    if (path === "/api/video-threads/thread-1/iterations/iter-2" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-2" &&
+      (!init?.method || init.method === "GET")
+    ) {
       return new Response(
         JSON.stringify({
           thread_id: "thread-1",
@@ -980,7 +1015,8 @@ test("video thread page renders the collaboration workbench from thread surface"
             addressed_display_name: "Repairer",
             agent_role: "repairer",
             agent_display_name: "Repairer",
-            summary: "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.",
+            summary:
+              "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.",
           },
           iteration: {
             iteration_id: "iter-2",
@@ -1060,7 +1096,10 @@ test("video thread page renders the collaboration workbench from thread surface"
         { status: 200, headers: { "content-type": "application/json" } }
       );
     }
-    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1" &&
+      (!init?.method || init.method === "GET")
+    ) {
       return new Response(
         JSON.stringify({
           thread_id: "thread-1",
@@ -1075,7 +1114,8 @@ test("video thread page renders the collaboration workbench from thread surface"
             addressed_display_name: "Planner",
             agent_role: "planner",
             agent_display_name: "Planner",
-            summary: "New messages will attach to iter-1, stay anchored to result-1, and hand off to Planner.",
+            summary:
+              "New messages will attach to iter-1, stay anchored to result-1, and hand off to Planner.",
           },
           iteration: {
             iteration_id: "iter-1",
@@ -1122,7 +1162,9 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
   const selectedVersion = await screen.findByRole("region", { name: "Selected version" });
   const discussion = await screen.findByRole("region", { name: "Discussion" });
-  expect(selectedVersion.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(
+    selectedVersion.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
   expect(within(discussion).getByLabelText("Request revision")).toBeInTheDocument();
   expect(within(discussion).getByText("Thread: Why this pacing?")).toBeInTheDocument();
   expect(within(discussion).getByText("Reply to: turn-1")).toBeInTheDocument();
@@ -1162,7 +1204,11 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(screen.getAllByText("Why this version is selected").length).toBeGreaterThan(1);
   expect(screen.getAllByText("Latest visible explanation").length).toBeGreaterThan(1);
   expect(screen.getByText("Who Shaped This Version")).toBeInTheDocument();
-  expect(screen.getByText("Repairer is the latest visible agent shaping the selected cut for this iteration.")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "Repairer is the latest visible agent shaping the selected cut for this iteration."
+    )
+  ).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Decision Notes" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Artifact Lineage" })).toBeInTheDocument();
   expect(screen.getByText("result-1 -> result-2")).toBeInTheDocument();
@@ -1170,25 +1216,35 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(screen.getByRole("heading", { name: "Rationale Snapshots" })).toBeInTheDocument();
   expect(screen.getByText("Why the current revision is selected")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Iteration Compare" })).toBeInTheDocument();
-  expect(screen.getAllByText("Selected cut with a slower title entrance.").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Selected cut with a slower title entrance.").length).toBeGreaterThan(
+    0
+  );
   expect(
     screen.getByText(
       "The previous cut established the baseline circle motion. The current revision shifts toward a more deliberate title entrance because the owner asked to slow the opener."
     )
   ).toBeInTheDocument();
   expect(
-    screen.getByText("Participant continuity changed from Planner to Repairer between the compared iterations.")
+    screen.getByText(
+      "Participant continuity changed from Planner to Repairer between the compared iterations."
+    )
   ).toBeInTheDocument();
   expect(screen.getByText("Recommended next move")).toBeInTheDocument();
   expect(screen.getByText("Production Journal")).toBeInTheDocument();
   expect(screen.getByText("Selected result recorded")).toBeInTheDocument();
-  expect(screen.getByText("Continue 'Why this pacing?' with Repairer while staying on the active iteration.")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "Continue 'Why this pacing?' with Repairer while staying on the active iteration."
+    )
+  ).toBeInTheDocument();
   expect(screen.getAllByText("Why this pacing?").length).toBeGreaterThan(1);
   expect(screen.getByText("Continuity: iteration")).toBeInTheDocument();
   expect(screen.getByText("Reply policy: continue_thread")).toBeInTheDocument();
   expect(screen.getByText("Participant Runtime")).toBeInTheDocument();
   expect(
-    screen.getByText("Repairer is currently expected to respond, while Planner also shaped the active iteration.")
+    screen.getByText(
+      "Repairer is currently expected to respond, while Planner also shaped the active iteration."
+    )
   ).toBeInTheDocument();
   expect(screen.getByText("Continuity mode: keep_current_participant")).toBeInTheDocument();
   expect(screen.getByText("Locked target: yes")).toBeInTheDocument();
@@ -1207,22 +1263,28 @@ test("video thread page renders the collaboration workbench from thread surface"
   expect(screen.getAllByText("Intent: request_explanation").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Replies to: turn-1").length).toBeGreaterThan(0);
   expect(
-    screen.getByText("Review the latest selected result, then request a focused revision or record a note.")
+    screen.getByText(
+      "Review the latest selected result, then request a focused revision or record a note."
+    )
   ).toBeInTheDocument();
   expect(screen.getByText("Participants")).toBeInTheDocument();
   expect(screen.getByText("Owner participant controls")).toBeInTheDocument();
   expect(
-    screen.getByText(
-      "Invite reviewers or helper agents into this thread."
-    )
+    screen.getByText("Invite reviewers or helper agents into this thread.")
   ).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Invite participant" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Request revision" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Ask why" })).toBeInTheDocument();
-  expect(screen.getByText("Create the next revision from the selected result and current goal.")).toBeInTheDocument();
-  expect(screen.getByText("The selected cut is ready for review or a focused revision request.")).toBeInTheDocument();
   expect(
-    screen.getByText("New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.")
+    screen.getByText("Create the next revision from the selected result and current goal.")
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("The selected cut is ready for review or a focused revision request.")
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer."
+    )
   ).toBeInTheDocument();
   expect(within(discussion).getAllByText("Reply target: Repairer").length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
@@ -1235,7 +1297,9 @@ test("video thread page renders the collaboration workbench from thread surface"
   });
   expect(screen.getByText("Focus result: result-1")).toBeInTheDocument();
   expect(
-    screen.getByText("New messages will attach to iter-1, stay anchored to result-1, and hand off to Planner.")
+    screen.getByText(
+      "New messages will attach to iter-1, stay anchored to result-1, and hand off to Planner."
+    )
   ).toBeInTheDocument();
   expect(within(discussion).getAllByText("Reply target: Planner").length).toBeGreaterThan(0);
 });
@@ -1263,7 +1327,8 @@ test("video thread page invites and removes participants from the owner panel", 
       },
       selection_summary: {
         title: "Why this version is selected",
-        summary: "The latest revision stays aligned with the owner goal and keeps the slower title entrance.",
+        summary:
+          "The latest revision stays aligned with the owner goal and keeps the slower title entrance.",
         selected_result_id: "result-2",
         author_display_name: "Repairer",
         author_role: "repairer",
@@ -1287,7 +1352,8 @@ test("video thread page invites and removes participants from the owner panel", 
       decision_notes: { title: "Decision Notes", items: [] },
       next_recommended_move: {
         title: "Recommended next move",
-        summary: "Review the latest selected result, then request a focused revision or record a note.",
+        summary:
+          "Review the latest selected result, then request a focused revision or record a note.",
         recommended_action_id: "request_revision",
         recommended_action_label: "Request revision",
         owner_action_required: "review_latest_result",
@@ -1351,8 +1417,21 @@ test("video thread page invites and removes participants from the owner panel", 
         panel_tone: "active",
         display_priority: "normal",
         badge_order: ["owner_action_required"],
-        panel_order: ["next_recommended_move", "decision_notes", "production_journal", "history", "participants", "composer"],
-        default_expanded_panels: ["next_recommended_move", "decision_notes", "production_journal", "history", "participants"],
+        panel_order: [
+          "next_recommended_move",
+          "decision_notes",
+          "production_journal",
+          "history",
+          "participants",
+          "composer",
+        ],
+        default_expanded_panels: [
+          "next_recommended_move",
+          "decision_notes",
+          "production_journal",
+          "history",
+          "participants",
+        ],
         sticky_primary_action_emphasis: "normal",
         panel_presentations: [
           {
@@ -1404,7 +1483,8 @@ test("video thread page invites and removes participants from the owner panel", 
       },
       selection_summary: {
         title: "Why this version is selected",
-        summary: "The latest revision stays aligned with the owner goal and keeps the slower title entrance.",
+        summary:
+          "The latest revision stays aligned with the owner goal and keeps the slower title entrance.",
         selected_result_id: "result-2",
         author_display_name: "Repairer",
         author_role: "repairer",
@@ -1428,7 +1508,8 @@ test("video thread page invites and removes participants from the owner panel", 
       decision_notes: { title: "Decision Notes", items: [] },
       next_recommended_move: {
         title: "Recommended next move",
-        summary: "Review the latest selected result, then request a focused revision or record a note.",
+        summary:
+          "Review the latest selected result, then request a focused revision or record a note.",
         recommended_action_id: "request_revision",
         recommended_action_label: "Request revision",
         owner_action_required: "review_latest_result",
@@ -1499,8 +1580,21 @@ test("video thread page invites and removes participants from the owner panel", 
         panel_tone: "active",
         display_priority: "normal",
         badge_order: ["owner_action_required"],
-        panel_order: ["next_recommended_move", "decision_notes", "production_journal", "history", "participants", "composer"],
-        default_expanded_panels: ["next_recommended_move", "decision_notes", "production_journal", "history", "participants"],
+        panel_order: [
+          "next_recommended_move",
+          "decision_notes",
+          "production_journal",
+          "history",
+          "participants",
+          "composer",
+        ],
+        default_expanded_panels: [
+          "next_recommended_move",
+          "decision_notes",
+          "production_journal",
+          "history",
+          "participants",
+        ],
         sticky_primary_action_emphasis: "normal",
         panel_presentations: [
           {
@@ -1552,7 +1646,8 @@ test("video thread page invites and removes participants from the owner panel", 
       },
       selection_summary: {
         title: "Why this version is selected",
-        summary: "The latest revision stays aligned with the owner goal and keeps the slower title entrance.",
+        summary:
+          "The latest revision stays aligned with the owner goal and keeps the slower title entrance.",
         selected_result_id: "result-2",
         author_display_name: "Repairer",
         author_role: "repairer",
@@ -1576,7 +1671,8 @@ test("video thread page invites and removes participants from the owner panel", 
       decision_notes: { title: "Decision Notes", items: [] },
       next_recommended_move: {
         title: "Recommended next move",
-        summary: "Review the latest selected result, then request a focused revision or record a note.",
+        summary:
+          "Review the latest selected result, then request a focused revision or record a note.",
         recommended_action_id: "request_revision",
         recommended_action_label: "Request revision",
         owner_action_required: "review_latest_result",
@@ -1640,8 +1736,21 @@ test("video thread page invites and removes participants from the owner panel", 
         panel_tone: "active",
         display_priority: "normal",
         badge_order: ["owner_action_required"],
-        panel_order: ["next_recommended_move", "decision_notes", "production_journal", "history", "participants", "composer"],
-        default_expanded_panels: ["next_recommended_move", "decision_notes", "production_journal", "history", "participants"],
+        panel_order: [
+          "next_recommended_move",
+          "decision_notes",
+          "production_journal",
+          "history",
+          "participants",
+          "composer",
+        ],
+        default_expanded_panels: [
+          "next_recommended_move",
+          "decision_notes",
+          "production_journal",
+          "history",
+          "participants",
+        ],
         sticky_primary_action_emphasis: "normal",
         panel_presentations: [
           {
@@ -1686,7 +1795,10 @@ test("video thread page invites and removes participants from the owner panel", 
       body: typeof init?.body === "string" ? init.body : null,
     });
 
-    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
       surfaceIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -1712,7 +1824,10 @@ test("video thread page invites and removes participants from the owner panel", 
       );
     }
 
-    if (path === "/api/video-threads/thread-1/participants/reviewer-1" && init?.method === "DELETE") {
+    if (
+      path === "/api/video-threads/thread-1/participants/reviewer-1" &&
+      init?.method === "DELETE"
+    ) {
       return new Response(JSON.stringify({ thread_id: "thread-1", removed: true }), {
         status: 200,
         headers: { "content-type": "application/json" },
@@ -1755,7 +1870,9 @@ test("video thread page invites and removes participants from the owner panel", 
   await user.click(screen.getByRole("button", { name: "Remove participant Reviewer" }));
 
   await waitFor(() => {
-    expect(screen.queryByRole("button", { name: "Remove participant Reviewer" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove participant Reviewer" })
+    ).not.toBeInTheDocument();
   });
   expect(
     requests.some(
@@ -1779,7 +1896,10 @@ test("video thread page routes discussion actions through the selected composer 
       body: typeof init?.body === "string" ? init.body : null,
     });
 
-    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       return new Response(
         JSON.stringify({
           thread_header: {
@@ -1817,8 +1937,18 @@ test("video thread page routes discussion actions through the selected composer 
             source_turn_id: "turn-2",
           },
           decision_notes: { title: "Decision Notes", items: [] },
-          artifact_lineage: { title: "Artifact Lineage", summary: "", selected_result_id: "result-1", items: [] },
-          rationale_snapshots: { title: "Rationale Snapshots", summary: "", current_iteration_id: "iter-1", items: [] },
+          artifact_lineage: {
+            title: "Artifact Lineage",
+            summary: "",
+            selected_result_id: "result-1",
+            items: [],
+          },
+          rationale_snapshots: {
+            title: "Rationale Snapshots",
+            summary: "",
+            current_iteration_id: "iter-1",
+            items: [],
+          },
           next_recommended_move: {
             title: "Recommended next move",
             summary: "Record focused feedback for the shaping agent.",
@@ -1936,7 +2066,8 @@ test("video thread page routes discussion actions through the selected composer 
               addressed_display_name: "Repairer",
               agent_role: "repairer",
               agent_display_name: "Repairer",
-              summary: "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
+              summary:
+                "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
             },
           },
           render_contract: {
@@ -1963,7 +2094,10 @@ test("video thread page routes discussion actions through the selected composer 
       );
     }
 
-    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1" &&
+      (!init?.method || init.method === "GET")
+    ) {
       return new Response(
         JSON.stringify({
           thread_id: "thread-1",
@@ -1972,7 +2106,8 @@ test("video thread page routes discussion actions through the selected composer 
           summary: "This iteration carries the latest owner feedback and selected result.",
           execution_summary: {
             title: "Execution Summary",
-            summary: "Repairer is currently repairing for task task-1 while shaping result result-1.",
+            summary:
+              "Repairer is currently repairing for task task-1 while shaping result result-1.",
             task_id: "task-1",
             run_id: "thread-run:task-1",
             status: "running",
@@ -1995,7 +2130,8 @@ test("video thread page routes discussion actions through the selected composer 
             addressed_display_name: "Repairer",
             agent_role: "repairer",
             agent_display_name: "Repairer",
-            summary: "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
+            summary:
+              "New messages will attach to iter-1, stay anchored to result-1, and hand off to Repairer.",
           },
           iteration: {
             iteration_id: "iter-1",
@@ -2098,7 +2234,9 @@ test("video thread page routes discussion actions through the selected composer 
         (request) =>
           request.method === "POST" &&
           request.path === "/api/video-threads/thread-1/iterations/iter-1/request-revision" &&
-          request.body?.includes('"summary":"Please keep this pacing but make the title land softer."')
+          request.body?.includes(
+            '"summary":"Please keep this pacing but make the title land softer."'
+          )
       )
     ).toBe(true);
   });
@@ -2115,9 +2253,10 @@ test("video thread page routes discussion actions through the selected composer 
       requests.some(
         (request) =>
           request.method === "POST" &&
-          request.path ===
-            "/api/video-threads/thread-1/iterations/iter-1/request-explanation" &&
-          request.body?.includes('"summary":"Why does the current title entrance feel more deliberate?"')
+          request.path === "/api/video-threads/thread-1/iterations/iter-1/request-explanation" &&
+          request.body?.includes(
+            '"summary":"Why does the current title entrance feel more deliberate?"'
+          )
       )
     ).toBe(true);
   });
@@ -2187,7 +2326,8 @@ test("video thread page follows the refreshed iteration after requesting a revis
         previous_result_id: "result-1",
         current_result_id: "result-2",
         change_summary: "The current revision softens the title landing.",
-        rationale_shift_summary: "The owner asked to preserve the pacing while easing the final title beat.",
+        rationale_shift_summary:
+          "The owner asked to preserve the pacing while easing the final title beat.",
         continuity_status: "changed",
         continuity_summary: "The iteration focus moved from Repairer to Finisher.",
       },
@@ -2303,7 +2443,10 @@ test("video thread page follows the refreshed iteration after requesting a revis
       body: typeof init?.body === "string" ? init.body : null,
     });
 
-    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
       surfaceIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -2312,14 +2455,20 @@ test("video thread page follows the refreshed iteration after requesting a revis
       });
     }
 
-    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1" &&
+      (!init?.method || init.method === "GET")
+    ) {
       return new Response(JSON.stringify(createIterationDetail()), {
         status: 200,
         headers: { "content-type": "application/json" },
       });
     }
 
-    if (path === "/api/video-threads/thread-1/iterations/iter-2" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-2" &&
+      (!init?.method || init.method === "GET")
+    ) {
       return new Response(
         JSON.stringify(
           createIterationDetail({
@@ -2416,7 +2565,10 @@ test("video thread page follows the refreshed iteration after requesting a revis
   expect(await screen.findByText("Initial iteration detail.")).toBeInTheDocument();
 
   const discussion = screen.getByRole("region", { name: "Discussion" });
-  await user.type(within(discussion).getByLabelText("Request revision"), "Please soften the title landing.");
+  await user.type(
+    within(discussion).getByLabelText("Request revision"),
+    "Please soften the title landing."
+  );
   await user.click(within(discussion).getByRole("button", { name: "Send" }));
 
   await waitFor(() => {
@@ -2431,9 +2583,13 @@ test("video thread page follows the refreshed iteration after requesting a revis
   });
 
   await waitFor(() => {
-    expect(screen.getByText("Revision request opened iter-2 and shifted the live detail focus.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Revision request opened iter-2 and shifted the live detail focus.")
+    ).toBeInTheDocument();
   });
-  expect(screen.getByText("Finisher is now shaping result result-2 for task task-2.")).toBeInTheDocument();
+  expect(
+    screen.getByText("Finisher is now shaping result result-2 for task task-2.")
+  ).toBeInTheDocument();
   expect(within(discussion).getByText("Reply to: turn-9")).toBeInTheDocument();
   expect(within(discussion).getByText("Result: result-2")).toBeInTheDocument();
   expect(within(discussion).getAllByText("Reply target: Finisher").length).toBeGreaterThan(0);
@@ -2455,7 +2611,8 @@ test("video thread page refreshes the inspected iteration detail after adding a 
       current_focus: {
         current_iteration_id: "iter-1",
         current_result_id: "result-1",
-        current_result_summary: "Selected cut with a slower title entrance and recorded owner follow-up.",
+        current_result_summary:
+          "Selected cut with a slower title entrance and recorded owner follow-up.",
       },
       latest_explanation: {
         summary: "The latest note asked for a softer landing while preserving pacing.",
@@ -2537,7 +2694,10 @@ test("video thread page refreshes the inspected iteration detail after adding a 
       body: typeof init?.body === "string" ? init.body : null,
     });
 
-    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
       surfaceIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -2546,7 +2706,10 @@ test("video thread page refreshes the inspected iteration detail after adding a 
       });
     }
 
-    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = iter1Details[Math.min(iter1DetailIndex, iter1Details.length - 1)];
       iter1DetailIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -2591,7 +2754,11 @@ test("video thread page refreshes the inspected iteration detail after adding a 
   expect(await screen.findByRole("heading", { name: "Circle explainer" })).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Show process details" }));
   expect(await screen.findByText("Initial iteration detail.")).toBeInTheDocument();
-  expect(screen.getByText("Repairer is currently repairing for task task-1 while shaping result result-1.")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "Repairer is currently repairing for task task-1 while shaping result result-1."
+    )
+  ).toBeInTheDocument();
 
   const discussion = screen.getByRole("region", { name: "Discussion" });
   await user.click(within(discussion).getByRole("button", { name: "Add note" }));
@@ -2607,7 +2774,9 @@ test("video thread page refreshes the inspected iteration detail after adding a 
         (request) =>
           request.method === "POST" &&
           request.path === "/api/video-threads/thread-1/turns" &&
-          request.body?.includes('"title":"Please keep the pacing but soften the final title beat."')
+          request.body?.includes(
+            '"title":"Please keep the pacing but soften the final title beat."'
+          )
       )
     ).toBe(true);
   });
@@ -2660,7 +2829,8 @@ test("video thread page refreshes the inspected iteration detail after requestin
       },
       discussion_runtime: {
         default_reply_to_turn_id: "turn-11",
-        active_thread_summary: "The explanation response should stay attached to the selected iteration.",
+        active_thread_summary:
+          "The explanation response should stay attached to the selected iteration.",
       },
       composer: {
         target: {
@@ -2671,8 +2841,7 @@ test("video thread page refreshes the inspected iteration detail after requestin
           addressed_display_name: "Repairer",
           agent_role: "repairer",
           agent_display_name: "Repairer",
-          summary:
-            "The refreshed explanation keeps the composer anchored to iter-1 and result-1.",
+          summary: "The refreshed explanation keeps the composer anchored to iter-1 and result-1.",
         },
       },
     }),
@@ -2716,7 +2885,10 @@ test("video thread page refreshes the inspected iteration detail after requestin
       body: typeof init?.body === "string" ? init.body : null,
     });
 
-    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
       surfaceIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -2725,7 +2897,10 @@ test("video thread page refreshes the inspected iteration detail after requestin
       });
     }
 
-    if (path === "/api/video-threads/thread-1/iterations/iter-1" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-1" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = iter1Details[Math.min(iter1DetailIndex, iter1Details.length - 1)];
       iter1DetailIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -2834,8 +3009,18 @@ test("video thread page shows version cards with select and task actions", async
         primary_agent_role: "repairer",
       },
       decision_notes: { title: "Decision Notes", items: [] },
-      artifact_lineage: { title: "Artifact Lineage", summary: "", selected_result_id: "result-2", items: [] },
-      rationale_snapshots: { title: "Rationale Snapshots", summary: "", current_iteration_id: "iter-2", items: [] },
+      artifact_lineage: {
+        title: "Artifact Lineage",
+        summary: "",
+        selected_result_id: "result-2",
+        items: [],
+      },
+      rationale_snapshots: {
+        title: "Rationale Snapshots",
+        summary: "",
+        current_iteration_id: "iter-2",
+        items: [],
+      },
       iteration_compare: {
         title: "Iteration Compare",
         summary: "",
@@ -3057,8 +3242,18 @@ test("video thread page shows version cards with select and task actions", async
         primary_agent_role: "repairer",
       },
       decision_notes: { title: "Decision Notes", items: [] },
-      artifact_lineage: { title: "Artifact Lineage", summary: "", selected_result_id: "result-1", items: [] },
-      rationale_snapshots: { title: "Rationale Snapshots", summary: "", current_iteration_id: "iter-2", items: [] },
+      artifact_lineage: {
+        title: "Artifact Lineage",
+        summary: "",
+        selected_result_id: "result-1",
+        items: [],
+      },
+      rationale_snapshots: {
+        title: "Rationale Snapshots",
+        summary: "",
+        current_iteration_id: "iter-2",
+        items: [],
+      },
       iteration_compare: {
         title: "Iteration Compare",
         summary: "",
@@ -3223,7 +3418,8 @@ test("video thread page shows version cards with select and task actions", async
           addressed_display_name: "Repairer",
           agent_role: "repairer",
           agent_display_name: "Repairer",
-          summary: "New messages will attach to iter-2, stay anchored to result-1, and hand off to Repairer.",
+          summary:
+            "New messages will attach to iter-2, stay anchored to result-1, and hand off to Repairer.",
         },
       },
       render_contract: {
@@ -3279,7 +3475,8 @@ test("video thread page shows version cards with select and task actions", async
         addressed_display_name: "Repairer",
         agent_role: "repairer",
         agent_display_name: "Repairer",
-        summary: "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.",
+        summary:
+          "New messages will attach to iter-2, stay anchored to result-2, and hand off to Repairer.",
       },
       iteration: {
         iteration_id: "iter-2",
@@ -3354,7 +3551,8 @@ test("video thread page shows version cards with select and task actions", async
         addressed_display_name: "Repairer",
         agent_role: "repairer",
         agent_display_name: "Repairer",
-        summary: "New messages will attach to iter-2, stay anchored to result-1, and hand off to Repairer.",
+        summary:
+          "New messages will attach to iter-2, stay anchored to result-1, and hand off to Repairer.",
       },
       iteration: {
         iteration_id: "iter-2",
@@ -3409,7 +3607,10 @@ test("video thread page shows version cards with select and task actions", async
       body: typeof init?.body === "string" ? init.body : null,
     });
 
-    if (path === "/api/video-threads/thread-1/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = surfaces[Math.min(surfaceIndex, surfaces.length - 1)];
       surfaceIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -3418,7 +3619,10 @@ test("video thread page shows version cards with select and task actions", async
       });
     }
 
-    if (path === "/api/video-threads/thread-1/iterations/iter-2" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-1/iterations/iter-2" &&
+      (!init?.method || init.method === "GET")
+    ) {
       const payload = iter2Details[Math.min(iter2DetailIndex, iter2Details.length - 1)];
       iter2DetailIndex += 1;
       return new Response(JSON.stringify(payload), {
@@ -3489,18 +3693,22 @@ test("video thread page shows version cards with select and task actions", async
   );
   const versions = screen.getByRole("region", { name: "Versions" });
   expect(within(versions).getByRole("heading", { name: "Versions" })).toBeInTheDocument();
-  expect(within(versions).getAllByText("Earlier cut with a sharper title entrance.").length).toBeGreaterThan(0);
-  expect(within(versions).getByRole("link", { name: "Open task detail for result-1" })).toHaveAttribute(
-    "href",
-    "/tasks/task-1"
-  );
-  expect(within(versions).getByRole("link", { name: "Download video for result-1" })).toHaveAttribute(
-    "href",
-    "/api/tasks/task-1/artifacts/final_video.mp4"
-  );
-  expect(within(versions).getByRole("button", { name: "Set as current version result-1" })).toBeInTheDocument();
+  expect(
+    within(versions).getAllByText("Earlier cut with a sharper title entrance.").length
+  ).toBeGreaterThan(0);
+  expect(
+    within(versions).getByRole("link", { name: "Open task detail for result-1" })
+  ).toHaveAttribute("href", "/tasks/task-1");
+  expect(
+    within(versions).getByRole("link", { name: "Download video for result-1" })
+  ).toHaveAttribute("href", "/api/tasks/task-1/artifacts/final_video.mp4");
+  expect(
+    within(versions).getByRole("button", { name: "Set as current version result-1" })
+  ).toBeInTheDocument();
 
-  await user.click(within(versions).getByRole("button", { name: "Set as current version result-1" }));
+  await user.click(
+    within(versions).getByRole("button", { name: "Set as current version result-1" })
+  );
 
   await waitFor(() => {
     expect(

@@ -165,7 +165,9 @@ export function MemoryPageV2() {
     try {
       const payload = await retrieveMemories(retrievalQuery.trim(), sessionToken);
       setRetrievalHits(Array.isArray(payload.items) ? payload.items : []);
-      announcePolite(`Retrieved ${Array.isArray(payload.items) ? payload.items.length : 0} memory diagnostics`);
+      announcePolite(
+        `Retrieved ${Array.isArray(payload.items) ? payload.items.length : 0} memory diagnostics`
+      );
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "memory_retrieval_failed";
       setActionError(errorMsg);
@@ -365,7 +367,9 @@ export function MemoryPageV2() {
             </div>
           ) : (
             <div className="memory-content">
-              <p className="memory-summary">Run a retrieval query to inspect matched terms and ranking reasons.</p>
+              <p className="memory-summary">
+                Run a retrieval query to inspect matched terms and ranking reasons.
+              </p>
             </div>
           )}
         </div>

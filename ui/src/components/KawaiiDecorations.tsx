@@ -34,28 +34,28 @@ export function TwinklingStars() {
   return (
     <div className="twinkling-stars" aria-hidden="true">
       <div className="star star-1">
-        <Star size={16} fill="#FFD700" color="#FFD700" />
+        <Star size={16} fill="var(--color-lemon-500)" color="var(--color-lemon-500)" />
       </div>
       <div className="star star-2">
-        <Star size={12} fill="#FF6B8A" color="#FF6B8A" />
+        <Star size={12} fill="var(--color-pink-500)" color="var(--color-pink-500)" />
       </div>
       <div className="star star-3">
-        <Star size={20} fill="#A8E6CF" color="#A8E6CF" />
+        <Star size={20} fill="var(--color-mint-200)" color="var(--color-mint-200)" />
       </div>
       <div className="star star-4">
-        <Star size={14} fill="#DDA0DD" color="#DDA0DD" />
+        <Star size={14} fill="var(--color-lavender-200)" color="var(--color-lavender-200)" />
       </div>
       <div className="star star-5">
-        <Star size={18} fill="#FFCBA4" color="#FFCBA4" />
+        <Star size={18} fill="var(--color-peach-200)" color="var(--color-peach-200)" />
       </div>
       <div className="star star-6">
-        <Star size={10} fill="#FFD700" color="#FFD700" />
+        <Star size={10} fill="var(--color-lemon-500)" color="var(--color-lemon-500)" />
       </div>
       <div className="star star-7">
-        <Sparkles size={16} color="#FFD700" />
+        <Sparkles size={16} color="var(--color-lemon-500)" />
       </div>
       <div className="star star-8">
-        <Sparkles size={14} color="#FF6B8A" />
+        <Sparkles size={14} color="var(--color-pink-500)" />
       </div>
     </div>
   );

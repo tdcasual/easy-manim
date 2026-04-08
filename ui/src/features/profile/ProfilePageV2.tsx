@@ -310,7 +310,9 @@ function formatCountSummary(counts?: Record<string, number>) {
 }
 
 function formatRoleStatusSummary(roleStatusCounts?: Record<string, Record<string, number>>) {
-  const entries = Object.entries(roleStatusCounts ?? {}).sort(([left], [right]) => left.localeCompare(right));
+  const entries = Object.entries(roleStatusCounts ?? {}).sort(([left], [right]) =>
+    left.localeCompare(right)
+  );
   if (!entries.length) return "none";
   return entries.map(([role, counts]) => `${role} [${formatCountSummary(counts)}]`).join(" | ");
 }
@@ -393,13 +395,14 @@ export function ProfilePageV2() {
     if (!sessionToken) return;
     startLoading();
     try {
-      const [nextProfile, nextScorecard, nextRuntimeStatus, nextSuggestions, nextStrategies] = await Promise.all([
-        getProfile(sessionToken),
-        getProfileScorecard(sessionToken),
-        getRuntimeStatus(sessionToken),
-        listProfileSuggestions(sessionToken),
-        listProfileStrategies(sessionToken),
-      ]);
+      const [nextProfile, nextScorecard, nextRuntimeStatus, nextSuggestions, nextStrategies] =
+        await Promise.all([
+          getProfile(sessionToken),
+          getProfileScorecard(sessionToken),
+          getRuntimeStatus(sessionToken),
+          listProfileSuggestions(sessionToken),
+          listProfileStrategies(sessionToken),
+        ]);
       setProfile(nextProfile);
       setScorecard(nextScorecard);
       setRuntimeStatus(nextRuntimeStatus);
@@ -641,13 +644,15 @@ export function ProfilePageV2() {
                     <div className="memory-meta">
                       <span>Provider: {runtimeStatus.provider.mode}</span>
                       <span>
-                        MathTeX: {runtimeStatus.features.mathtex?.available ? "available" : "missing"}
+                        MathTeX:{" "}
+                        {runtimeStatus.features.mathtex?.available ? "available" : "missing"}
                       </span>
                     </div>
                     {runtimeStatus.autonomy_guard?.enabled ? (
                       <div className="memory-meta">
                         <span>
-                          Guarded autonomy: {runtimeStatus.autonomy_guard.allowed ? "allowed" : "blocked"}
+                          Guarded autonomy:{" "}
+                          {runtimeStatus.autonomy_guard.allowed ? "allowed" : "blocked"}
                         </span>
                         {runtimeStatus.autonomy_guard.reasons.length ? (
                           <span>{runtimeStatus.autonomy_guard.reasons.join(", ")}</span>
@@ -658,15 +663,20 @@ export function ProfilePageV2() {
                       <>
                         <div className="memory-meta">
                           <span>
-                            Delivery rate: {(runtimeStatus.delivery_summary.delivery_rate * 100).toFixed(0)}%
+                            Delivery rate:{" "}
+                            {(runtimeStatus.delivery_summary.delivery_rate * 100).toFixed(0)}%
                           </span>
                           <span>
-                            Cases: {formatCountSummary(runtimeStatus.delivery_summary.case_status_counts)}
+                            Cases:{" "}
+                            {formatCountSummary(runtimeStatus.delivery_summary.case_status_counts)}
                           </span>
                         </div>
                         <div className="memory-meta">
                           <span>
-                            Agent runs: {formatCountSummary(runtimeStatus.delivery_summary.agent_run_status_counts)}
+                            Agent runs:{" "}
+                            {formatCountSummary(
+                              runtimeStatus.delivery_summary.agent_run_status_counts
+                            )}
                           </span>
                           <span>
                             Agent roles:{" "}
@@ -685,22 +695,29 @@ export function ProfilePageV2() {
                         </div>
                         <div className="memory-meta">
                           <span>
-                            Completion modes: {formatCountSummary(runtimeStatus.delivery_summary.completion_modes)}
+                            Completion modes:{" "}
+                            {formatCountSummary(runtimeStatus.delivery_summary.completion_modes)}
                           </span>
                         </div>
                         <div className="memory-meta">
                           <span>
-                            Arbitration success: {(runtimeStatus.delivery_summary.arbitration_success_rate * 100).toFixed(0)}%
+                            Arbitration success:{" "}
+                            {(
+                              runtimeStatus.delivery_summary.arbitration_success_rate * 100
+                            ).toFixed(0)}
+                            %
                           </span>
                         </div>
                       </>
                     ) : null}
                     <ul>
-                      {Object.entries(runtimeStatus.capabilities.effective).map(([key, enabled]) => (
-                        <li key={key}>
-                          {formatCapabilityLabel(key)}: {enabled ? "enabled" : "disabled"}
-                        </li>
-                      ))}
+                      {Object.entries(runtimeStatus.capabilities.effective).map(
+                        ([key, enabled]) => (
+                          <li key={key}>
+                            {formatCapabilityLabel(key)}: {enabled ? "enabled" : "disabled"}
+                          </li>
+                        )
+                      )}
                     </ul>
                   </div>
                 )}
@@ -745,11 +762,17 @@ export function ProfilePageV2() {
                           </p>
                           <div className="memory-meta">
                             <span>
-                              Evidence: {formatSupportSummary(suggestion.rationale.supporting_evidence_counts)}
+                              Evidence:{" "}
+                              {formatSupportSummary(
+                                suggestion.rationale.supporting_evidence_counts
+                              )}
                             </span>
                             {suggestion.rationale.conflicts?.length ? (
                               <span>
-                                Conflicts: {suggestion.rationale.conflicts.map((item) => item.field).join(", ")}
+                                Conflicts:{" "}
+                                {suggestion.rationale.conflicts
+                                  .map((item) => item.field)
+                                  .join(", ")}
                               </span>
                             ) : null}
                           </div>
@@ -771,7 +794,9 @@ export function ProfilePageV2() {
                       {strategies.slice(0, 4).map((strategy) => {
                         const guardedRollout = strategy.guarded_rollout ?? {};
                         const lastEvalRun = strategy.last_eval_run ?? {};
-                        const shadowPasses = Number(guardedRollout["consecutive_shadow_passes"] ?? 0);
+                        const shadowPasses = Number(
+                          guardedRollout["consecutive_shadow_passes"] ?? 0
+                        );
                         const rollbackArmed = Boolean(guardedRollout["rollback_armed"] ?? false);
                         const promotionMode = String(lastEvalRun["promotion_mode"] ?? "shadow");
                         return (

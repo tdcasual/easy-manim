@@ -92,8 +92,8 @@
 }
 
 .closeButton {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
   border: none;
   background: var(--glass-white);
@@ -111,6 +111,11 @@
   color: var(--color-pink-600);
   transform: rotate(90deg) scale(1.1);
   box-shadow: var(--shadow-glow-pink);
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid var(--color-pink-400);
+  outline-offset: 2px;
 }
 
 /* 列表区域 */

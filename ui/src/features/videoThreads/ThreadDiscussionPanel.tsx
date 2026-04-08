@@ -66,26 +66,37 @@ export function ThreadDiscussionPanel({
       <div className="thread-discussion-panel__header">
         <div>
           <h2>Discussion</h2>
-          <p>{discussionRuntime.summary || surface.composer.context_hint || "Discuss the selected version here."}</p>
+          <p>
+            {discussionRuntime.summary ||
+              surface.composer.context_hint ||
+              "Discuss the selected version here."}
+          </p>
         </div>
         <div className="video-thread-workbench__chip-list">
           <span className="video-thread-workbench__chip">
-            Thread: {discussionRuntime.active_thread_title || "Open discussion"}
+            Thread: {discussionRuntime.active_thread_title ?? "Open discussion"}
           </span>
           <span className="video-thread-workbench__chip">Reply target: {replyTarget}</span>
           <span className="video-thread-workbench__chip">
-            Iteration: {activeComposerTarget?.iteration_id || discussionRuntime.active_iteration_id || "thread"}
+            Iteration:{" "}
+            {activeComposerTarget?.iteration_id ??
+              discussionRuntime.active_iteration_id ??
+              "thread"}
           </span>
         </div>
       </div>
 
-      {discussionRuntime.active_thread_summary ? <p>{discussionRuntime.active_thread_summary}</p> : null}
+      {discussionRuntime.active_thread_summary ? (
+        <p>{discussionRuntime.active_thread_summary}</p>
+      ) : null}
 
       <div className="thread-discussion-panel__context video-thread-workbench__intent-meta">
         <span className="video-thread-workbench__meta">
-          Reply to: {composerReplyToTurnId || "start a new turn"}
+          Reply to: {composerReplyToTurnId ?? "start a new turn"}
         </span>
-        <span className="video-thread-workbench__meta">Result: {composerResultId || "thread-wide"}</span>
+        <span className="video-thread-workbench__meta">
+          Result: {composerResultId ?? "thread-wide"}
+        </span>
         <span className="video-thread-workbench__meta">
           Continuity: {discussionRuntime.continuity_scope}
         </span>
@@ -105,7 +116,7 @@ export function ThreadDiscussionPanel({
               {group.prompt_summary ? <p>{group.prompt_summary}</p> : null}
               <div className="video-thread-workbench__intent-meta">
                 <span className="video-thread-workbench__meta">
-                  Prompt by: {group.prompt_actor_display_name || group.prompt_actor_role || "Owner"}
+                  Prompt by: {group.prompt_actor_display_name ?? group.prompt_actor_role ?? "Owner"}
                 </span>
                 {group.prompt_intent_type ? (
                   <span className="video-thread-workbench__meta">
@@ -124,7 +135,7 @@ export function ThreadDiscussionPanel({
                     <article key={reply.turn_id} className="video-thread-workbench__reply">
                       <div className="video-thread-workbench__turn-row">
                         <strong>{reply.title}</strong>
-                        <span>{reply.speaker_display_name || reply.speaker_role || "Agent"}</span>
+                        <span>{reply.speaker_display_name ?? reply.speaker_role ?? "Agent"}</span>
                       </div>
                       {reply.summary ? <p>{reply.summary}</p> : null}
                     </article>
@@ -142,7 +153,7 @@ export function ThreadDiscussionPanel({
             <article key={turn.turn_id} className="video-thread-workbench__turn">
               <div className="video-thread-workbench__turn-row">
                 <strong>{turn.title}</strong>
-                <span>{turn.speaker_role || turn.speaker_type}</span>
+                <span>{turn.speaker_role ?? turn.speaker_type}</span>
               </div>
               {turn.summary ? <p>{turn.summary}</p> : null}
               <div className="video-thread-workbench__intent-meta">
@@ -172,7 +183,9 @@ export function ThreadDiscussionPanel({
               key={action.action_id}
               type="button"
               className={`video-thread-workbench__action ${
-                activeActionId === action.action_id ? "video-thread-workbench__action--selected" : ""
+                activeActionId === action.action_id
+                  ? "video-thread-workbench__action--selected"
+                  : ""
               }`}
               onClick={() => onSelectAction(action.action_id)}
               disabled={action.disabled || submitting}
@@ -206,7 +219,9 @@ export function ThreadDiscussionPanel({
             type="button"
             className={`video-thread-workbench__submit video-thread-workbench__submit--${surface.render_contract.sticky_primary_action_emphasis}`}
             onClick={onSubmit}
-            disabled={submitting || surface.composer.disabled || !draft.trim() || selectedAction?.disabled}
+            disabled={
+              submitting || surface.composer.disabled || !draft.trim() || selectedAction?.disabled
+            }
           >
             {surface.composer.submit_label}
           </button>

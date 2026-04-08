@@ -21,7 +21,10 @@ test("authenticated access to /threads/:threadId reaches the video thread page",
   // @ts-expect-error - test shim
   globalThis.fetch = async (url: string, init?: RequestInit) => {
     const path = new URL(String(url), "http://example.test").pathname;
-    if (path === "/api/video-threads/thread-target-001/surface" && (!init?.method || init.method === "GET")) {
+    if (
+      path === "/api/video-threads/thread-target-001/surface" &&
+      (!init?.method || init.method === "GET")
+    ) {
       // Keep the route in loading state so the test only verifies route reachability.
       return new Promise<Response>(() => {});
     }

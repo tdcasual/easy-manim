@@ -20,20 +20,20 @@
 }
 
 .cloud svg {
-  filter: drop-shadow(0 4px 8px rgba(255, 183, 197, 0.3));
+  filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--color-pink-200) 30%, transparent));
 }
 
 .cloud-1 {
   top: 10%;
   left: -10%;
-  color: rgba(255, 183, 197, 0.6);
+  color: color-mix(in srgb, var(--color-pink-200) 60%, transparent);
   animation-duration: 25s;
 }
 
 .cloud-2 {
   top: 25%;
   right: -5%;
-  color: rgba(168, 230, 207, 0.5);
+  color: color-mix(in srgb, var(--color-mint-200) 50%, transparent);
   animation-duration: 30s;
   animation-direction: reverse;
 }
@@ -41,14 +41,14 @@
 .cloud-3 {
   top: 60%;
   left: -15%;
-  color: rgba(168, 216, 234, 0.5);
+  color: color-mix(in srgb, var(--color-sky-200) 50%, transparent);
   animation-duration: 35s;
 }
 
 .cloud-4 {
   top: 75%;
   right: -10%;
-  color: rgba(221, 160, 221, 0.4);
+  color: color-mix(in srgb, var(--color-lavender-200) 40%, transparent);
   animation-duration: 28s;
   animation-direction: reverse;
 }
@@ -56,7 +56,7 @@
 .cloud-5 {
   top: 40%;
   left: -5%;
-  color: rgba(255, 203, 164, 0.5);
+  color: color-mix(in srgb, var(--color-peach-200) 50%, transparent);
   animation-duration: 32s;
 }
 
@@ -244,7 +244,7 @@
 .bubble {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(255, 183, 197, 0.3));
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), color-mix(in srgb, var(--color-pink-200) 30%, transparent));
   animation: bubble-rise linear infinite;
 }
 
@@ -404,7 +404,7 @@
 }
 
 [data-theme="night"] .bubble {
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(255, 143, 163, 0.2));
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), color-mix(in srgb, var(--color-pink-300) 20%, transparent));
 }
 
 [data-theme="night"] .orb-pink {

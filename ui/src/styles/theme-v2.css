@@ -1,6 +1,7 @@
 /* ========================================
    easy-manim UI V2 - Deep Ocean Glass Theme
    ======================================== */
+/* Legacy non-runtime theme reference. The active app entry mounts tokens.css, ghibli-theme.css, and page-shell-v2.css instead. */
 
 :root {
   /* 主色调 - 深海蓝 */
@@ -305,7 +306,8 @@ body::after {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   transition: all 0.2s var(--ease-out);
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
 }
 
 .input::placeholder,
@@ -526,7 +528,7 @@ body::after {
    ======================================== */
 
 /* 全局焦点样式 */
-*:focus {
+*:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -586,9 +588,9 @@ a:focus-visible {
   transition: top 0.3s;
 }
 
-.skip-link:focus {
+.skip-link:focus-visible {
   top: 0;
-  outline: none;
+  outline: 2px solid var(--accent-cyan);
 }
 
 /* 语言切换 */
@@ -621,6 +623,11 @@ a:focus-visible {
 .locale-toggle-btn:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.locale-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
 }
 
 .locale-toggle-btn.active {

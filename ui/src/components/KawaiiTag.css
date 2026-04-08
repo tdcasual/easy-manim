@@ -3,6 +3,21 @@
  * 圆润、可爱、有弹性
  */
 
+.kawaii-tag,
+.kawaii-count-tag {
+  --kawaii-tag-shadow-rest: 0 2px 0 color-mix(in srgb, var(--primary-950) 10%, transparent);
+  --kawaii-tag-shadow-hover: 0 4px 0 color-mix(in srgb, var(--primary-950) 10%, transparent);
+  --kawaii-tag-shadow-active: 0 1px 0 color-mix(in srgb, var(--primary-950) 10%, transparent);
+  --kawaii-tag-close-surface: color-mix(in srgb, var(--primary-950) 10%, transparent);
+  --kawaii-tag-close-surface-hover: color-mix(in srgb, var(--primary-950) 20%, transparent);
+  --kawaii-tag-badge-surface: linear-gradient(
+    135deg,
+    var(--color-error-400) 0%,
+    var(--color-error-700) 100%
+  );
+  --kawaii-tag-badge-shadow: 0 2px 4px color-mix(in srgb, var(--primary-950) 20%, transparent);
+}
+
 /* 基础标签 */
 .kawaii-tag {
   display: inline-flex;
@@ -14,17 +29,17 @@
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: default;
   user-select: none;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--kawaii-tag-shadow-rest);
 }
 
 .kawaii-tag:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--kawaii-tag-shadow-hover);
 }
 
 .kawaii-tag:active {
   transform: translateY(0);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--kawaii-tag-shadow-active);
 }
 
 /* 尺寸变体 */
@@ -222,10 +237,10 @@
 @keyframes tag-pulse {
   0%,
   100% {
-    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: var(--kawaii-tag-shadow-rest);
   }
   50% {
-    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1), 0 0 20px currentColor;
+    box-shadow: var(--kawaii-tag-shadow-rest), 0 0 20px currentColor;
   }
 }
 
@@ -235,6 +250,7 @@
 }
 
 .kawaii-tag.closable .tag-close {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -242,7 +258,7 @@
   height: 18px;
   padding: 0;
   margin-left: 2px;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--kawaii-tag-close-surface);
   border: none;
   border-radius: 50%;
   color: inherit;
@@ -250,12 +266,25 @@
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   transition: all 0.2s;
 }
 
+.kawaii-tag.closable .tag-close::before {
+  content: "";
+  position: absolute;
+  inset: -13px;
+  border-radius: 999px;
+}
+
 .kawaii-tag.closable .tag-close:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--kawaii-tag-close-surface-hover);
   transform: scale(1.1);
+}
+
+.kawaii-tag.closable .tag-close:focus-visible {
+  outline-color: currentColor;
 }
 
 /* 计数标签 */
@@ -271,15 +300,15 @@
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
-  border: 2px solid var(--surface-primary, #fff);
+  background: var(--kawaii-tag-badge-surface);
+  border: 2px solid var(--surface-primary);
   border-radius: 9px;
   color: white;
   font-size: 10px;
   font-weight: 700;
   line-height: 14px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--kawaii-tag-badge-shadow);
 }
 
 /* 标签组 */

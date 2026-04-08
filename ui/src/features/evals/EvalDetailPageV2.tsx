@@ -164,7 +164,9 @@ export function EvalDetailPageV2() {
                         {getStatusLabel(item.status, locale)}
                       </span>
                       {qualityPassed ? (
-                        <span className="case-badge completed">{t("evalDetail.qualityPassed")}</span>
+                        <span className="case-badge completed">
+                          {t("evalDetail.qualityPassed")}
+                        </span>
                       ) : deliveryPassed ? (
                         <span className="case-badge delivery-only">
                           {t("evalDetail.deliveryOnly")}
@@ -213,7 +215,9 @@ export function EvalDetailPageV2() {
                   <span className="case-id">{item.strategy_id}</span>
                   <div className="case-badges">
                     <span className="case-badge">{item.promotion_decision.mode ?? "shadow"}</span>
-                    <span className={`case-badge ${item.promotion_decision.approved ? "completed" : "failed"}`}>
+                    <span
+                      className={`case-badge ${item.promotion_decision.approved ? "completed" : "failed"}`}
+                    >
                       {item.promotion_decision.approved ? "approved" : "not approved"}
                     </span>
                   </div>
@@ -223,9 +227,7 @@ export function EvalDetailPageV2() {
                   <div className="case-stat">
                     Reasons: {item.promotion_decision.reasons.join(", ") || "no blockers"}
                   </div>
-                  <div className="case-issues">
-                    Recorded at: {item.recorded_at}
-                  </div>
+                  <div className="case-issues">Recorded at: {item.recorded_at}</div>
                 </div>
               </div>
             ))

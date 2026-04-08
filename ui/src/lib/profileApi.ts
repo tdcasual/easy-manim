@@ -76,13 +76,17 @@ export async function getProfileScorecard(token: string): Promise<ProfileScoreca
   return requestJson<ProfileScorecard>("/api/profile/scorecard", token, { method: "GET" });
 }
 
-export async function listProfileSuggestions(token: string): Promise<{ items: ProfileSuggestion[] }> {
+export async function listProfileSuggestions(
+  token: string
+): Promise<{ items: ProfileSuggestion[] }> {
   return requestJson<{ items: ProfileSuggestion[] }>("/api/profile/suggestions", token, {
     method: "GET",
   });
 }
 
-export async function listProfileStrategies(token: string): Promise<{ items: StrategyProfileSummary[] }> {
+export async function listProfileStrategies(
+  token: string
+): Promise<{ items: StrategyProfileSummary[] }> {
   return requestJson<{ items: StrategyProfileSummary[] }>("/api/profile/strategies", token, {
     method: "GET",
   });

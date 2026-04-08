@@ -3,7 +3,8 @@ import { createRoot } from "react-dom/client";
 import { AppRouter } from "./app/router";
 import { readLocale, syncDocumentLocale } from "./app/locale";
 
-// 导入设计系统样式（顺序很重要）
+// 导入运行时设计系统样式（顺序很重要）。
+// `theme-v2.css` 保留为遗留参考样式，当前运行时不直接挂载它。
 import "./styles/tokens.css";
 import "./styles/ghibli-theme.css";
 import "./styles/page-shell-v2.css";

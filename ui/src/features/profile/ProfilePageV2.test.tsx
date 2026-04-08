@@ -221,13 +221,21 @@ test("renders translated profile status", async () => {
   expect(screen.getByText(/guarded rollout: disabled/i)).toBeInTheDocument();
   expect(screen.getByText(/guarded autonomy: blocked/i)).toBeInTheDocument();
   expect(screen.getByText(/branch_rejection_rate_above_threshold/i)).toBeInTheDocument();
-  expect(screen.getByText(/cases: arbitrating 1 \| branching 2 \| completed 5/i)).toBeInTheDocument();
-  expect(screen.getByText(/agent runs: completed 6 \| failed 1 \| queued 2 \| running 1/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/cases: arbitrating 1 \| branching 2 \| completed 5/i)
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/agent runs: completed 6 \| failed 1 \| queued 2 \| running 1/i)
+  ).toBeInTheDocument();
   expect(
     screen.getByText(
       /agent roles: generator \[completed 4 \| failed 1 \| queued 2\] \| planner \[completed 5\] \| reviewer \[completed 5 \| running 1\]/i
     )
   ).toBeInTheDocument();
-  expect(screen.getByText(/agent stop reasons: provider_timeout 1 \| render_failed 2/i)).toBeInTheDocument();
-  expect(screen.getByText(/completion modes: emergency_fallback 1 \| primary 4 \| repaired 2/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/agent stop reasons: provider_timeout 1 \| render_failed 2/i)
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/completion modes: emergency_fallback 1 \| primary 4 \| repaired 2/i)
+  ).toBeInTheDocument();
 });

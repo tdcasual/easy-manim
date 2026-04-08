@@ -167,10 +167,7 @@ export type VideoThreadParticipantRuntime = {
   expected_agent_id?: string | null;
   expected_display_name?: string | null;
   expected_role?: string | null;
-  continuity_mode:
-    | "keep_current_participant"
-    | "invite_new_participant"
-    | "agent_choice";
+  continuity_mode: "keep_current_participant" | "invite_new_participant" | "agent_choice";
   follow_up_target_locked: boolean;
   recent_contributors: VideoThreadParticipantRuntimeContributor[];
 };
@@ -508,9 +505,13 @@ export async function getVideoThreadSurface(
   threadId: string,
   token: string
 ): Promise<VideoThreadSurface> {
-  return requestJson<VideoThreadSurface>(`/api/video-threads/${encodeURIComponent(threadId)}/surface`, token, {
-    method: "GET",
-  });
+  return requestJson<VideoThreadSurface>(
+    `/api/video-threads/${encodeURIComponent(threadId)}/surface`,
+    token,
+    {
+      method: "GET",
+    }
+  );
 }
 
 export async function getVideoThreadIteration(

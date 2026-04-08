@@ -15,32 +15,49 @@ interface OrbConfig {
   delay: number;
 }
 
-// 预定义的渐变配色方案
-const colorSchemes = {
+interface ColorScheme {
+  gradients: [string, string, string];
+  staticColors: [string, string, string];
+}
+
+// 预定义的渐变配色方案（使用设计系统语义 token）
+const colorSchemes: Record<string, ColorScheme> = {
   // 梦幻森林 - 绿紫粉
-  dreamy: [
-    "linear-gradient(135deg, #7cb342 0%, #4caf50 50%, #81c784 100%)",
-    "linear-gradient(135deg, #e040fb 0%, #9c27b0 50%, #ce93d8 100%)",
-    "linear-gradient(135deg, #ff80ab 0%, #f50057 50%, #ff4081 100%)",
-  ],
+  dreamy: {
+    gradients: [
+      "linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-mint-500) 50%, var(--color-mint-300) 100%)",
+      "linear-gradient(135deg, var(--color-lavender-400) 0%, var(--color-lavender-500) 50%, var(--color-lavender-300) 100%)",
+      "linear-gradient(135deg, var(--color-pink-300) 0%, var(--color-pink-500) 50%, var(--color-pink-400) 100%)",
+    ],
+    staticColors: ["var(--color-mint-400)", "var(--color-lavender-400)", "var(--color-pink-400)"],
+  },
   // 日落海滩 - 橙黄红
-  sunset: [
-    "linear-gradient(135deg, #ff9100 0%, #ff6d00 50%, #ffab40 100%)",
-    "linear-gradient(135deg, #ffeb3b 0%, #ffc107 50%, #ff9800 100%)",
-    "linear-gradient(135deg, #f44336 0%, #e91e63 50%, #ff5722 100%)",
-  ],
+  sunset: {
+    gradients: [
+      "linear-gradient(135deg, var(--color-peach-400) 0%, var(--color-peach-500) 50%, var(--color-peach-300) 100%)",
+      "linear-gradient(135deg, var(--color-lemon-400) 0%, var(--color-lemon-500) 50%, var(--color-peach-400) 100%)",
+      "linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-pink-500) 50%, var(--color-peach-500) 100%)",
+    ],
+    staticColors: ["var(--color-peach-400)", "var(--color-lemon-400)", "var(--color-pink-400)"],
+  },
   // 海洋天空 - 蓝青紫
-  ocean: [
-    "linear-gradient(135deg, #448aff 0%, #2979ff 50%, #82b1ff 100%)",
-    "linear-gradient(135deg, #00bcd4 0%, #0097a7 50%, #4dd0e1 100%)",
-    "linear-gradient(135deg, #7c4dff 0%, #651fff 50%, #b388ff 100%)",
-  ],
+  ocean: {
+    gradients: [
+      "linear-gradient(135deg, var(--color-sky-400) 0%, var(--color-sky-500) 50%, var(--color-sky-300) 100%)",
+      "linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-sky-500) 50%, var(--color-sky-400) 100%)",
+      "linear-gradient(135deg, var(--color-lavender-400) 0%, var(--color-lavender-500) 50%, var(--color-lavender-300) 100%)",
+    ],
+    staticColors: ["var(--color-sky-400)", "var(--color-mint-400)", "var(--color-lavender-400)"],
+  },
   // 极简黑白 - 灰白银
-  minimal: [
-    "linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 50%, #f5f5f5 100%)",
-    "linear-gradient(135deg, #9e9e9e 0%, #757575 50%, #e0e0e0 100%)",
-    "linear-gradient(135deg, #f5f5f5 0%, #ffffff 50%, #eeeeee 100%)",
-  ],
+  minimal: {
+    gradients: [
+      "linear-gradient(135deg, var(--color-cloud-300) 0%, var(--color-cloud-400) 50%, var(--color-cloud-200) 100%)",
+      "linear-gradient(135deg, var(--color-cloud-500) 0%, var(--color-cloud-600) 50%, var(--color-cloud-300) 100%)",
+      "linear-gradient(135deg, var(--color-cloud-200) 0%, var(--color-cloud-50) 50%, var(--color-cloud-100) 100%)",
+    ],
+    staticColors: ["var(--color-cloud-300)", "var(--color-cloud-500)", "var(--color-cloud-200)"],
+  },
 };
 
 interface GradientBackgroundProps {
@@ -74,7 +91,7 @@ export function GradientBackground({
 
   // 生成随机渐变球体配置
   useEffect(() => {
-    const colors = colorSchemes[scheme];
+    const colors = colorSchemes[scheme].gradients;
     const newOrbs: OrbConfig[] = [];
 
     for (let i = 0; i < orbCount; i++) {
@@ -102,15 +119,17 @@ export function GradientBackground({
   const baseOpacity = opacityMap[intensity];
 
   if (prefersReducedMotion) {
+    const [primaryColor, secondaryColor, tertiaryColor] = colorSchemes[scheme].staticColors;
+
     // 减少动画模式：静态渐变
     return (
       <div
         className="gradient-background-static"
         aria-hidden="true"
         style={{
-          background: `radial-gradient(ellipse at 20% 30%, ${colorSchemes[scheme][0]} 0%, transparent 50%),
-                       radial-gradient(ellipse at 80% 70%, ${colorSchemes[scheme][1]} 0%, transparent 50%),
-                       radial-gradient(ellipse at 50% 50%, ${colorSchemes[scheme][2]} 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse at 20% 30%, ${primaryColor} 0%, transparent 50%),
+                       radial-gradient(ellipse at 80% 70%, ${secondaryColor} 0%, transparent 50%),
+                       radial-gradient(ellipse at 50% 50%, ${tertiaryColor} 0%, transparent 70%)`,
           opacity: baseOpacity,
         }}
       />

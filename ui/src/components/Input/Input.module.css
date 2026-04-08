@@ -4,6 +4,22 @@
  * 圆润、柔和、可爱
  */
 
+.inputWrapper,
+.checkboxWrapper,
+.radioWrapper {
+  --input-focus-ring-pink: 0 0 0 4px color-mix(in srgb, var(--color-pink-300) 15%, transparent);
+  --input-focus-shadow-pink: 0 4px 12px color-mix(in srgb, var(--color-pink-300) 20%, transparent);
+  --input-focus-ring-mint: 0 0 0 4px color-mix(in srgb, var(--color-mint-300) 15%, transparent);
+  --input-focus-shadow-mint: 0 4px 12px color-mix(in srgb, var(--color-mint-300) 20%, transparent);
+  --input-focus-ring-sky: 0 0 0 4px color-mix(in srgb, var(--color-sky-300) 15%, transparent);
+  --input-focus-shadow-sky: 0 4px 12px color-mix(in srgb, var(--color-sky-300) 20%, transparent);
+  --input-focus-ring-lavender: 0 0 0 4px color-mix(in srgb, var(--color-lavender-300) 15%, transparent);
+  --input-focus-shadow-lavender: 0 4px 12px color-mix(in srgb, var(--color-lavender-300) 20%, transparent);
+  --input-error-surface: color-mix(in srgb, var(--color-error-500) 5%, transparent);
+  --input-error-ring: 0 0 0 4px color-mix(in srgb, var(--color-error-500) 10%, transparent);
+  --input-selection-ring: 0 0 0 3px color-mix(in srgb, var(--color-pink-300) 30%, transparent);
+}
+
 /* 输入框包装器 */
 .inputWrapper {
   display: flex;
@@ -41,14 +57,14 @@
   background: white;
   border-color: var(--color-pink-300);
   box-shadow: 
-    0 0 0 4px rgba(255, 183, 197, 0.15),
-    0 4px 12px rgba(255, 183, 197, 0.2);
+    var(--input-focus-ring-pink),
+    var(--input-focus-shadow-pink);
 }
 
 /* 尺寸 */
 .inputContainer.sm {
   padding: 8px 12px;
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 12px;
 }
 
@@ -96,22 +112,22 @@
 /* 粉彩边框变体 */
 .inputContainer.pink:focus-within {
   border-color: var(--color-pink-300);
-  box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.15), 0 4px 12px rgba(255, 183, 197, 0.2);
+  box-shadow: var(--input-focus-ring-pink), var(--input-focus-shadow-pink);
 }
 
 .inputContainer.mint:focus-within {
   border-color: var(--color-mint-300);
-  box-shadow: 0 0 0 4px rgba(168, 230, 207, 0.15), 0 4px 12px rgba(168, 230, 207, 0.2);
+  box-shadow: var(--input-focus-ring-mint), var(--input-focus-shadow-mint);
 }
 
 .inputContainer.sky:focus-within {
   border-color: var(--color-sky-300);
-  box-shadow: 0 0 0 4px rgba(168, 216, 234, 0.15), 0 4px 12px rgba(168, 216, 234, 0.2);
+  box-shadow: var(--input-focus-ring-sky), var(--input-focus-shadow-sky);
 }
 
 .inputContainer.lavender:focus-within {
   border-color: var(--color-lavender-300);
-  box-shadow: 0 0 0 4px rgba(221, 160, 221, 0.15), 0 4px 12px rgba(221, 160, 221, 0.2);
+  box-shadow: var(--input-focus-ring-lavender), var(--input-focus-shadow-lavender);
 }
 
 /* 图标 */
@@ -136,10 +152,16 @@
   min-width: 0;
   background: transparent;
   border: none;
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   font-family: inherit;
   font-size: inherit;
   color: var(--color-cloud-800);
+}
+
+.input:focus-visible {
+  outline-color: var(--color-pink-300);
+  border-radius: var(--radius-md);
 }
 
 .input::placeholder {
@@ -149,12 +171,12 @@
 /* 错误状态 */
 .inputContainer.error {
   border-color: var(--color-error-400);
-  background: rgba(239, 68, 68, 0.05);
+  background: var(--input-error-surface);
 }
 
 .inputContainer.error:focus-within {
   border-color: var(--color-error-500);
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  box-shadow: var(--input-error-ring);
 }
 
 .errorText {
@@ -200,13 +222,18 @@
   color: var(--color-cloud-800);
   resize: vertical;
   transition: all 0.3s var(--ease-kawaii);
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
 }
 
 .textarea:focus {
   background: white;
   border-color: var(--color-pink-300);
-  box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.15), 0 4px 12px rgba(255, 183, 197, 0.2);
+  box-shadow: var(--input-focus-ring-pink), var(--input-focus-shadow-pink);
+}
+
+.textarea:focus-visible {
+  outline-color: var(--color-pink-300);
 }
 
 .textarea::placeholder {
@@ -215,12 +242,12 @@
 
 .textarea.error {
   border-color: var(--color-error-400);
-  background: rgba(239, 68, 68, 0.05);
+  background: var(--input-error-surface);
 }
 
 .textarea.error:focus {
   border-color: var(--color-error-500);
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  box-shadow: var(--input-error-ring);
 }
 
 /* Select */
@@ -232,14 +259,27 @@
   transition: all 0.3s var(--ease-kawaii);
 }
 
+.selectContainer::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--color-pink-500);
+  border-bottom: 2px solid var(--color-pink-500);
+  transform: translateY(-65%) rotate(45deg);
+  pointer-events: none;
+}
+
 .selectContainer:focus-within {
   background: white;
   border-color: var(--color-pink-300);
-  box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.15), 0 4px 12px rgba(255, 183, 197, 0.2);
+  box-shadow: var(--input-focus-ring-pink), var(--input-focus-shadow-pink);
 }
 
 .selectContainer.sm {
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 12px;
 }
 
@@ -259,15 +299,18 @@
   padding: 12px 44px 12px 16px;
   background: transparent;
   border: none;
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   font-family: inherit;
   font-size: 0.9375rem;
   color: var(--color-cloud-800);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23FF6B8A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
+}
+
+.select:focus-visible {
+  outline-color: var(--color-pink-300);
+  border-radius: var(--radius-md);
 }
 
 .select option {
@@ -290,9 +333,9 @@
 }
 
 .checkbox {
-  width: 22px;
-  height: 22px;
-  margin-top: 2px;
+  width: 44px;
+  height: 44px;
+  margin-top: 0;
   border: 2px solid var(--color-cloud-400);
   border-radius: 6px;
   background: var(--color-cloud-100);
@@ -307,9 +350,10 @@
   border-color: var(--color-pink-400);
 }
 
-.checkbox:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 183, 197, 0.3);
+.checkbox:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: var(--input-selection-ring);
 }
 
 .checkbox.error {
@@ -348,9 +392,9 @@
 }
 
 .radio {
-  width: 22px;
-  height: 22px;
-  margin-top: 2px;
+  width: 44px;
+  height: 44px;
+  margin-top: 0;
   border: 2px solid var(--color-cloud-400);
   border-radius: 50%;
   background: var(--color-cloud-100);
@@ -364,9 +408,10 @@
   border-color: var(--color-pink-400);
 }
 
-.radio:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 183, 197, 0.3);
+.radio:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: var(--input-selection-ring);
 }
 
 .radio.error {

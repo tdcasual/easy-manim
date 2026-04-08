@@ -1,9 +1,20 @@
 /* Confirm Dialog Styles */
 
 .confirm-dialog-overlay {
+  --confirm-overlay-surface: color-mix(in srgb, var(--primary-950) 70%, transparent);
+  --confirm-dialog-surface-start: color-mix(in srgb, var(--surface-secondary) 88%, var(--primary-900) 12%);
+  --confirm-dialog-surface-end: color-mix(in srgb, var(--surface-secondary) 92%, var(--primary-950) 8%);
+  --confirm-dialog-shadow: 0 25px 50px color-mix(in srgb, var(--primary-950) 50%, transparent);
+  --confirm-dialog-inner-border: inset 0 0 0 1px color-mix(in srgb, var(--surface-primary) 10%, transparent);
+  --confirm-dialog-muted-surface: color-mix(in srgb, var(--surface-primary) 28%, transparent);
+  --confirm-dialog-muted-surface-hover: color-mix(in srgb, var(--surface-primary) 40%, transparent);
+  --confirm-dialog-warning-surface: color-mix(in srgb, var(--warning) 15%, transparent);
+  --confirm-dialog-warning-border: color-mix(in srgb, var(--warning) 30%, transparent);
+  --confirm-dialog-danger-surface: color-mix(in srgb, var(--error) 15%, transparent);
+  --confirm-dialog-danger-border: color-mix(in srgb, var(--error) 30%, transparent);
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--confirm-overlay-surface);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -26,15 +37,15 @@
   width: 90%;
   max-width: 420px;
   background: linear-gradient(180deg,
-    rgba(30, 41, 59, 0.95) 0%,
-    rgba(15, 23, 41, 0.98) 100%);
+    var(--confirm-dialog-surface-start) 0%,
+    var(--confirm-dialog-surface-end) 100%);
   backdrop-filter: blur(40px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    var(--confirm-dialog-shadow),
+    var(--confirm-dialog-inner-border);
   animation: confirm-dialog-scale-in 0.3s var(--ease-spring);
 }
 
@@ -53,12 +64,12 @@
   position: absolute;
   top: var(--space-4);
   right: var(--space-4);
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--confirm-dialog-muted-surface);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
@@ -67,8 +78,13 @@
 }
 
 .confirm-dialog-close:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--confirm-dialog-muted-surface-hover);
   color: var(--text-primary);
+}
+
+.confirm-dialog-close:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
 }
 
 .confirm-dialog-content {
@@ -85,16 +101,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--confirm-dialog-warning-surface);
+  border: 1px solid var(--confirm-dialog-warning-border);
   border-radius: 50%;
   color: var(--warning);
   margin-bottom: var(--space-4);
 }
 
 .confirm-dialog-icon.danger {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: var(--confirm-dialog-danger-surface);
+  border-color: var(--confirm-dialog-danger-border);
   color: var(--error);
 }
 
@@ -129,13 +145,13 @@
 }
 
 .confirm-dialog-btn.cancel {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--confirm-dialog-muted-surface);
   border: 1px solid var(--glass-border);
   color: var(--text-secondary);
 }
 
 .confirm-dialog-btn.cancel:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--confirm-dialog-muted-surface-hover);
   color: var(--text-primary);
 }
 

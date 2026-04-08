@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Pin, Sparkles, TriangleAlert, CheckCircle2, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Pin,
+  Sparkles,
+  TriangleAlert,
+  CheckCircle2,
+  X,
+} from "lucide-react";
 
 import type {
   WorkflowAppliedActionFeedback,
@@ -17,7 +25,9 @@ type TaskReviewPanelProps = {
   onRunAction: (action: WorkflowReviewActionCard) => Promise<void> | void;
 };
 
-function orderBadges(controls: WorkflowReviewControls): NonNullable<NonNullable<WorkflowReviewControls["panel_header"]>["badges"]> {
+function orderBadges(
+  controls: WorkflowReviewControls
+): NonNullable<NonNullable<WorkflowReviewControls["panel_header"]>["badges"]> {
   const badges = controls.panel_header?.badges ?? [];
   const badgeOrder = controls.render_contract?.badge_order ?? [];
   if (badgeOrder.length === 0) {
@@ -27,12 +37,12 @@ function orderBadges(controls: WorkflowReviewControls): NonNullable<NonNullable<
   const badgeMap = new Map(badges.map((badge) => [badge.badge_id, badge]));
   const ordered = badgeOrder.map((badgeId) => badgeMap.get(badgeId)).filter(Boolean);
   const remaining = badges.filter((badge) => !badgeOrder.includes(badge.badge_id));
-  return [...ordered, ...remaining] as NonNullable<NonNullable<WorkflowReviewControls["panel_header"]>["badges"]>;
+  return [...ordered, ...remaining] as NonNullable<
+    NonNullable<WorkflowReviewControls["panel_header"]>["badges"]
+  >;
 }
 
-function orderSections(
-  controls: WorkflowReviewControls
-): WorkflowReviewActionSection[] {
+function orderSections(controls: WorkflowReviewControls): WorkflowReviewActionSection[] {
   const sections = controls.action_sections?.items ?? [];
   const sectionOrder = controls.render_contract?.section_order ?? [];
   if (sectionOrder.length === 0) {
@@ -67,7 +77,9 @@ function sectionPresentation(
   renderContract: WorkflowReviewRenderContract | null | undefined,
   sectionId: WorkflowReviewSectionId
 ) {
-  return renderContract?.section_presentations.find((item) => item.section_id === sectionId) ?? null;
+  return (
+    renderContract?.section_presentations.find((item) => item.section_id === sectionId) ?? null
+  );
 }
 
 function toneIcon(tone: string | undefined) {
@@ -126,7 +138,9 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
             <HeaderIcon size={18} />
           </div>
           <div className="task-review-panel__header-copy">
-            <h3 className="section-title-v2 task-review-panel__title">{header.title ?? "Workflow review controls"}</h3>
+            <h3 className="section-title-v2 task-review-panel__title">
+              {header.title ?? "Workflow review controls"}
+            </h3>
             {header.summary ? <p className="task-review-panel__summary">{header.summary}</p> : null}
           </div>
         </div>
@@ -139,7 +153,9 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
             aria-busy={activeActionId === stickyAction.action_id}
           >
             <Pin size={14} />
-            {activeActionId === stickyAction.action_id ? t("common.applying") : stickyAction.button_label}
+            {activeActionId === stickyAction.action_id
+              ? t("common.applying")
+              : stickyAction.button_label}
           </button>
         ) : null}
       </div>
@@ -162,7 +178,9 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
         <div className="task-review-panel__event" role="note">
           <span className="task-review-panel__event-title">{header.highlighted_event.title}</span>
           {header.highlighted_event.summary ? (
-            <span className="task-review-panel__event-summary">{header.highlighted_event.summary}</span>
+            <span className="task-review-panel__event-summary">
+              {header.highlighted_event.summary}
+            </span>
           ) : null}
         </div>
       ) : null}
@@ -201,7 +219,11 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
                   ) : null}
                 </div>
                 {collapsible ? (
-                  expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
+                  expanded ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )
                 ) : null}
               </button>
 
@@ -218,7 +240,9 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
                         <div className="task-review-panel__action-copy">
                           <div className="task-review-panel__action-row">
                             <span className="task-review-panel__action-title">{action.title}</span>
-                            <span className={`task-review-panel__action-family task-review-panel__action-family--${action.action_family}`}>
+                            <span
+                              className={`task-review-panel__action-family task-review-panel__action-family--${action.action_family}`}
+                            >
                               {action.action_family}
                             </span>
                           </div>
@@ -243,7 +267,9 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
                             disabled={action.blocked || activeActionId !== null}
                             aria-busy={activeActionId === action.action_id}
                           >
-                            {activeActionId === action.action_id ? t("common.applying") : action.button_label}
+                            {activeActionId === action.action_id
+                              ? t("common.applying")
+                              : action.button_label}
                           </button>
                         )}
                       </div>
@@ -257,11 +283,17 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
       </div>
 
       {controls.applied_action_feedback && !feedbackDismissed ? (
-        <div className={`task-review-panel__feedback ${feedbackToneClass(controls.applied_action_feedback)}`}>
+        <div
+          className={`task-review-panel__feedback ${feedbackToneClass(controls.applied_action_feedback)}`}
+        >
           <div className="task-review-panel__feedback-copy">
-            <span className="task-review-panel__feedback-title">{controls.applied_action_feedback.title}</span>
+            <span className="task-review-panel__feedback-title">
+              {controls.applied_action_feedback.title}
+            </span>
             {controls.applied_action_feedback.summary ? (
-              <p className="task-review-panel__feedback-summary">{controls.applied_action_feedback.summary}</p>
+              <p className="task-review-panel__feedback-summary">
+                {controls.applied_action_feedback.summary}
+              </p>
             ) : null}
           </div>
           {renderContract.applied_feedback_dismissible ? (

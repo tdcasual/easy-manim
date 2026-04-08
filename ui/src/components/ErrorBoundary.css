@@ -1,6 +1,12 @@
 /* Error Boundary Styles */
 
 .error-boundary {
+  --error-boundary-surface: color-mix(in srgb, var(--error) 6%, var(--surface-primary) 94%);
+  --error-boundary-surface-strong: color-mix(in srgb, var(--error) 8%, var(--surface-primary) 92%);
+  --error-boundary-border: color-mix(in srgb, var(--error) 24%, transparent);
+  --error-boundary-button-bg: color-mix(in srgb, var(--surface-primary) 35%, transparent);
+  --error-boundary-button-bg-hover: color-mix(in srgb, var(--surface-primary) 48%, transparent);
+  --error-boundary-code-bg: color-mix(in srgb, var(--primary-950) 32%, transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -9,9 +15,9 @@
   padding: var(--space-8);
   text-align: center;
   background: linear-gradient(180deg,
-    rgba(239, 68, 68, 0.05) 0%,
-    rgba(239, 68, 68, 0.02) 100%);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+    var(--error-boundary-surface) 0%,
+    color-mix(in srgb, var(--error) 3%, var(--surface-primary) 97%) 100%);
+  border: 1px solid var(--error-boundary-border);
   border-radius: var(--radius-lg);
   margin: var(--space-6);
 }
@@ -55,7 +61,7 @@
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--error-boundary-button-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -63,7 +69,7 @@
 }
 
 .error-boundary__button:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--error-boundary-button-bg-hover);
   transform: translateY(-1px);
 }
 
@@ -88,7 +94,7 @@
 .error-boundary__details pre {
   font-size: 0.75rem;
   color: var(--text-secondary);
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--error-boundary-code-bg);
   padding: var(--space-4);
   border-radius: var(--radius-md);
   overflow: auto;
@@ -106,8 +112,8 @@
   padding: var(--space-6);
   text-align: center;
   color: var(--error);
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--error-boundary-surface-strong);
+  border: 1px solid var(--error-boundary-border);
   border-radius: var(--radius-md);
 }
 
@@ -128,7 +134,7 @@
   padding: var(--space-2) var(--space-4);
   font-size: 0.875rem;
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--error-boundary-button-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -136,5 +142,5 @@
 }
 
 .error-fallback button:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--error-boundary-button-bg-hover);
 }

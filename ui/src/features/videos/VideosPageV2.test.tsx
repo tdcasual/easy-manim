@@ -95,5 +95,7 @@ test("videos page links each video to the collaboration workbench when thread id
   );
 
   const links = await screen.findAllByRole("link", { name: /view details|open details/i });
-  expect(links.some((link) => link.getAttribute("href") === "/threads/thread-target-001")).toBe(true);
+  expect(links.some((link) => link.getAttribute("href") === "/threads/thread-target-001")).toBe(
+    true
+  );
 });

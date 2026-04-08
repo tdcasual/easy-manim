@@ -12,7 +12,7 @@ import { writeSessionToken, clearSessionToken } from "../../lib/session";
 import { useSession } from "../../features/auth/useSession";
 import { useAsyncStatus } from "../../hooks/useAsyncStatus";
 import { useI18n } from "../../app/locale";
-import { useDialogA11y } from "../useDialogA11y";
+import { DialogShell } from "../DialogShell/DialogShell";
 import styles from "./AuthModal.module.css";
 
 export interface AuthModalProps {
@@ -93,14 +93,6 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
 
   const isLoading = status === "loading";
 
-  useDialogA11y({
-    isOpen,
-    onClose: handleClose,
-    dialogRef: modalRef,
-    initialFocusRef: inputRef,
-    restoreFocusRef: triggerRef,
-  });
-
   // 渲染折叠状态（迷你按钮）
   if (!isOpen && isMinimized) {
     const miniTriggerLabel = isAuthenticated ? t("authModal.signedIn") : t("authModal.openLogin");
@@ -123,117 +115,115 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
 
   // 渲染展开的弹窗
   return (
-    <>
-      {/* 遮罩层 */}
-      <div className={styles.overlay} onClick={handleClose} aria-hidden="true" />
+    <DialogShell
+      isOpen={isOpen}
+      onClose={handleClose}
+      dialogRef={modalRef}
+      initialFocusRef={inputRef}
+      restoreFocusRef={triggerRef}
+      className={styles.modal}
+      ariaLabelledBy="auth-title"
+      overlayClassName={styles.overlay}
+      overlayAriaLabel="Dismiss auth dialog backdrop"
+    >
+      <div className={styles.content}>
+        {/* 头部 */}
+        <div className={styles.header}>
+          <h2 id="auth-title" className={styles.headerTitle}>
+            <span className={styles.headerEmoji}>{isAuthenticated ? "✨" : "🔐"}</span>
+            <span>{isAuthenticated ? t("login.welcome") : t("authModal.titleLogin")}</span>
+          </h2>
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={handleClose}
+            aria-label={t("common.close")}
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-      {/* 弹窗 */}
-      <div
-        ref={modalRef}
-        className={styles.modal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="auth-title"
-      >
-        <div className={styles.content}>
-          {/* 头部 */}
-          <div className={styles.header}>
-            <h2 id="auth-title" className={styles.headerTitle}>
-              <span className={styles.headerEmoji}>{isAuthenticated ? "✨" : "🔐"}</span>
-              <span>{isAuthenticated ? t("login.welcome") : t("authModal.titleLogin")}</span>
-            </h2>
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={handleClose}
-              aria-label={t("common.close")}
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          {/* 身体 */}
-          <div className={styles.body}>
-            {isAuthenticated ? (
-              /* 已登录状态 */
-              <div className={styles.authenticated}>
-                <div className={styles.successIcon}>🎉</div>
-                <p className={styles.authenticatedText}>{t("authModal.successTitle")}</p>
-                <p className={styles.authenticatedSubtext}>{t("authModal.successSubtitle")}</p>
-                <button type="button" className={styles.logoutButton} onClick={handleLogout}>
-                  <LogOut size={16} />
-                  <span>{t("sidebar.logout")}</span>
-                </button>
+        {/* 身体 */}
+        <div className={styles.body}>
+          {isAuthenticated ? (
+            /* 已登录状态 */
+            <div className={styles.authenticated}>
+              <div className={styles.successIcon}>🎉</div>
+              <p className={styles.authenticatedText}>{t("authModal.successTitle")}</p>
+              <p className={styles.authenticatedSubtext}>{t("authModal.successSubtitle")}</p>
+              <button type="button" className={styles.logoutButton} onClick={handleLogout}>
+                <LogOut size={16} />
+                <span>{t("sidebar.logout")}</span>
+              </button>
+            </div>
+          ) : (
+            /* 登录表单 */
+            <>
+              {/* 欢迎区 */}
+              <div className={styles.welcome}>
+                <div className={styles.welcomeIcon}>🌟</div>
+                <h3 className={styles.welcomeTitle}>{t("login.welcome")}</h3>
+                <p className={styles.welcomeText}>{t("login.subtitle")}</p>
               </div>
-            ) : (
-              /* 登录表单 */
-              <>
-                {/* 欢迎区 */}
-                <div className={styles.welcome}>
-                  <div className={styles.welcomeIcon}>🌟</div>
-                  <h3 className={styles.welcomeTitle}>{t("login.welcome")}</h3>
-                  <p className={styles.welcomeText}>{t("login.subtitle")}</p>
+
+              {/* 错误提示 */}
+              {error && (
+                <div className={styles.error} role="alert">
+                  <span className={styles.errorEmoji}>💔</span>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* 表单 */}
+              <form className={styles.form} onSubmit={handleSubmit}>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="auth-token" className={styles.label}>
+                    <span className={styles.labelEmoji}>🔑</span>
+                    <span>{t("login.tokenLabel")}</span>
+                  </label>
+                  <input
+                    ref={inputRef}
+                    id="auth-token"
+                    type="text"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                    placeholder={t("login.tokenPlaceholder")}
+                    className={styles.input}
+                    disabled={isLoading}
+                    autoFocus
+                  />
                 </div>
 
-                {/* 错误提示 */}
-                {error && (
-                  <div className={styles.error} role="alert">
-                    <span className={styles.errorEmoji}>💔</span>
-                    <span>{error}</span>
-                  </div>
-                )}
+                <button
+                  type="submit"
+                  className={`${styles.submitButton} ${isLoading ? styles.loading : ""}`}
+                  disabled={!token.trim() || isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className={styles.spinner} />
+                      <span>{t("login.loggingIn")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      <span>{t("login.submit")}</span>
+                    </>
+                  )}
+                </button>
+              </form>
 
-                {/* 表单 */}
-                <form className={styles.form} onSubmit={handleSubmit}>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="auth-token" className={styles.label}>
-                      <span className={styles.labelEmoji}>🔑</span>
-                      <span>{t("login.tokenLabel")}</span>
-                    </label>
-                    <input
-                      ref={inputRef}
-                      id="auth-token"
-                      type="text"
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      placeholder={t("login.tokenPlaceholder")}
-                      className={styles.input}
-                      disabled={isLoading}
-                      autoFocus
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className={`${styles.submitButton} ${isLoading ? styles.loading : ""}`}
-                    disabled={!token.trim() || isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className={styles.spinner} />
-                        <span>{t("login.loggingIn")}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={18} />
-                        <span>{t("login.submit")}</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-
-                {/* 帮助链接 */}
-                <div className={styles.help}>
-                  <span>💡</span>
-                  <span>{t("authModal.noToken")}</span>
-                  <span>{t("login.tokenHint")}</span>
-                </div>
-              </>
-            )}
-          </div>
+              {/* 帮助链接 */}
+              <div className={styles.help}>
+                <span>💡</span>
+                <span>{t("authModal.noToken")}</span>
+                <span>{t("login.tokenHint")}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </>
+    </DialogShell>
   );
 }
 

@@ -33,7 +33,10 @@ export function VersionTimeline({
       <div className="version-timeline__header">
         <div>
           <h2>Versions</h2>
-          <p>Compare visible results for this iteration, switch the current version, or open the source task.</p>
+          <p>
+            Compare visible results for this iteration, switch the current version, or open the
+            source task.
+          </p>
         </div>
       </div>
 
@@ -62,7 +65,9 @@ export function VersionTimeline({
                 </div>
                 {result.result_summary ? <p>{result.result_summary}</p> : null}
                 <div className="video-thread-workbench__intent-meta">
-                  {taskId ? <span className="video-thread-workbench__meta">Task: {taskId}</span> : null}
+                  {taskId ? (
+                    <span className="video-thread-workbench__meta">Task: {taskId}</span>
+                  ) : null}
                   <span className="video-thread-workbench__meta">
                     Status: {isSelected ? "selected" : result.status}
                   </span>
@@ -82,7 +87,10 @@ export function VersionTimeline({
                     </button>
                   )}
                   {taskId ? (
-                    <Link to={`/tasks/${encodeURIComponent(taskId)}`} aria-label={`Open task detail for ${result.result_id}`}>
+                    <Link
+                      to={`/tasks/${encodeURIComponent(taskId)}`}
+                      aria-label={`Open task detail for ${result.result_id}`}
+                    >
                       Open task detail
                     </Link>
                   ) : null}
@@ -107,7 +115,9 @@ export function VersionTimeline({
             );
           })
         ) : (
-          <p className="video-thread-workbench__meta">No visible versions are available for this iteration yet.</p>
+          <p className="video-thread-workbench__meta">
+            No visible versions are available for this iteration yet.
+          </p>
         )}
       </div>
     </section>

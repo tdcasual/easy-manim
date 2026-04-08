@@ -54,7 +54,9 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function toApplyReviewDecisionRequest(payload: Record<string, unknown>): ApplyReviewDecisionRequest | null {
+function toApplyReviewDecisionRequest(
+  payload: Record<string, unknown>
+): ApplyReviewDecisionRequest | null {
   const reviewDecision = asRecord(payload.review_decision);
   const decision = reviewDecision?.decision;
   const summary = reviewDecision?.summary;
@@ -73,13 +75,15 @@ function toApplyReviewDecisionRequest(payload: Record<string, unknown>): ApplyRe
         typeof reviewDecision?.preserve_working_parts === "boolean"
           ? reviewDecision.preserve_working_parts
           : undefined,
-      decision_role: typeof reviewDecision?.decision_role === "string" ? reviewDecision.decision_role : null,
+      decision_role:
+        typeof reviewDecision?.decision_role === "string" ? reviewDecision.decision_role : null,
       confidence:
         typeof reviewDecision?.confidence === "number" ? reviewDecision.confidence : undefined,
       issues: Array.isArray(reviewDecision?.issues)
         ? (reviewDecision.issues as Array<Record<string, unknown>>)
         : undefined,
-      stop_reason: typeof reviewDecision?.stop_reason === "string" ? reviewDecision.stop_reason : null,
+      stop_reason:
+        typeof reviewDecision?.stop_reason === "string" ? reviewDecision.stop_reason : null,
       collaboration: asRecord(reviewDecision?.collaboration),
     },
     memory_ids: asStringArray(payload.memory_ids),
@@ -236,7 +240,8 @@ export function TaskDetailPageV2() {
       const successMessage = t("taskDetail.workflowActionApplied", { action: action.title });
       toastSuccess(successMessage);
       announcePolite(successMessage);
-      const refreshScope = outcome.refresh_scope ?? (outcome.created_task_id ? "navigate" : "panel_only");
+      const refreshScope =
+        outcome.refresh_scope ?? (outcome.created_task_id ? "navigate" : "panel_only");
       const refreshTaskId = outcome.refresh_task_id ?? outcome.created_task_id ?? taskId;
       await handleRefreshAfterOutcome(refreshScope, refreshTaskId, sessionToken);
     } catch (err) {
@@ -482,7 +487,10 @@ export function TaskDetailPageV2() {
               <p className="page-description-v2">
                 Open the canonical video page for discussion, versions, and revision history.
               </p>
-              <Link to={`/threads/${encodeURIComponent(snapshot.thread_id)}`} className="video-grid-link">
+              <Link
+                to={`/threads/${encodeURIComponent(snapshot.thread_id)}`}
+                className="video-grid-link"
+              >
                 Open thread workspace
               </Link>
             </div>

@@ -160,9 +160,15 @@
   color: var(--color-cloud-900);
   background: transparent;
   border: none;
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   resize: none;
   font-family: inherit;
+}
+
+.textarea:focus-visible {
+  outline-color: var(--color-pink-400);
+  border-radius: var(--radius-lg);
 }
 
 .textarea::placeholder {

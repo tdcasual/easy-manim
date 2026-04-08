@@ -231,7 +231,9 @@ test("quick input clears pending blur timers on unmount", async () => {
     </MemoryRouter>
   );
 
-  const input = await screen.findByPlaceholderText(/做一个简洁的蓝色圆形动画|生成一个带中文标题的柱状图视频/);
+  const input = await screen.findByPlaceholderText(
+    /做一个简洁的蓝色圆形动画|生成一个带中文标题的柱状图视频/
+  );
   vi.useFakeTimers();
   fireEvent.focus(input);
   fireEvent.blur(input);

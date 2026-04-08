@@ -218,19 +218,25 @@
   border: none;
   color: var(--color-cloud-900);
   font-size: var(--font-size-md);
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
 }
 
 .search-input::placeholder {
   color: var(--color-cloud-600);
 }
 
+.search-input:focus-visible {
+  outline-color: var(--color-pink-300);
+  border-radius: var(--radius-md);
+}
+
 .search-clear {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   background: var(--color-pink-200);
   border: none;
@@ -245,6 +251,11 @@
 .search-clear:hover {
   background: var(--color-pink-400);
   transform: scale(1.1);
+}
+
+.search-clear:focus-visible {
+  outline: 2px solid var(--color-pink-400);
+  outline-offset: 2px;
 }
 
 /* 筛选按钮 */
@@ -389,6 +400,7 @@
   align-items: center;
   justify-content: center;
   color: var(--color-pink-400);
+  background: linear-gradient(135deg, var(--color-pink-50) 0%, var(--color-mint-50) 100%);
 }
 
 /* 视频播放控制按钮 */
@@ -738,6 +750,22 @@
 }
 
 /* ================================
+   Focus-visible standardization
+   ================================ */
+.search-input:focus-visible,
+.view-toggle button:focus-visible,
+.refresh-btn:focus-visible,
+.filter-toggle:focus-visible,
+.filter-chip:focus-visible,
+.video-grid-link:focus-visible,
+.video-list-link:focus-visible,
+.video-play-control:focus-visible,
+.video-grid-play:focus-visible {
+  outline: 2px solid var(--color-pink-400);
+  outline-offset: 2px;
+}
+
+/* ================================
    响应式
    ================================ */
 @media (max-width: 768px) {
@@ -804,7 +832,7 @@
   }
 
   .view-toggle button {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 }

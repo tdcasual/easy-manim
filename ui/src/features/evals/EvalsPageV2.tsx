@@ -30,6 +30,30 @@ function formatPercent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
 
+const metricSurfaceStyles = {
+  decision: {
+    cardColor: "var(--color-lavender-500)",
+    iconBackground: "color-mix(in srgb, var(--color-lavender-500) 14%, transparent)",
+    iconColor: "var(--color-lavender-500)",
+  },
+  success: {
+    cardColor: "var(--color-success-500)",
+    iconBackground: "color-mix(in srgb, var(--color-success-500) 14%, transparent)",
+    iconColor: "var(--color-success-500)",
+  },
+  info: {
+    cardColor: "var(--color-sky-500)",
+    iconBackground: "color-mix(in srgb, var(--color-sky-500) 14%, transparent)",
+    iconColor: "var(--color-sky-500)",
+  },
+} as const;
+
+const qualityRateIconColors = {
+  strong: "var(--color-success-500)",
+  medium: "var(--color-warning-500)",
+  weak: "var(--color-error-500)",
+} as const;
+
 export function EvalsPageV2() {
   const { sessionToken } = useSession();
   const { t } = useI18n();
@@ -116,11 +140,16 @@ export function EvalsPageV2() {
         <div className="metrics-grid-v2">
           <div
             className="metric-card-v2"
-            style={{ "--card-color": "var(--accent-purple)" } as React.CSSProperties}
+            style={
+              { "--card-color": metricSurfaceStyles.decision.cardColor } as React.CSSProperties
+            }
           >
             <div
               className="metric-icon-wrapper"
-              style={{ background: "rgba(139, 92, 246, 0.15)", color: "var(--accent-purple)" }}
+              style={{
+                background: metricSurfaceStyles.decision.iconBackground,
+                color: metricSurfaceStyles.decision.iconColor,
+              }}
             >
               <BarChart3 size={20} />
             </div>
@@ -131,11 +160,14 @@ export function EvalsPageV2() {
           </div>
           <div
             className="metric-card-v2"
-            style={{ "--card-color": "var(--success)" } as React.CSSProperties}
+            style={{ "--card-color": metricSurfaceStyles.success.cardColor } as React.CSSProperties}
           >
             <div
               className="metric-icon-wrapper"
-              style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)" }}
+              style={{
+                background: metricSurfaceStyles.success.iconBackground,
+                color: metricSurfaceStyles.success.iconColor,
+              }}
             >
               <CheckCircle2 size={20} />
             </div>
@@ -146,11 +178,14 @@ export function EvalsPageV2() {
           </div>
           <div
             className="metric-card-v2"
-            style={{ "--card-color": "var(--accent-cyan)" } as React.CSSProperties}
+            style={{ "--card-color": metricSurfaceStyles.info.cardColor } as React.CSSProperties}
           >
             <div
               className="metric-icon-wrapper"
-              style={{ background: "rgba(0, 212, 255, 0.15)", color: "var(--accent-cyan)" }}
+              style={{
+                background: metricSurfaceStyles.info.iconBackground,
+                color: metricSurfaceStyles.info.iconColor,
+              }}
             >
               <BarChart3 size={20} />
             </div>
@@ -161,11 +196,14 @@ export function EvalsPageV2() {
           </div>
           <div
             className="metric-card-v2"
-            style={{ "--card-color": "var(--accent-cyan)" } as React.CSSProperties}
+            style={{ "--card-color": metricSurfaceStyles.info.cardColor } as React.CSSProperties}
           >
             <div
               className="metric-icon-wrapper"
-              style={{ background: "rgba(0, 212, 255, 0.15)", color: "var(--accent-cyan)" }}
+              style={{
+                background: metricSurfaceStyles.info.iconBackground,
+                color: metricSurfaceStyles.info.iconColor,
+              }}
             >
               <ClipboardList size={20} />
             </div>
@@ -216,11 +254,11 @@ export function EvalsPageV2() {
                       {qualityRate !== null ? (
                         <>
                           {qualityRate >= 0.8 ? (
-                            <CheckCircle2 size={16} color="#10b981" />
+                            <CheckCircle2 size={16} color={qualityRateIconColors.strong} />
                           ) : qualityRate >= 0.5 ? (
-                            <BarChart3 size={16} color="#f59e0b" />
+                            <BarChart3 size={16} color={qualityRateIconColors.medium} />
                           ) : (
-                            <XCircle size={16} color="#ef4444" />
+                            <XCircle size={16} color={qualityRateIconColors.weak} />
                           )}
                           {formatPercent(qualityRate)}
                         </>

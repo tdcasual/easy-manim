@@ -231,13 +231,19 @@
   border: none;
   color: var(--color-cloud-900);
   font-size: 15px;
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   min-width: 0;
   font-family: var(--font-family-base);
 }
 
 .input-field::placeholder {
   color: var(--color-cloud-500);
+}
+
+.input-field:focus-visible {
+  outline-color: var(--color-pink-300);
+  border-radius: var(--radius-md);
 }
 
 .kawaii-send {
@@ -446,8 +452,8 @@
 
 /* 🔘 Kawaii 图标按钮 */
 .kawaii-icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -463,6 +469,11 @@
   background: var(--color-pink-100);
   color: var(--color-pink-500);
   transform: scale(1.1) rotate(15deg);
+}
+
+.kawaii-icon-btn:focus-visible {
+  outline: 2px solid var(--color-pink-400);
+  outline-offset: 2px;
 }
 
 /* 🍥 Kawaii 操作菜单 */
@@ -733,6 +744,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 🎯 Focus-visible standardization */
+.input-field:focus-visible,
+.kawaii-send:focus-visible,
+.kawaii-chip:focus-visible,
+.kawaii-tab:focus-visible,
+.kawaii-refresh:focus-visible,
+.kawaii-link:focus-visible,
+.thumb-play:focus-visible {
+  outline: 2px solid var(--color-pink-400);
+  outline-offset: 2px;
 }
 
 /* 📱 桌面端适配 */

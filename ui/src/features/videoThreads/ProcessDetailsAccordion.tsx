@@ -26,7 +26,10 @@ export function ProcessDetailsAccordion({
       <div className="process-details-accordion__header">
         <div>
           <h2>Process details</h2>
-          <p>Open the operator view for iteration history, participant controls, and agent execution detail.</p>
+          <p>
+            Open the operator view for iteration history, participant controls, and agent execution
+            detail.
+          </p>
         </div>
         <button
           type="button"

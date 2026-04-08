@@ -48,3 +48,16 @@ test("keeps keyboard focus inside the confirm dialog and restores trigger focus 
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
 });
+
+test("exposes an accessible backdrop control for pointer and assistive tech dismissal", async () => {
+  const user = userEvent.setup();
+
+  render(<ConfirmDialogHarness />);
+
+  await user.click(screen.getByRole("button", { name: "打开确认框" }));
+
+  const backdrop = await screen.findByRole("button", { name: "Dismiss confirm dialog backdrop" });
+  await user.click(backdrop);
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});

@@ -3,6 +3,24 @@
  * 彩色圆形容器 + 弹性动画
  */
 
+.kawaiiIcon,
+.emojiIcon,
+.iconButton {
+  --kawaii-icon-shadow-neutral: 0 2px 8px color-mix(in srgb, var(--primary-950) 10%, transparent);
+  --kawaii-icon-shadow-pink: 0 4px 12px color-mix(in srgb, var(--color-pink-500) 30%, transparent);
+  --kawaii-icon-shadow-mint: 0 4px 12px color-mix(in srgb, var(--color-mint-500) 30%, transparent);
+  --kawaii-icon-shadow-sky: 0 4px 12px color-mix(in srgb, var(--color-sky-500) 30%, transparent);
+  --kawaii-icon-shadow-lavender: 0 4px 12px color-mix(in srgb, var(--color-lavender-500) 30%, transparent);
+  --kawaii-icon-shadow-peach: 0 4px 12px color-mix(in srgb, var(--color-peach-500) 30%, transparent);
+  --kawaii-icon-shadow-lemon: 0 4px 12px color-mix(in srgb, var(--color-lemon-500) 34%, transparent);
+  --kawaii-icon-shadow-gradient: 0 4px 16px color-mix(in srgb, var(--color-pink-300) 40%, transparent);
+  --kawaii-icon-shadow-pink-hover: 0 6px 20px color-mix(in srgb, var(--color-pink-500) 50%, transparent);
+  --kawaii-icon-shadow-mint-hover: 0 6px 20px color-mix(in srgb, var(--color-mint-500) 50%, transparent);
+  --kawaii-icon-shadow-sky-hover: 0 6px 20px color-mix(in srgb, var(--color-sky-500) 50%, transparent);
+  --kawaii-icon-shadow-lavender-hover: 0 6px 20px color-mix(in srgb, var(--color-lavender-500) 50%, transparent);
+  --kawaii-icon-shadow-peach-hover: 0 6px 20px color-mix(in srgb, var(--color-peach-500) 50%, transparent);
+}
+
 /* 基础图标容器 */
 .kawaiiIcon,
 .emojiIcon {
@@ -11,7 +29,7 @@
   justify-content: center;
   border-radius: 50%;
   transition: all 0.3s var(--ease-kawaii, cubic-bezier(0.34, 1.8, 0.64, 1));
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--kawaii-icon-shadow-neutral);
 }
 
 .kawaiiIcon {
@@ -56,43 +74,43 @@
 /* 🌸 粉彩色系 */
 .pink {
   background: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-pink-500) 100%);
-  box-shadow: 0 4px 12px rgba(255, 107, 138, 0.3);
+  box-shadow: var(--kawaii-icon-shadow-pink);
 }
 
 .mint {
   background: linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-mint-500) 100%);
-  box-shadow: 0 4px 12px rgba(77, 179, 144, 0.3);
+  box-shadow: var(--kawaii-icon-shadow-mint);
 }
 
 .sky {
   background: linear-gradient(135deg, var(--color-sky-400) 0%, var(--color-sky-500) 100%);
-  box-shadow: 0 4px 12px rgba(74, 163, 193, 0.3);
+  box-shadow: var(--kawaii-icon-shadow-sky);
 }
 
 .lavender {
   background: linear-gradient(135deg, var(--color-lavender-400) 0%, var(--color-lavender-500) 100%);
-  box-shadow: 0 4px 12px rgba(168, 85, 168, 0.3);
+  box-shadow: var(--kawaii-icon-shadow-lavender);
 }
 
 .peach {
   background: linear-gradient(135deg, var(--color-peach-400) 0%, var(--color-peach-500) 100%);
-  box-shadow: 0 4px 12px rgba(244, 140, 75, 0.3);
+  box-shadow: var(--kawaii-icon-shadow-peach);
 }
 
 .lemon {
   background: linear-gradient(135deg, var(--color-lemon-400) 0%, var(--color-lemon-500) 100%);
-  box-shadow: 0 4px 12px rgba(245, 227, 66, 0.3);
+  box-shadow: var(--kawaii-icon-shadow-lemon);
 }
 
 .white {
-  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  background: linear-gradient(135deg, var(--color-cloud-50) 0%, var(--color-cloud-300) 100%);
   color: var(--color-cloud-700);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--kawaii-icon-shadow-neutral);
 }
 
 .gradient {
   background: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-mint-400) 50%, var(--color-sky-400) 100%);
-  box-shadow: 0 4px 16px rgba(255, 183, 197, 0.4);
+  box-shadow: var(--kawaii-icon-shadow-gradient);
 }
 
 /* 悬停效果 */
@@ -102,28 +120,30 @@
 }
 
 .pink:hover {
-  box-shadow: 0 6px 20px rgba(255, 107, 138, 0.5);
+  box-shadow: var(--kawaii-icon-shadow-pink-hover);
 }
 
 .mint:hover {
-  box-shadow: 0 6px 20px rgba(77, 179, 144, 0.5);
+  box-shadow: var(--kawaii-icon-shadow-mint-hover);
 }
 
 .sky:hover {
-  box-shadow: 0 6px 20px rgba(74, 163, 193, 0.5);
+  box-shadow: var(--kawaii-icon-shadow-sky-hover);
 }
 
 .lavender:hover {
-  box-shadow: 0 6px 20px rgba(168, 85, 168, 0.5);
+  box-shadow: var(--kawaii-icon-shadow-lavender-hover);
 }
 
 .peach:hover {
-  box-shadow: 0 6px 20px rgba(244, 140, 75, 0.5);
+  box-shadow: var(--kawaii-icon-shadow-peach-hover);
 }
 
 /* 可点击 */
 .clickable {
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .clickable:hover {
@@ -189,13 +209,13 @@
 }
 
 .iconButton.xs {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
 }
 
 .iconButton.sm {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
 }
 
 .iconButton.md {

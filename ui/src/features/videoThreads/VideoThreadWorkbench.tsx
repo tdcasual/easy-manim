@@ -1,9 +1,6 @@
 import { useMemo } from "react";
 
-import type {
-  VideoThreadIterationDetail,
-  VideoThreadSurface,
-} from "../../lib/videoThreadsApi";
+import type { VideoThreadIterationDetail, VideoThreadSurface } from "../../lib/videoThreadsApi";
 import "./VideoThreadWorkbench.css";
 
 type VideoThreadWorkbenchProps = {
@@ -160,27 +157,29 @@ export function VideoThreadWorkbench({
 
       <section className={getPanelClassName("current_focus")}>
         <h2>Selected result with current focus</h2>
-        <p>{surface.current_focus.current_result_summary || "No selected result yet."}</p>
+        <p>{surface.current_focus.current_result_summary ?? "No selected result yet."}</p>
         <div className="video-thread-workbench__focus-grid">
           <div>
             <span className="video-thread-workbench__label">Current goal</span>
-            <strong>{surface.current_focus.current_iteration_goal || "Pending owner direction"}</strong>
+            <strong>
+              {surface.current_focus.current_iteration_goal ?? "Pending owner direction"}
+            </strong>
           </div>
           <div>
             <span className="video-thread-workbench__label">Current author</span>
             <strong>
-              {surface.current_focus.current_result_author_display_name ||
-                surface.current_focus.current_result_author_role ||
+              {surface.current_focus.current_result_author_display_name ??
+                surface.current_focus.current_result_author_role ??
                 "unassigned"}
             </strong>
           </div>
           <div>
             <span className="video-thread-workbench__label">Owner next step</span>
-            <strong>{surface.responsibility.owner_action_required || "none"}</strong>
+            <strong>{surface.responsibility.owner_action_required ?? "none"}</strong>
           </div>
           <div>
             <span className="video-thread-workbench__label">Expected agent role</span>
-            <strong>{surface.responsibility.expected_agent_role || "unassigned"}</strong>
+            <strong>{surface.responsibility.expected_agent_role ?? "unassigned"}</strong>
           </div>
         </div>
         {surface.current_focus.current_result_selection_reason ? (
@@ -191,30 +190,36 @@ export function VideoThreadWorkbench({
       <div className="video-thread-workbench__layout">
         <section className={getPanelClassName("selection_summary")}>
           <h2>{surface.selection_summary.title}</h2>
-          <p>{surface.selection_summary.summary || "No selected-result rationale is available yet."}</p>
-          {surface.selection_summary.author_display_name || surface.selection_summary.author_role ? (
+          <p>
+            {surface.selection_summary.summary || "No selected-result rationale is available yet."}
+          </p>
+          {surface.selection_summary.author_display_name ||
+          surface.selection_summary.author_role ? (
             <div className="video-thread-workbench__turn-row">
               <strong>
-                {surface.selection_summary.author_display_name ||
-                  surface.selection_summary.author_role ||
+                {surface.selection_summary.author_display_name ??
+                  surface.selection_summary.author_role ??
                   "Unknown author"}
               </strong>
-              <span>{surface.selection_summary.selected_result_id || "pending result"}</span>
+              <span>{surface.selection_summary.selected_result_id ?? "pending result"}</span>
             </div>
           ) : null}
         </section>
 
         <section className={getPanelClassName("latest_explanation")}>
           <h2>{surface.latest_explanation.title}</h2>
-          <p>{surface.latest_explanation.summary || "No visible explanation has been recorded yet."}</p>
-          {surface.latest_explanation.speaker_display_name || surface.latest_explanation.speaker_role ? (
+          <p>
+            {surface.latest_explanation.summary || "No visible explanation has been recorded yet."}
+          </p>
+          {surface.latest_explanation.speaker_display_name ||
+          surface.latest_explanation.speaker_role ? (
             <div className="video-thread-workbench__turn-row">
               <strong>
-                {surface.latest_explanation.speaker_display_name ||
-                  surface.latest_explanation.speaker_role ||
+                {surface.latest_explanation.speaker_display_name ??
+                  surface.latest_explanation.speaker_role ??
                   "Agent"}
               </strong>
-              <span>{surface.latest_explanation.turn_id || "latest explanation"}</span>
+              <span>{surface.latest_explanation.turn_id ?? "latest explanation"}</span>
             </div>
           ) : null}
         </section>
@@ -236,7 +241,7 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__intent-meta">
                     {note.actor_display_name || note.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {note.actor_display_name || note.actor_role}
+                        Actor: {note.actor_display_name ?? note.actor_role}
                       </span>
                     ) : null}
                     {note.source_iteration_id ? (
@@ -245,7 +250,9 @@ export function VideoThreadWorkbench({
                       </span>
                     ) : null}
                     {note.source_turn_id ? (
-                      <span className="video-thread-workbench__meta">Turn: {note.source_turn_id}</span>
+                      <span className="video-thread-workbench__meta">
+                        Turn: {note.source_turn_id}
+                      </span>
                     ) : null}
                     {note.source_result_id ? (
                       <span className="video-thread-workbench__meta">
@@ -256,18 +263,14 @@ export function VideoThreadWorkbench({
                 </article>
               ))
             ) : (
-              <p className="video-thread-workbench__meta">
-                No decision notes are available yet.
-              </p>
+              <p className="video-thread-workbench__meta">No decision notes are available yet.</p>
             )}
           </div>
         </section>
 
         <section className={getPanelClassName("artifact_lineage")}>
           <h2>Artifact Lineage</h2>
-          <p>
-            {artifactLineage.summary || "No visible artifact lineage is available yet."}
-          </p>
+          <p>{artifactLineage.summary || "No visible artifact lineage is available yet."}</p>
           <div className="video-thread-workbench__conversation">
             {artifactLineage.items.length ? (
               artifactLineage.items.map((item) => (
@@ -277,7 +280,7 @@ export function VideoThreadWorkbench({
                 >
                   <div className="video-thread-workbench__turn-row">
                     <strong>
-                      {(item.from_result_id || "origin")} {"->"} {item.to_result_id || "pending"}
+                      {item.from_result_id ?? "origin"} {"->"} {item.to_result_id ?? "pending"}
                     </strong>
                     <span>{item.status}</span>
                   </div>
@@ -291,7 +294,7 @@ export function VideoThreadWorkbench({
                     ) : null}
                     {item.actor_display_name || item.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {item.actor_display_name || item.actor_role}
+                        Actor: {item.actor_display_name ?? item.actor_role}
                       </span>
                     ) : null}
                     {item.iteration_id ? (
@@ -332,7 +335,7 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__intent-meta">
                     {item.actor_display_name || item.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {item.actor_display_name || item.actor_role}
+                        Actor: {item.actor_display_name ?? item.actor_role}
                       </span>
                     ) : null}
                     {item.iteration_id ? (
@@ -363,25 +366,23 @@ export function VideoThreadWorkbench({
 
         <section className={getPanelClassName("iteration_compare")}>
           <h2>{iterationCompare.title}</h2>
-          <p>
-            {iterationCompare.summary || "No stable iteration comparison is available yet."}
-          </p>
+          <p>{iterationCompare.summary || "No stable iteration comparison is available yet."}</p>
           <div className="video-thread-workbench__focus-grid">
             <div>
               <span className="video-thread-workbench__label">Previous iteration</span>
-              <strong>{iterationCompare.previous_iteration_id || "none"}</strong>
+              <strong>{iterationCompare.previous_iteration_id ?? "none"}</strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Current iteration</span>
-              <strong>{iterationCompare.current_iteration_id || "none"}</strong>
+              <strong>{iterationCompare.current_iteration_id ?? "none"}</strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Previous result</span>
-              <strong>{iterationCompare.previous_result_id || "none"}</strong>
+              <strong>{iterationCompare.previous_result_id ?? "none"}</strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Current result</span>
-              <strong>{iterationCompare.current_result_id || "none"}</strong>
+              <strong>{iterationCompare.current_result_id ?? "none"}</strong>
             </div>
           </div>
           {iterationCompare.change_summary ? <p>{iterationCompare.change_summary}</p> : null}
@@ -393,7 +394,9 @@ export function VideoThreadWorkbench({
               Continuity: {iterationCompare.continuity_status}
             </span>
           </div>
-          {iterationCompare.continuity_summary ? <p>{iterationCompare.continuity_summary}</p> : null}
+          {iterationCompare.continuity_summary ? (
+            <p>{iterationCompare.continuity_summary}</p>
+          ) : null}
         </section>
 
         <section className={getPanelClassName("authorship")}>
@@ -403,22 +406,22 @@ export function VideoThreadWorkbench({
             <div>
               <span className="video-thread-workbench__label">Primary agent</span>
               <strong>
-                {surface.authorship.primary_agent_display_name ||
-                  surface.authorship.primary_agent_role ||
+                {surface.authorship.primary_agent_display_name ??
+                  surface.authorship.primary_agent_role ??
                   "unassigned"}
               </strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Role</span>
-              <strong>{surface.authorship.primary_agent_role || "unassigned"}</strong>
+              <strong>{surface.authorship.primary_agent_role ?? "unassigned"}</strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Run source</span>
-              <strong>{surface.authorship.source_run_id || "n/a"}</strong>
+              <strong>{surface.authorship.source_run_id ?? "n/a"}</strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Turn source</span>
-              <strong>{surface.authorship.source_turn_id || "n/a"}</strong>
+              <strong>{surface.authorship.source_turn_id ?? "n/a"}</strong>
             </div>
           </div>
         </section>
@@ -427,15 +430,18 @@ export function VideoThreadWorkbench({
           <h2>{surface.next_recommended_move.title}</h2>
           <p>{surface.next_recommended_move.summary || "No recommended move is available yet."}</p>
           <div className="video-thread-workbench__turn-row">
-            <strong>{surface.next_recommended_move.recommended_action_label || "Observe thread"}</strong>
-            <span>{surface.next_recommended_move.owner_action_required || "none"}</span>
+            <strong>
+              {surface.next_recommended_move.recommended_action_label ?? "Observe thread"}
+            </strong>
+            <span>{surface.next_recommended_move.owner_action_required ?? "none"}</span>
           </div>
         </section>
 
         <section className={getPanelClassName("production_journal")}>
           <h2>Production Journal</h2>
           <p>
-            {surface.production_journal.summary || "No visible production entries are available yet."}
+            {surface.production_journal.summary ||
+              "No visible production entries are available yet."}
           </p>
           <div className="video-thread-workbench__conversation">
             {surface.production_journal.entries.length ? (
@@ -451,7 +457,7 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__intent-meta">
                     {entry.actor_display_name || entry.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {entry.actor_display_name || entry.actor_role}
+                        Actor: {entry.actor_display_name ?? entry.actor_role}
                       </span>
                     ) : null}
                     {entry.task_id ? (
@@ -461,7 +467,9 @@ export function VideoThreadWorkbench({
                       <span className="video-thread-workbench__meta">Run: {entry.run_id}</span>
                     ) : null}
                     {entry.result_id ? (
-                      <span className="video-thread-workbench__meta">Result: {entry.result_id}</span>
+                      <span className="video-thread-workbench__meta">
+                        Result: {entry.result_id}
+                      </span>
                     ) : null}
                   </div>
                   {entry.resource_refs.length ? (
@@ -489,11 +497,11 @@ export function VideoThreadWorkbench({
           <div className="video-thread-workbench__focus-grid">
             <div>
               <span className="video-thread-workbench__label">Expected responder</span>
-              <strong>{participantRuntime.expected_display_name || "Agent choice"}</strong>
+              <strong>{participantRuntime.expected_display_name ?? "Agent choice"}</strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Expected role</span>
-              <strong>{participantRuntime.expected_role || "unassigned"}</strong>
+              <strong>{participantRuntime.expected_role ?? "unassigned"}</strong>
             </div>
             <div>
               <span className="video-thread-workbench__label">Continuity mode</span>
@@ -526,9 +534,7 @@ export function VideoThreadWorkbench({
                   <p>{contributor.summary || "No recent contribution summary is available yet."}</p>
                   <div className="video-thread-workbench__intent-meta">
                     {contributor.role ? (
-                      <span className="video-thread-workbench__meta">
-                        Role: {contributor.role}
-                      </span>
+                      <span className="video-thread-workbench__meta">Role: {contributor.role}</span>
                     ) : null}
                     {contributor.agent_id ? (
                       <span className="video-thread-workbench__meta">
@@ -545,7 +551,6 @@ export function VideoThreadWorkbench({
             )}
           </div>
         </section>
-
       </div>
 
       <div className="video-thread-workbench__layout">
@@ -559,13 +564,15 @@ export function VideoThreadWorkbench({
               >
                 <div className="video-thread-workbench__turn-row">
                   <strong>{card.title}</strong>
-                  <span>{card.actor_role || card.card_type}</span>
+                  <span>{card.actor_role ?? card.card_type}</span>
                 </div>
                 {card.summary ? <p>{card.summary}</p> : null}
                 {card.intent_type || card.reply_to_turn_id || card.related_result_id ? (
                   <div className="video-thread-workbench__intent-meta">
                     {card.intent_type ? (
-                      <span className="video-thread-workbench__meta">Intent: {card.intent_type}</span>
+                      <span className="video-thread-workbench__meta">
+                        Intent: {card.intent_type}
+                      </span>
                     ) : null}
                     {card.reply_to_turn_id ? (
                       <span className="video-thread-workbench__meta">
@@ -581,10 +588,12 @@ export function VideoThreadWorkbench({
                 ) : null}
                 <div className="video-thread-workbench__turn-row">
                   <span className="video-thread-workbench__meta">
-                    {card.actor_display_name || card.actor_role || "System"}
+                    {card.actor_display_name ?? card.actor_role ?? "System"}
                   </span>
                   <div className="video-thread-workbench__history-meta">
-                    <span className="video-thread-workbench__meta">{card.iteration_id || "thread-wide"}</span>
+                    <span className="video-thread-workbench__meta">
+                      {card.iteration_id ?? "thread-wide"}
+                    </span>
                     <span className="video-thread-workbench__meta">{card.emphasis} emphasis</span>
                   </div>
                 </div>
@@ -627,8 +636,7 @@ export function VideoThreadWorkbench({
         <section className={getPanelClassName("iteration_detail")}>
           <h2>{iterationDetailSummary.title}</h2>
           <p>
-            {iterationDetail?.summary ||
-              iterationDetailSummary.summary ||
+            {(iterationDetail?.summary ?? iterationDetailSummary.summary) ||
               "Select an iteration to inspect its visible process and discussion."}
           </p>
           {iterationLoading ? (
@@ -643,35 +651,35 @@ export function VideoThreadWorkbench({
                 </div>
                 <div className="video-thread-workbench__intent-meta">
                   <span className="video-thread-workbench__meta">
-                    Requested action: {iterationDetail.iteration.requested_action || "n/a"}
+                    Requested action: {iterationDetail.iteration.requested_action ?? "n/a"}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Focus result: {iterationDetail.iteration.selected_result_id || "pending"}
+                    Focus result: {iterationDetail.iteration.selected_result_id ?? "pending"}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Source result: {iterationDetail.iteration.source_result_id || "origin"}
+                    Source result: {iterationDetail.iteration.source_result_id ?? "origin"}
                   </span>
                 </div>
               </article>
               <article className="video-thread-workbench__journal-entry">
                 <div className="video-thread-workbench__turn-row">
                   <strong>{executionSummary.title}</strong>
-                  <span>{executionSummary.phase || executionSummary.status}</span>
+                  <span>{executionSummary.phase ?? executionSummary.status}</span>
                 </div>
                 <p>{executionSummary.summary}</p>
                 <div className="video-thread-workbench__intent-meta">
                   <span className="video-thread-workbench__meta">
                     Agent:{" "}
-                    {executionSummary.agent_display_name ||
-                      executionSummary.agent_role ||
-                      executionSummary.agent_id ||
+                    {executionSummary.agent_display_name ??
+                      executionSummary.agent_role ??
+                      executionSummary.agent_id ??
                       "pending"}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Task: {executionSummary.task_id || "not started"}
+                    Task: {executionSummary.task_id ?? "not started"}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Current result: {executionSummary.result_id || "pending"}
+                    Current result: {executionSummary.result_id ?? "pending"}
                   </span>
                   {executionSummary.discussion_group_id ? (
                     <span className="video-thread-workbench__meta">
@@ -695,13 +703,16 @@ export function VideoThreadWorkbench({
                     <div key={turn.turn_id} className="video-thread-workbench__reply">
                       <div className="video-thread-workbench__turn-row">
                         <strong>{turn.title}</strong>
-                        <span>{turn.speaker_display_name || turn.speaker_role || turn.turn_type}</span>
+                        <span>
+                          {turn.speaker_display_name ?? turn.speaker_role ?? turn.turn_type}
+                        </span>
                       </div>
                       {turn.summary ? <p>{turn.summary}</p> : null}
                       {turn.addressed_display_name || turn.addressed_participant_id ? (
                         <div className="video-thread-workbench__intent-meta">
                           <span className="video-thread-workbench__meta">
-                            Addressed to: {turn.addressed_display_name || turn.addressed_participant_id}
+                            Addressed to:{" "}
+                            {turn.addressed_display_name ?? turn.addressed_participant_id}
                           </span>
                         </div>
                       ) : null}
@@ -720,8 +731,8 @@ export function VideoThreadWorkbench({
                   iterationDetail.runs.map((run) => (
                     <div key={run.run_id} className="video-thread-workbench__reply">
                       <div className="video-thread-workbench__turn-row">
-                        <strong>{run.agent_display_name || run.role}</strong>
-                        <span>{run.phase || run.status}</span>
+                        <strong>{run.agent_display_name ?? run.role}</strong>
+                        <span>{run.phase ?? run.status}</span>
                       </div>
                       {run.output_summary ? <p>{run.output_summary}</p> : null}
                     </div>
@@ -752,13 +763,18 @@ export function VideoThreadWorkbench({
             </div>
           ) : (
             <div className="video-thread-workbench__intent-meta">
-              <span className="video-thread-workbench__meta">Turns: {iterationDetailSummary.turn_count}</span>
-              <span className="video-thread-workbench__meta">Runs: {iterationDetailSummary.run_count}</span>
-              <span className="video-thread-workbench__meta">Results: {iterationDetailSummary.result_count}</span>
+              <span className="video-thread-workbench__meta">
+                Turns: {iterationDetailSummary.turn_count}
+              </span>
+              <span className="video-thread-workbench__meta">
+                Runs: {iterationDetailSummary.run_count}
+              </span>
+              <span className="video-thread-workbench__meta">
+                Results: {iterationDetailSummary.result_count}
+              </span>
             </div>
           )}
         </section>
-
       </div>
 
       <section className={getPanelClassName("process")}>
@@ -768,7 +784,7 @@ export function VideoThreadWorkbench({
             <article key={run.run_id} className="video-thread-workbench__run">
               <div className="video-thread-workbench__turn-row">
                 <strong>{run.role}</strong>
-                <span>{run.phase || run.status}</span>
+                <span>{run.phase ?? run.status}</span>
               </div>
               {run.output_summary ? <p>{run.output_summary}</p> : null}
             </article>
@@ -787,7 +803,9 @@ export function VideoThreadWorkbench({
               </div>
               {participant.agent_id ? <p>{participant.agent_id}</p> : null}
               {participantManagement.can_remove &&
-              participantManagement.removable_participant_ids.includes(participant.participant_id) ? (
+              participantManagement.removable_participant_ids.includes(
+                participant.participant_id
+              ) ? (
                 <button
                   type="button"
                   className="video-thread-workbench__inline-button"

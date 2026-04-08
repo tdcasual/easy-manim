@@ -289,7 +289,8 @@ body {
   background: var(--surface-primary);
   border: 2px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   transition: all var(--duration-fast);
   font-family: inherit;
 }
@@ -305,6 +306,10 @@ body {
 .input-ghibli:focus {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 4px rgba(124, 179, 66, 0.15);
+}
+
+.input-ghibli:focus-visible {
+  outline-color: var(--focus);
 }
 
 /* ===== 标签/芯片 ===== */

@@ -91,3 +91,5 @@ export { ARIALiveRegion } from "./ARIALiveRegion";
 export { LocaleToggle } from "./LocaleToggle";
 export { Skeleton, PageSkeleton, SkeletonCard, SkeletonMetricCard } from "./Skeleton";
 export { ConfirmDialog } from "./ConfirmDialog";
+export { DialogShell } from "./DialogShell/DialogShell";
+export type { DialogShellProps } from "./DialogShell/DialogShell";

@@ -29,7 +29,10 @@ function taskIdFromVideoResource(resource: string | null | undefined): string | 
   return match?.[1] ?? null;
 }
 
-function selectedTaskIdFromSurface(surface: VideoThreadSurface | null, iterationId: string | null): string | null {
+function selectedTaskIdFromSurface(
+  surface: VideoThreadSurface | null,
+  iterationId: string | null
+): string | null {
   if (!surface) {
     return null;
   }
@@ -37,7 +40,8 @@ function selectedTaskIdFromSurface(surface: VideoThreadSurface | null, iteration
   const activeIterationId = iterationId ?? surface.current_focus.current_iteration_id ?? null;
   if (activeIterationId) {
     const processRunTaskId =
-      surface.process.runs.find((run) => run.iteration_id === activeIterationId && run.task_id)?.task_id ?? null;
+      surface.process.runs.find((run) => run.iteration_id === activeIterationId && run.task_id)
+        ?.task_id ?? null;
     if (processRunTaskId) {
       return processRunTaskId;
     }
@@ -100,14 +104,19 @@ export function VideoThreadPage() {
   const activeComposerTarget = iterationDetail?.composer_target ?? surface?.composer.target ?? null;
   const selectedResult =
     iterationDetail?.results.find((result) => result.selected) ??
-    iterationDetail?.results.find((result) => result.result_id === surface?.current_focus.current_result_id) ??
+    iterationDetail?.results.find(
+      (result) => result.result_id === surface?.current_focus.current_result_id
+    ) ??
     null;
   const selectedTaskId =
     taskIdFromVideoResource(selectedResult?.video_resource) ??
     iterationDetail?.runs.find((run) => run.task_id)?.task_id ??
     selectedTaskIdFromSurface(surface, selectedIterationId) ??
     null;
-  const { downloads, error: downloadError } = useTaskArtifactDownloads(selectedTaskId, sessionToken);
+  const { downloads, error: downloadError } = useTaskArtifactDownloads(
+    selectedTaskId,
+    sessionToken
+  );
 
   useEffect(() => {
     if (!threadId || !sessionToken) {
@@ -122,7 +131,9 @@ export function VideoThreadPage() {
         }
         setSurface(nextSurface);
         setActiveActionId(nextSurface.actions.items[0]?.action_id ?? null);
-        setSelectedIterationId(resolveSelectedIterationId(nextSurface, null, { preserveCurrent: false }));
+        setSelectedIterationId(
+          resolveSelectedIterationId(nextSurface, null, { preserveCurrent: false })
+        );
         setParticipantDraft((current) => ({
           ...current,
           role: current.role || nextSurface.participants.management.default_role || "reviewer",
@@ -195,7 +206,7 @@ export function VideoThreadPage() {
     setActiveActionId((current) =>
       current && nextSurface.actions.items.some((item) => item.action_id === current)
         ? current
-        : nextSurface.actions.items[0]?.action_id ?? null
+        : (nextSurface.actions.items[0]?.action_id ?? null)
     );
     setParticipantDraft((current) => ({
       ...current,
@@ -394,7 +405,9 @@ export function VideoThreadPage() {
       />
       <VersionTimeline
         results={iterationDetail?.results ?? []}
-        selectedResultId={selectedResult?.result_id ?? surface.current_focus.current_result_id ?? null}
+        selectedResultId={
+          selectedResult?.result_id ?? surface.current_focus.current_result_id ?? null
+        }
         selectingResultId={selectingResultId}
         onSelectResult={onSelectResult}
       />

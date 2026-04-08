@@ -35,7 +35,8 @@ test("getReviewBundle returns owner review controls with render contract", async
                     title: "Pin suggested memory and revise",
                     button_label: "Pin memory and revise",
                     action_family: "combined",
-                    summary: "Attach the most relevant shared workflow memory before creating the next revision.",
+                    summary:
+                      "Attach the most relevant shared workflow memory before creating the next revision.",
                     blocked: false,
                     reasons: [],
                     is_primary: true,
@@ -93,7 +94,9 @@ test("getReviewBundle returns owner review controls with render contract", async
   const bundle = await getReviewBundle("task-1", "sess-token-1");
 
   expect(bundle.workflow_review_controls?.render_contract?.panel_tone).toBe("attention");
-  expect(bundle.workflow_review_controls?.render_contract?.badge_order).toEqual(["recommended_action"]);
+  expect(bundle.workflow_review_controls?.render_contract?.badge_order).toEqual([
+    "recommended_action",
+  ]);
   expect(bundle.workflow_review_controls?.render_contract?.sticky_primary_action_id).toBe(
     bundle.workflow_review_controls?.status_summary?.recommended_action_id
   );

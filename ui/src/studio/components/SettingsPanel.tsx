@@ -2,10 +2,10 @@
  * SettingsPanel - 参数控制面板
  * Kawaii 二次元风格
  */
-import { useRef } from "react";
+import { type CSSProperties, useRef } from "react";
 import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
-import { useDialogA11y } from "../../components/useDialogA11y";
+import { DialogShell } from "../../components/DialogShell/DialogShell";
 import styles from "../styles/SettingsPanel.module.css";
 
 export interface GenerationParams {
@@ -53,25 +53,25 @@ const styleOptions = [
   {
     value: "natural" as const,
     labelKey: "studio.settings.style.natural",
-    color: "#81C784",
+    color: "var(--color-mint-400)",
     emoji: "🌿",
   },
   {
     value: "vivid" as const,
     labelKey: "studio.settings.style.vivid",
-    color: "#FF8A65",
+    color: "var(--color-peach-400)",
     emoji: "🌈",
   },
   {
     value: "anime" as const,
     labelKey: "studio.settings.style.anime",
-    color: "#7986CB",
+    color: "var(--color-lavender-400)",
     emoji: "🎨",
   },
   {
     value: "cinematic" as const,
     labelKey: "studio.settings.style.cinematic",
-    color: "#4DD0E1",
+    color: "var(--color-sky-400)",
     emoji: "🎬",
   },
 ];
@@ -102,184 +102,166 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  useDialogA11y({
-    isOpen,
-    onClose,
-    dialogRef: panelRef,
-    initialFocusRef: closeButtonRef,
-  });
-
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* 遮罩 */}
-      <div className={styles.overlay} onClick={onClose} aria-hidden="true" />
-
-      {/* 面板 */}
-      <div
-        ref={panelRef}
-        className={styles.panel}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("studio.settings.dialog")}
-      >
-        {/* 头部 */}
-        <div className={styles.header}>
-          <div className={styles.headerTitle}>
-            <EmojiIcon emoji="⚙️" color="mint" size="sm" />
-            <h2>{t("studio.settings.title")}</h2>
-          </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label={t("studio.settings.close")}
-            className={styles.closeButton}
-          >
-            <EmojiIcon emoji="✖️" color="white" size="xs" />
-          </button>
+    <DialogShell
+      isOpen={isOpen}
+      onClose={onClose}
+      dialogRef={panelRef}
+      initialFocusRef={closeButtonRef}
+      className={styles.panel}
+      ariaLabel={t("studio.settings.dialog")}
+      overlayClassName={styles.overlay}
+      overlayAriaLabel="Dismiss settings panel backdrop"
+    >
+      {/* 头部 */}
+      <div className={styles.header}>
+        <div className={styles.headerTitle}>
+          <EmojiIcon emoji="⚙️" color="mint" size="sm" />
+          <h2>{t("studio.settings.title")}</h2>
         </div>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          onClick={onClose}
+          aria-label={t("studio.settings.close")}
+          className={styles.closeButton}
+        >
+          <EmojiIcon emoji="✖️" color="white" size="xs" />
+        </button>
+      </div>
 
-        {/* 内容 */}
-        <div className={styles.content}>
-          {/* 分辨率 */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <EmojiIcon emoji="🖥️" color="sky" size="xs" />
-              <h3>{t("studio.settings.resolution")}</h3>
-            </div>
-            <div className={styles.optionsGrid3}>
-              {resolutionOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onParamsChange({ ...params, resolution: opt.value })}
+      {/* 内容 */}
+      <div className={styles.content}>
+        {/* 分辨率 */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <EmojiIcon emoji="🖥️" color="sky" size="xs" />
+            <h3>{t("studio.settings.resolution")}</h3>
+          </div>
+          <div className={styles.optionsGrid3}>
+            {resolutionOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onParamsChange({ ...params, resolution: opt.value })}
+                className={
+                  params.resolution === opt.value ? styles.optionButtonActive : styles.optionButton
+                }
+              >
+                <div
                   className={
-                    params.resolution === opt.value
-                      ? styles.optionButtonActive
-                      : styles.optionButton
+                    params.resolution === opt.value ? styles.optionLabelActive : styles.optionLabel
                   }
                 >
-                  <div
-                    className={
-                      params.resolution === opt.value
-                        ? styles.optionLabelActive
-                        : styles.optionLabel
-                    }
-                  >
-                    {opt.emoji} {opt.label}
-                  </div>
-                  <div className={styles.optionDescription}>
-                    {opt.width}×{opt.height}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
+                  {opt.emoji} {opt.label}
+                </div>
+                <div className={styles.optionDescription}>
+                  {opt.width}×{opt.height}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
 
-          {/* 时长 */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <EmojiIcon emoji="⏱️" color="peach" size="xs" />
-              <h3>{t("studio.settings.duration")}</h3>
-            </div>
-            <div className={styles.optionsGrid3}>
-              {durationOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onParamsChange({ ...params, duration: opt.value })}
+        {/* 时长 */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <EmojiIcon emoji="⏱️" color="peach" size="xs" />
+            <h3>{t("studio.settings.duration")}</h3>
+          </div>
+          <div className={styles.optionsGrid3}>
+            {durationOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onParamsChange({ ...params, duration: opt.value })}
+                className={
+                  params.duration === opt.value ? styles.optionButtonActive : styles.optionButton
+                }
+              >
+                <div
                   className={
-                    params.duration === opt.value ? styles.optionButtonActive : styles.optionButton
+                    params.duration === opt.value ? styles.optionLabelActive : styles.optionLabel
                   }
                 >
+                  {opt.emoji} {t(opt.labelKey)}
+                </div>
+                <div className={styles.optionDescription}>{t(opt.descriptionKey)}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* 风格 */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <EmojiIcon emoji="🎨" color="pink" size="xs" />
+            <h3>{t("studio.settings.style")}</h3>
+          </div>
+          <div className={styles.optionsGrid4}>
+            {styleOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onParamsChange({ ...params, style: opt.value })}
+                className={
+                  params.style === opt.value ? styles.styleButtonActive : styles.styleButton
+                }
+                style={
+                  {
+                    "--style-accent": opt.color,
+                  } as CSSProperties
+                }
+              >
+                <span className={styles.styleEmoji}>{opt.emoji}</span>
+                <div
+                  className={
+                    params.style === opt.value ? styles.styleLabelActive : styles.styleLabel
+                  }
+                >
+                  {t(opt.labelKey)}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* 质量 */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <EmojiIcon emoji="💎" color="lavender" size="xs" />
+            <h3>{t("studio.settings.quality")}</h3>
+          </div>
+          <div className={styles.optionsVertical}>
+            {qualityOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onParamsChange({ ...params, quality: opt.value })}
+                className={
+                  params.quality === opt.value ? styles.qualityButtonActive : styles.qualityButton
+                }
+              >
+                <div className={styles.qualityInfo}>
                   <div
                     className={
-                      params.duration === opt.value ? styles.optionLabelActive : styles.optionLabel
+                      params.quality === opt.value ? styles.qualityLabelActive : styles.qualityLabel
                     }
                   >
                     {opt.emoji} {t(opt.labelKey)}
                   </div>
-                  <div className={styles.optionDescription}>{t(opt.descriptionKey)}</div>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* 风格 */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <EmojiIcon emoji="🎨" color="pink" size="xs" />
-              <h3>{t("studio.settings.style")}</h3>
-            </div>
-            <div className={styles.optionsGrid4}>
-              {styleOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onParamsChange({ ...params, style: opt.value })}
-                  className={styles.styleButton}
-                  style={{
-                    borderColor: params.style === opt.value ? opt.color : undefined,
-                    background: params.style === opt.value ? `${opt.color}20` : undefined,
-                  }}
-                >
-                  <span className={styles.styleEmoji}>{opt.emoji}</span>
-                  <div
-                    className={
-                      params.style === opt.value ? styles.styleLabelActive : styles.styleLabel
-                    }
-                    style={{
-                      color: params.style === opt.value ? opt.color : undefined,
-                    }}
-                  >
-                    {t(opt.labelKey)}
+                  <div className={styles.qualityDescription}>{t(opt.descriptionKey)}</div>
+                </div>
+                {params.quality === opt.value && (
+                  <div className={styles.checkIndicator}>
+                    <EmojiIcon emoji="✓" color="mint" size="xs" />
                   </div>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* 质量 */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <EmojiIcon emoji="💎" color="lavender" size="xs" />
-              <h3>{t("studio.settings.quality")}</h3>
-            </div>
-            <div className={styles.optionsVertical}>
-              {qualityOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onParamsChange({ ...params, quality: opt.value })}
-                  className={
-                    params.quality === opt.value ? styles.qualityButtonActive : styles.qualityButton
-                  }
-                >
-                  <div className={styles.qualityInfo}>
-                    <div
-                      className={
-                        params.quality === opt.value
-                          ? styles.qualityLabelActive
-                          : styles.qualityLabel
-                      }
-                    >
-                      {opt.emoji} {t(opt.labelKey)}
-                    </div>
-                    <div className={styles.qualityDescription}>{t(opt.descriptionKey)}</div>
-                  </div>
-                  {params.quality === opt.value && (
-                    <div className={styles.checkIndicator}>
-                      <EmojiIcon emoji="✓" color="mint" size="xs" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
-    </>
+    </DialogShell>
   );
 }

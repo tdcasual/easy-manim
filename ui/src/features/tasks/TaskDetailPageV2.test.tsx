@@ -110,7 +110,9 @@ test("task detail promotes the thread workspace as the canonical collaboration p
   expect(await screen.findByRole("heading", { name: "Threaded video" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: /thread workspace/i })).toBeInTheDocument();
   expect(
-    screen.getByText(/open the canonical video page for discussion, versions, and revision history/i)
+    screen.getByText(
+      /open the canonical video page for discussion, versions, and revision history/i
+    )
   ).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /open thread workspace/i })).toHaveAttribute(
     "href",
@@ -380,7 +382,8 @@ test("task detail renders owner review panel and submits the recommended workflo
                       title: "Pin suggested memory and revise",
                       button_label: "Pin memory and revise",
                       action_family: "combined",
-                      summary: "Attach the most relevant shared workflow memory before creating the next revision.",
+                      summary:
+                        "Attach the most relevant shared workflow memory before creating the next revision.",
                       blocked: false,
                       reasons: [],
                       is_primary: true,
@@ -509,8 +512,12 @@ test("task detail renders owner review panel and submits the recommended workflo
   );
 
   expect(await screen.findByRole("heading", { name: "工作流评审面板测试" })).toBeInTheDocument();
-  expect(await screen.findByRole("heading", { name: /workflow review controls/i })).toBeInTheDocument();
-  expect(screen.getByText(/Pin suggested workflow memory before creating the next revision/i)).toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: /workflow review controls/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/Pin suggested workflow memory before creating the next revision/i)
+  ).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: /pin memory and revise/i })).toHaveLength(1);
 
   await user.click(screen.getByRole("button", { name: /pin memory and revise/i }));
@@ -537,7 +544,9 @@ test("task detail renders owner review panel and submits the recommended workflo
     pin_workflow_memory_ids: ["mem-a"],
   });
   expect(await screen.findByRole("alert")).toHaveTextContent(/工作流动作已执行/i);
-  expect(await screen.findByRole("heading", { name: "工作流评审面板测试 - 子任务" })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "工作流评审面板测试 - 子任务" })
+  ).toBeInTheDocument();
 });
 
 test("task detail refreshes review panel feedback after a panel-only workflow action", async () => {
@@ -614,7 +623,8 @@ test("task detail refreshes review panel feedback after a panel-only workflow ac
                       title: "Keep reviewing",
                       button_label: "Keep reviewing",
                       action_family: "review_decision",
-                      summary: "Acknowledge the latest workflow step without reloading the task shell.",
+                      summary:
+                        "Acknowledge the latest workflow step without reloading the task shell.",
                       blocked: false,
                       reasons: [],
                       is_primary: true,
@@ -707,7 +717,9 @@ test("task detail refreshes review panel feedback after a panel-only workflow ac
     </MemoryRouter>
   );
 
-  expect(await screen.findByRole("heading", { name: "工作流面板局部刷新测试" })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "工作流面板局部刷新测试" })
+  ).toBeInTheDocument();
   expect(await screen.findByRole("button", { name: /keep reviewing/i })).toBeInTheDocument();
   expect(screen.queryByText(/review kept open/i)).not.toBeInTheDocument();
 
@@ -715,7 +727,9 @@ test("task detail refreshes review panel feedback after a panel-only workflow ac
 
   expect(await screen.findByRole("alert")).toHaveTextContent(/工作流动作已执行/i);
   expect(await screen.findByText(/review kept open/i)).toBeInTheDocument();
-  expect(screen.getByText(/the panel refreshed in place after the workflow action completed/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/the panel refreshed in place after the workflow action completed/i)
+  ).toBeInTheDocument();
   expect(taskRequestCount).toBe(1);
   expect(resultRequestCount).toBe(1);
   expect(reviewBundleRequestCount).toBe(2);
@@ -885,7 +899,9 @@ test("task detail reloads task state after a task-and-panel workflow action", as
   await user.click(await screen.findByRole("button", { name: /accept best version/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(/工作流动作已执行/i);
-  expect(await screen.findByText(/accepted result is now reflected in the task shell/i)).toBeInTheDocument();
+  expect(
+    await screen.findByText(/accepted result is now reflected in the task shell/i)
+  ).toBeInTheDocument();
   expect(taskRequestCount).toBe(2);
   expect(resultRequestCount).toBe(2);
   expect(reviewBundleRequestCount).toBe(2);
@@ -952,11 +968,15 @@ test("task detail without thread id does not request legacy discussion transport
     </MemoryRouter>
   );
 
-  expect(await screen.findByRole("heading", { name: "Legacy-free task detail" })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "Legacy-free task detail" })
+  ).toBeInTheDocument();
   expect(screen.queryByText(/video discussion & process/i)).not.toBeInTheDocument();
   expect(screen.queryByRole("textbox", { name: /discuss this video/i })).not.toBeInTheDocument();
   expect(
-    requestedPaths.some((entry) => entry.includes("/discussion-thread") || entry.includes("/discussion-messages"))
+    requestedPaths.some(
+      (entry) => entry.includes("/discussion-thread") || entry.includes("/discussion-messages")
+    )
   ).toBe(false);
 });
 
@@ -1030,6 +1050,8 @@ test("task detail with thread id stays on the thread-native workbench path", asy
   await user.click(link);
   expect(await screen.findByText("Thread route placeholder")).toBeInTheDocument();
   expect(
-    requestedPaths.some((entry) => entry.includes("/discussion-thread") || entry.includes("/discussion-messages"))
+    requestedPaths.some(
+      (entry) => entry.includes("/discussion-thread") || entry.includes("/discussion-messages")
+    )
   ).toBe(false);
 });
