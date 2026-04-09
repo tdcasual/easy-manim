@@ -188,6 +188,39 @@
   --glass-sky: rgba(212, 241, 249, 0.7);
   --glass-border: rgba(255, 255, 255, 0.5);
   --glass-backdrop: blur(20px) saturate(180%);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+
+  /* Legacy runtime aliases */
+  --text-primary: var(--color-cloud-900);
+  --text-secondary: var(--color-cloud-800);
+  --text-muted: var(--color-cloud-700);
+  --text-inverse: var(--color-cloud-50);
+  --surface-primary: var(--glass-white);
+  --surface-secondary: rgba(255, 255, 255, 0.6);
+  --surface-tertiary: rgba(255, 255, 255, 0.35);
+  --border-subtle: rgba(255, 255, 255, 0.35);
+  --success: var(--color-success-500);
+  --warning: var(--color-warning-500);
+  --error: var(--color-error-500);
+  --info: var(--color-info-500);
+  --status-success: var(--success);
+  --status-warning: var(--warning);
+  --status-error: var(--error);
+  --status-info: var(--info);
+  --accent-primary: var(--color-mint-600);
+  --accent-secondary: var(--color-lavender-500);
+  --accent-warm: var(--color-peach-500);
+  --accent-cyan: var(--color-sky-500);
+  --gradient-aurora: linear-gradient(
+    135deg,
+    var(--color-mint-500) 0%,
+    var(--color-lavender-500) 100%
+  );
+  --primary-950: #030712;
+  --primary-900: #0f172a;
+  --primary-800: #1e293b;
+  --focus: var(--color-sky-500);
+  --font-mono: var(--font-family-mono);
 
   /* ================================
      间距系统 (Spacing System)
@@ -397,6 +430,34 @@
   --glass-mint: rgba(28, 51, 42, 0.7);
   --glass-sky: rgba(28, 47, 54, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(20, 28, 40, 0.8);
+
+  /* Legacy runtime aliases */
+  --text-primary: var(--color-cloud-900);
+  --text-secondary: var(--color-cloud-700);
+  --text-muted: var(--color-cloud-500);
+  --text-inverse: #0a0e1a;
+  --surface-primary: rgba(20, 28, 40, 0.95);
+  --surface-secondary: rgba(30, 40, 55, 0.85);
+  --surface-tertiary: rgba(40, 52, 70, 0.7);
+  --border-subtle: rgba(100, 116, 139, 0.25);
+  --success: #81c784;
+  --warning: var(--color-warning-400);
+  --error: #ef5350;
+  --info: #4fc3f7;
+  --status-success: var(--success);
+  --status-warning: var(--warning);
+  --status-error: var(--error);
+  --status-info: var(--info);
+  --accent-primary: #8bc34a;
+  --accent-secondary: #7986cb;
+  --accent-warm: #ffab91;
+  --accent-cyan: #4fc3f7;
+  --gradient-aurora: linear-gradient(135deg, #8bc34a 0%, #7986cb 100%);
+  --primary-950: #030712;
+  --primary-900: #0a0e1a;
+  --primary-800: #121829;
+  --focus: var(--accent-cyan);
 }
 
 /* ================================

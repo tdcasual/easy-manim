@@ -44,7 +44,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       aria-modal="true"
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-3xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl",
+        "fixed left-[50%] top-[50%] z-50 grid max-h-[90vh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-3xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl",
         "data-[state=open]:animate-pop-in data-[state=closed]:animate-fade-out",
         "focus:outline-none",
         className

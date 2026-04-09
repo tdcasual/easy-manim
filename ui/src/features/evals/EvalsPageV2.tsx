@@ -222,10 +222,10 @@ export function EvalsPageV2() {
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-cloud-800 dark:text-cloud-100">
+                    <div className="truncate text-sm font-medium text-cloud-800 dark:text-cloud-100">
                       {run.run_id}
                     </div>
-                    <div className="text-xs text-cloud-500 dark:text-cloud-400">
+                    <div className="break-words text-xs text-cloud-500 dark:text-cloud-400">
                       {run.suite_id} · {run.provider}
                     </div>
                   </div>

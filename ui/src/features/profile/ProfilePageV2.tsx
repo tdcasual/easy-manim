@@ -614,7 +614,7 @@ export function ProfilePageV2() {
                     {profile.name?.charAt(0).toUpperCase() ?? "?"}
                   </div>
                   <div className="profile-info">
-                    <h4>{profile.name}</h4>
+                    <h4 className="break-words">{profile.name}</h4>
                     <div className="profile-meta">
                       <span className="profile-badge">
                         🏷️ {t("profile.version", { version: profile.profile_version })}

@@ -13,5 +13,4 @@
 
 /* Legacy compatibility layers */
 @import "./tokens.css";
-@import "./ghibli-theme.css";
 @import "./reset.css";

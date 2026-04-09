@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { useI18n } from "../../app/locale";
 import type { VideoThreadIterationDetail, VideoThreadSurface } from "../../lib/videoThreadsApi";
 import "./VideoThreadWorkbench.css";
 
@@ -34,6 +35,7 @@ export function VideoThreadWorkbench({
   onInviteParticipant,
   onRemoveParticipant,
 }: VideoThreadWorkbenchProps) {
+  const { t } = useI18n();
   const panelPresentationById = useMemo(() => {
     return new Map(
       surface.render_contract.panel_presentations.map((item) => [item.panel_id, item] as const)
@@ -41,19 +43,19 @@ export function VideoThreadWorkbench({
   }, [surface.render_contract.panel_presentations]);
   const participantManagement = surface.participants.management;
   const artifactLineage = surface.artifact_lineage ?? {
-    title: "Artifact Lineage",
+    title: t("thread.workbench.artifactLineageTitle"),
     summary: "",
     selected_result_id: null,
     items: [],
   };
   const rationaleSnapshots = surface.rationale_snapshots ?? {
-    title: "Rationale Snapshots",
+    title: t("thread.workbench.rationaleSnapshotsTitle"),
     summary: "",
     current_iteration_id: null,
     items: [],
   };
   const iterationCompare = surface.iteration_compare ?? {
-    title: "Iteration Compare",
+    title: t("thread.workbench.iterationCompareTitle"),
     summary: "",
     previous_iteration_id: null,
     current_iteration_id: null,
@@ -65,7 +67,7 @@ export function VideoThreadWorkbench({
     continuity_summary: "",
   };
   const iterationDetailSummary = surface.iteration_detail ?? {
-    title: "Iteration Detail",
+    title: t("thread.workbench.iterationDetailTitle"),
     summary: "",
     selected_iteration_id: null,
     resource_uri: null,
@@ -73,8 +75,8 @@ export function VideoThreadWorkbench({
     run_count: 0,
     result_count: 0,
     execution_summary: {
-      title: "Execution Summary",
-      summary: "No iteration is selected yet.",
+      title: t("thread.workbench.executionSummaryTitle"),
+      summary: t("thread.workbench.noIterationSelected"),
       task_id: null,
       run_id: null,
       status: "pending",
@@ -92,8 +94,8 @@ export function VideoThreadWorkbench({
   };
   const executionSummary = iterationDetail?.execution_summary ??
     iterationDetailSummary.execution_summary ?? {
-      title: "Execution Summary",
-      summary: "No tracked execution is attached to this iteration yet.",
+      title: t("thread.workbench.executionSummaryTitle"),
+      summary: t("thread.workbench.noExecutionAttached"),
       task_id: null,
       run_id: null,
       status: "pending",
@@ -109,7 +111,7 @@ export function VideoThreadWorkbench({
       is_active: false,
     };
   const participantRuntime = surface.participant_runtime ?? {
-    title: "Participant Runtime",
+    title: t("thread.workbench.participantRuntimeTitle"),
     summary: "",
     active_iteration_id: null,
     expected_participant_id: null,
@@ -144,42 +146,42 @@ export function VideoThreadWorkbench({
             <p className="video-thread-workbench__summary">{surface.thread_summary}</p>
             {surface.render_contract.badge_order.length ? (
               <p className="video-thread-workbench__meta">
-                Priority badges: {surface.render_contract.badge_order.join(" / ")}
+                {t("thread.workbench.priorityBadges")}: {surface.render_contract.badge_order.join(" / ")}
               </p>
             ) : null}
           </div>
           <div className="video-thread-workbench__status">
-            <span>Status</span>
+            {t("thread.workbench.statusLabel")}
             <strong>{surface.thread_header.status}</strong>
           </div>
         </header>
       ) : null}
 
       <section className={getPanelClassName("current_focus")}>
-        <h2>Selected result with current focus</h2>
-        <p>{surface.current_focus.current_result_summary ?? "No selected result yet."}</p>
+        <h2>{t("thread.workbench.focusTitle")}</h2>
+        <p>{surface.current_focus.current_result_summary ?? t("thread.workbench.noSelectedResult")}</p>
         <div className="video-thread-workbench__focus-grid">
           <div>
-            <span className="video-thread-workbench__label">Current goal</span>
+            <span className="video-thread-workbench__label">{t("thread.workbench.currentGoal")}</span>
             <strong>
-              {surface.current_focus.current_iteration_goal ?? "Pending owner direction"}
+              {surface.current_focus.current_iteration_goal ?? t("thread.workbench.pendingOwner")}
             </strong>
           </div>
           <div>
-            <span className="video-thread-workbench__label">Current author</span>
+            <span className="video-thread-workbench__label">{t("thread.workbench.currentAuthor")}</span>
             <strong>
               {surface.current_focus.current_result_author_display_name ??
                 surface.current_focus.current_result_author_role ??
-                "unassigned"}
+                t("thread.workbench.unassigned")}
             </strong>
           </div>
           <div>
-            <span className="video-thread-workbench__label">Owner next step</span>
-            <strong>{surface.responsibility.owner_action_required ?? "none"}</strong>
+            <span className="video-thread-workbench__label">{t("thread.workbench.ownerNextStep")}</span>
+            <strong>{surface.responsibility.owner_action_required ?? t("thread.workbench.none")}</strong>
           </div>
           <div>
-            <span className="video-thread-workbench__label">Expected agent role</span>
-            <strong>{surface.responsibility.expected_agent_role ?? "unassigned"}</strong>
+            <span className="video-thread-workbench__label">{t("thread.workbench.expectedRole")}</span>
+            <strong>{surface.responsibility.expected_agent_role ?? t("thread.workbench.unassigned")}</strong>
           </div>
         </div>
         {surface.current_focus.current_result_selection_reason ? (
@@ -191,7 +193,7 @@ export function VideoThreadWorkbench({
         <section className={getPanelClassName("selection_summary")}>
           <h2>{surface.selection_summary.title}</h2>
           <p>
-            {surface.selection_summary.summary || "No selected-result rationale is available yet."}
+            {surface.selection_summary.summary || t("thread.workbench.noSelectedRationale")}
           </p>
           {surface.selection_summary.author_display_name ||
           surface.selection_summary.author_role ? (
@@ -199,9 +201,9 @@ export function VideoThreadWorkbench({
               <strong>
                 {surface.selection_summary.author_display_name ??
                   surface.selection_summary.author_role ??
-                  "Unknown author"}
+                  t("thread.workbench.unknownAuthor")}
               </strong>
-              <span>{surface.selection_summary.selected_result_id ?? "pending result"}</span>
+              <span>{surface.selection_summary.selected_result_id ?? t("thread.workbench.pendingResult")}</span>
             </div>
           ) : null}
         </section>
@@ -209,7 +211,7 @@ export function VideoThreadWorkbench({
         <section className={getPanelClassName("latest_explanation")}>
           <h2>{surface.latest_explanation.title}</h2>
           <p>
-            {surface.latest_explanation.summary || "No visible explanation has been recorded yet."}
+            {surface.latest_explanation.summary || t("thread.workbench.noVisibleExplanation")}
           </p>
           {surface.latest_explanation.speaker_display_name ||
           surface.latest_explanation.speaker_role ? (
@@ -217,15 +219,15 @@ export function VideoThreadWorkbench({
               <strong>
                 {surface.latest_explanation.speaker_display_name ??
                   surface.latest_explanation.speaker_role ??
-                  "Agent"}
+                  t("thread.discussion.agent")}
               </strong>
-              <span>{surface.latest_explanation.turn_id ?? "latest explanation"}</span>
+              <span>{surface.latest_explanation.turn_id ?? t("thread.workbench.latestExplanation")}</span>
             </div>
           ) : null}
         </section>
 
         <section className={getPanelClassName("decision_notes")}>
-          <h2>Decision Notes</h2>
+          <h2>{t("thread.workbench.decisionNotesTitle")}</h2>
           <div className="video-thread-workbench__conversation">
             {surface.decision_notes.items.length ? (
               surface.decision_notes.items.map((note) => (
@@ -241,36 +243,36 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__intent-meta">
                     {note.actor_display_name || note.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {note.actor_display_name ?? note.actor_role}
+                        {t("thread.workbench.actorLabel")}: {note.actor_display_name ?? note.actor_role}
                       </span>
                     ) : null}
                     {note.source_iteration_id ? (
                       <span className="video-thread-workbench__meta">
-                        Iteration: {note.source_iteration_id}
+                        {t("thread.workbench.iterationLabel")}: {note.source_iteration_id}
                       </span>
                     ) : null}
                     {note.source_turn_id ? (
                       <span className="video-thread-workbench__meta">
-                        Turn: {note.source_turn_id}
+                        {t("thread.workbench.turnLabel")}: {note.source_turn_id}
                       </span>
                     ) : null}
                     {note.source_result_id ? (
                       <span className="video-thread-workbench__meta">
-                        Result: {note.source_result_id}
+                        {t("thread.workbench.resultLabel")}: {note.source_result_id}
                       </span>
                     ) : null}
                   </div>
                 </article>
               ))
             ) : (
-              <p className="video-thread-workbench__meta">No decision notes are available yet.</p>
+              <p className="video-thread-workbench__meta">{t("thread.workbench.noDecisionNotes")}</p>
             )}
           </div>
         </section>
 
         <section className={getPanelClassName("artifact_lineage")}>
-          <h2>Artifact Lineage</h2>
-          <p>{artifactLineage.summary || "No visible artifact lineage is available yet."}</p>
+          <h2>{t("thread.workbench.artifactLineageTitle")}</h2>
+          <p>{artifactLineage.summary || t("thread.workbench.noArtifactLineage")}</p>
           <div className="video-thread-workbench__conversation">
             {artifactLineage.items.length ? (
               artifactLineage.items.map((item) => (
@@ -280,7 +282,7 @@ export function VideoThreadWorkbench({
                 >
                   <div className="video-thread-workbench__turn-row">
                     <strong>
-                      {item.from_result_id ?? "origin"} {"->"} {item.to_result_id ?? "pending"}
+                      {item.from_result_id ?? t("thread.workbench.origin")} {"->"} {item.to_result_id ?? t("thread.workbench.pending")}
                     </strong>
                     <span>{item.status}</span>
                   </div>
@@ -289,34 +291,32 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__intent-meta">
                     {item.trigger_label ? (
                       <span className="video-thread-workbench__meta">
-                        Trigger: {item.trigger_label}
+                        {t("thread.workbench.triggerLabel")}: {item.trigger_label}
                       </span>
                     ) : null}
                     {item.actor_display_name || item.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {item.actor_display_name ?? item.actor_role}
+                        {t("thread.workbench.actorLabel")}: {item.actor_display_name ?? item.actor_role}
                       </span>
                     ) : null}
                     {item.iteration_id ? (
                       <span className="video-thread-workbench__meta">
-                        Iteration: {item.iteration_id}
+                        {t("thread.workbench.iterationLabel")}: {item.iteration_id}
                       </span>
                     ) : null}
                   </div>
                 </article>
               ))
             ) : (
-              <p className="video-thread-workbench__meta">
-                No visible artifact lineage is available yet.
-              </p>
+              <p className="video-thread-workbench__meta">{t("thread.workbench.noArtifactLineage")}</p>
             )}
           </div>
         </section>
 
         <section className={getPanelClassName("rationale_snapshots")}>
-          <h2>Rationale Snapshots</h2>
+          <h2>{t("thread.workbench.rationaleSnapshotsTitle")}</h2>
           <p>
-            {rationaleSnapshots.summary || "No canonical rationale snapshots are available yet."}
+            {rationaleSnapshots.summary || t("thread.workbench.noRationaleSnapshots")}
           </p>
           <div className="video-thread-workbench__conversation">
             {rationaleSnapshots.items.length ? (
@@ -335,54 +335,52 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__intent-meta">
                     {item.actor_display_name || item.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {item.actor_display_name ?? item.actor_role}
+                        {t("thread.workbench.actorLabel")}: {item.actor_display_name ?? item.actor_role}
                       </span>
                     ) : null}
                     {item.iteration_id ? (
                       <span className="video-thread-workbench__meta">
-                        Iteration: {item.iteration_id}
+                        {t("thread.workbench.iterationLabel")}: {item.iteration_id}
                       </span>
                     ) : null}
                     {item.source_turn_id ? (
                       <span className="video-thread-workbench__meta">
-                        Turn: {item.source_turn_id}
+                        {t("thread.workbench.turnLabel")}: {item.source_turn_id}
                       </span>
                     ) : null}
                     {item.source_result_id ? (
                       <span className="video-thread-workbench__meta">
-                        Result: {item.source_result_id}
+                        {t("thread.workbench.resultLabel")}: {item.source_result_id}
                       </span>
                     ) : null}
                   </div>
                 </article>
               ))
             ) : (
-              <p className="video-thread-workbench__meta">
-                No canonical rationale snapshots are available yet.
-              </p>
+              <p className="video-thread-workbench__meta">{t("thread.workbench.noRationaleSnapshots")}</p>
             )}
           </div>
         </section>
 
         <section className={getPanelClassName("iteration_compare")}>
           <h2>{iterationCompare.title}</h2>
-          <p>{iterationCompare.summary || "No stable iteration comparison is available yet."}</p>
+          <p>{iterationCompare.summary || t("thread.workbench.noIterationComparison")}</p>
           <div className="video-thread-workbench__focus-grid">
             <div>
-              <span className="video-thread-workbench__label">Previous iteration</span>
-              <strong>{iterationCompare.previous_iteration_id ?? "none"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.previousIteration")}</span>
+              <strong>{iterationCompare.previous_iteration_id ?? t("thread.workbench.none")}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Current iteration</span>
-              <strong>{iterationCompare.current_iteration_id ?? "none"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.currentIteration")}</span>
+              <strong>{iterationCompare.current_iteration_id ?? t("thread.workbench.none")}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Previous result</span>
-              <strong>{iterationCompare.previous_result_id ?? "none"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.previousResult")}</span>
+              <strong>{iterationCompare.previous_result_id ?? t("thread.workbench.none")}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Current result</span>
-              <strong>{iterationCompare.current_result_id ?? "none"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.currentResult")}</span>
+              <strong>{iterationCompare.current_result_id ?? t("thread.workbench.none")}</strong>
             </div>
           </div>
           {iterationCompare.change_summary ? <p>{iterationCompare.change_summary}</p> : null}
@@ -391,7 +389,7 @@ export function VideoThreadWorkbench({
           ) : null}
           <div className="video-thread-workbench__intent-meta">
             <span className="video-thread-workbench__meta">
-              Continuity: {iterationCompare.continuity_status}
+              {t("thread.workbench.continuityLabel")}: {iterationCompare.continuity_status}
             </span>
           </div>
           {iterationCompare.continuity_summary ? (
@@ -400,48 +398,48 @@ export function VideoThreadWorkbench({
         </section>
 
         <section className={getPanelClassName("authorship")}>
-          <h2>Who Shaped This Version</h2>
-          <p>{surface.authorship.summary || "No shaping agent has been projected yet."}</p>
+          <h2>{t("thread.workbench.shapingTitle")}</h2>
+          <p>{surface.authorship.summary || t("thread.workbench.noShapingAgent")}</p>
           <div className="video-thread-workbench__focus-grid">
             <div>
-              <span className="video-thread-workbench__label">Primary agent</span>
+              <span className="video-thread-workbench__label">{t("thread.workbench.primaryAgent")}</span>
               <strong>
                 {surface.authorship.primary_agent_display_name ??
                   surface.authorship.primary_agent_role ??
-                  "unassigned"}
+                  t("thread.workbench.unassigned")}
               </strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Role</span>
-              <strong>{surface.authorship.primary_agent_role ?? "unassigned"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.roleLabel")}</span>
+              <strong>{surface.authorship.primary_agent_role ?? t("thread.workbench.unassigned")}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Run source</span>
-              <strong>{surface.authorship.source_run_id ?? "n/a"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.runSource")}</span>
+              <strong>{surface.authorship.source_run_id ?? t("thread.workbench.notApplicable")}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Turn source</span>
-              <strong>{surface.authorship.source_turn_id ?? "n/a"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.turnSource")}</span>
+              <strong>{surface.authorship.source_turn_id ?? t("thread.workbench.notApplicable")}</strong>
             </div>
           </div>
         </section>
 
         <section className={getPanelClassName("next_recommended_move")}>
           <h2>{surface.next_recommended_move.title}</h2>
-          <p>{surface.next_recommended_move.summary || "No recommended move is available yet."}</p>
+          <p>{surface.next_recommended_move.summary || t("thread.workbench.noRecommendedMove")}</p>
           <div className="video-thread-workbench__turn-row">
             <strong>
-              {surface.next_recommended_move.recommended_action_label ?? "Observe thread"}
+              {surface.next_recommended_move.recommended_action_label ?? t("thread.workbench.observeThread")}
             </strong>
-            <span>{surface.next_recommended_move.owner_action_required ?? "none"}</span>
+            <span>{surface.next_recommended_move.owner_action_required ?? t("thread.workbench.none")}</span>
           </div>
         </section>
 
         <section className={getPanelClassName("production_journal")}>
-          <h2>Production Journal</h2>
+          <h2>{t("thread.workbench.productionJournalTitle")}</h2>
           <p>
             {surface.production_journal.summary ||
-              "No visible production entries are available yet."}
+              t("thread.workbench.noProductionJournal")}
           </p>
           <div className="video-thread-workbench__conversation">
             {surface.production_journal.entries.length ? (
@@ -450,25 +448,25 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__turn-row">
                     <strong>{entry.title}</strong>
                     <span>
-                      {entry.stage || "process"} / {entry.status || "unknown"}
+                      {entry.stage || t("thread.workbench.process")} / {entry.status || t("thread.workbench.unknown")}
                     </span>
                   </div>
                   {entry.summary ? <p>{entry.summary}</p> : null}
                   <div className="video-thread-workbench__intent-meta">
                     {entry.actor_display_name || entry.actor_role ? (
                       <span className="video-thread-workbench__meta">
-                        Actor: {entry.actor_display_name ?? entry.actor_role}
+                        {t("thread.workbench.actorLabel")}: {entry.actor_display_name ?? entry.actor_role}
                       </span>
                     ) : null}
                     {entry.task_id ? (
-                      <span className="video-thread-workbench__meta">Task: {entry.task_id}</span>
+                      <span className="video-thread-workbench__meta">{t("thread.workbench.taskLabel")}: {entry.task_id}</span>
                     ) : null}
                     {entry.run_id ? (
-                      <span className="video-thread-workbench__meta">Run: {entry.run_id}</span>
+                      <span className="video-thread-workbench__meta">{t("thread.workbench.runLabel")}: {entry.run_id}</span>
                     ) : null}
                     {entry.result_id ? (
                       <span className="video-thread-workbench__meta">
-                        Result: {entry.result_id}
+                        {t("thread.workbench.resultLabel")}: {entry.result_id}
                       </span>
                     ) : null}
                   </div>
@@ -484,40 +482,38 @@ export function VideoThreadWorkbench({
                 </article>
               ))
             ) : (
-              <p className="video-thread-workbench__meta">
-                No production journal entries have been projected yet.
-              </p>
+              <p className="video-thread-workbench__meta">{t("thread.workbench.noProductionJournal")}</p>
             )}
           </div>
         </section>
 
         <section className={getPanelClassName("participant_runtime")}>
           <h2>{participantRuntime.title}</h2>
-          <p>{participantRuntime.summary || "No participant continuity has been projected yet."}</p>
+          <p>{participantRuntime.summary || t("thread.workbench.noParticipantContinuity")}</p>
           <div className="video-thread-workbench__focus-grid">
             <div>
-              <span className="video-thread-workbench__label">Expected responder</span>
-              <strong>{participantRuntime.expected_display_name ?? "Agent choice"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.expectedResponder")}</span>
+              <strong>{participantRuntime.expected_display_name ?? t("thread.discussion.agentChoice")}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Expected role</span>
-              <strong>{participantRuntime.expected_role ?? "unassigned"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.expectedRole")}</span>
+              <strong>{participantRuntime.expected_role ?? t("thread.workbench.unassigned")}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Continuity mode</span>
+              <span className="video-thread-workbench__label">{t("thread.workbench.continuityMode")}</span>
               <strong>{participantRuntime.continuity_mode}</strong>
             </div>
             <div>
-              <span className="video-thread-workbench__label">Locked target</span>
-              <strong>{participantRuntime.follow_up_target_locked ? "yes" : "no"}</strong>
+              <span className="video-thread-workbench__label">{t("thread.workbench.lockedTarget")}</span>
+              <strong>{participantRuntime.follow_up_target_locked ? t("thread.workbench.yes") : t("thread.workbench.no")}</strong>
             </div>
           </div>
           <div className="video-thread-workbench__intent-meta">
             <span className="video-thread-workbench__meta">
-              Continuity mode: {participantRuntime.continuity_mode}
+              {t("thread.workbench.continuityMode")}: {participantRuntime.continuity_mode}
             </span>
             <span className="video-thread-workbench__meta">
-              Locked target: {participantRuntime.follow_up_target_locked ? "yes" : "no"}
+              {t("thread.workbench.lockedTarget")}: {participantRuntime.follow_up_target_locked ? t("thread.workbench.yes") : t("thread.workbench.no")}
             </span>
           </div>
           <div className="video-thread-workbench__conversation">
@@ -531,23 +527,21 @@ export function VideoThreadWorkbench({
                     <strong>{contributor.display_name}</strong>
                     <span>{contributor.contribution_kind}</span>
                   </div>
-                  <p>{contributor.summary || "No recent contribution summary is available yet."}</p>
+                  <p>{contributor.summary || t("thread.workbench.noRecentContribution")}</p>
                   <div className="video-thread-workbench__intent-meta">
                     {contributor.role ? (
-                      <span className="video-thread-workbench__meta">Role: {contributor.role}</span>
+                      <span className="video-thread-workbench__meta">{t("thread.workbench.roleLabel")}: {contributor.role}</span>
                     ) : null}
                     {contributor.agent_id ? (
                       <span className="video-thread-workbench__meta">
-                        Agent: {contributor.agent_id}
+                        {t("thread.workbench.agentLabel")}: {contributor.agent_id}
                       </span>
                     ) : null}
                   </div>
                 </article>
               ))
             ) : (
-              <p className="video-thread-workbench__meta">
-                No recent contributors are available yet.
-              </p>
+              <p className="video-thread-workbench__meta">{t("thread.workbench.noRecentContributors")}</p>
             )}
           </div>
         </section>
@@ -555,7 +549,7 @@ export function VideoThreadWorkbench({
 
       <div className="video-thread-workbench__layout">
         <section className={getPanelClassName("history")}>
-          <h2>How This Video Got Here</h2>
+          <h2>{t("thread.workbench.historyTitle")}</h2>
           <div className="video-thread-workbench__conversation">
             {surface.history.cards.map((card) => (
               <article
@@ -571,30 +565,30 @@ export function VideoThreadWorkbench({
                   <div className="video-thread-workbench__intent-meta">
                     {card.intent_type ? (
                       <span className="video-thread-workbench__meta">
-                        Intent: {card.intent_type}
+                        {t("thread.workbench.intentLabel")}: {card.intent_type}
                       </span>
                     ) : null}
                     {card.reply_to_turn_id ? (
                       <span className="video-thread-workbench__meta">
-                        Replies to: {card.reply_to_turn_id}
+                        {t("thread.workbench.repliesToLabel")}: {card.reply_to_turn_id}
                       </span>
                     ) : null}
                     {card.related_result_id ? (
                       <span className="video-thread-workbench__meta">
-                        Result: {card.related_result_id}
+                        {t("thread.workbench.resultLabel")}: {card.related_result_id}
                       </span>
                     ) : null}
                   </div>
                 ) : null}
                 <div className="video-thread-workbench__turn-row">
                   <span className="video-thread-workbench__meta">
-                    {card.actor_display_name ?? card.actor_role ?? "System"}
+                    {card.actor_display_name ?? card.actor_role ?? t("thread.workbench.system")}
                   </span>
                   <div className="video-thread-workbench__history-meta">
                     <span className="video-thread-workbench__meta">
-                      {card.iteration_id ?? "thread-wide"}
+                      {card.iteration_id ?? t("thread.workbench.threadWide")}
                     </span>
-                    <span className="video-thread-workbench__meta">{card.emphasis} emphasis</span>
+                    <span className="video-thread-workbench__meta">{card.emphasis} {t("thread.workbench.emphasis")}</span>
                   </div>
                 </div>
               </article>
@@ -603,7 +597,7 @@ export function VideoThreadWorkbench({
         </section>
 
         <section className={getPanelClassName("iteration_workbench")}>
-          <h2>Iteration workbench</h2>
+          <h2>{t("thread.workbench.iterationWorkbenchTitle")}</h2>
           <div className="video-thread-workbench__iteration-list">
             {surface.iteration_workbench.iterations.map((iteration) => (
               <article
@@ -637,10 +631,10 @@ export function VideoThreadWorkbench({
           <h2>{iterationDetailSummary.title}</h2>
           <p>
             {(iterationDetail?.summary ?? iterationDetailSummary.summary) ||
-              "Select an iteration to inspect its visible process and discussion."}
+              t("thread.workbench.selectIterationHint")}
           </p>
           {iterationLoading ? (
-            <p className="video-thread-workbench__meta">Loading iteration detail...</p>
+            <p className="video-thread-workbench__meta">{t("thread.workbench.loadingIteration")}</p>
           ) : null}
           {iterationDetail ? (
             <div className="video-thread-workbench__conversation">
@@ -651,13 +645,13 @@ export function VideoThreadWorkbench({
                 </div>
                 <div className="video-thread-workbench__intent-meta">
                   <span className="video-thread-workbench__meta">
-                    Requested action: {iterationDetail.iteration.requested_action ?? "n/a"}
+                    {t("thread.workbench.requestedAction")}: {iterationDetail.iteration.requested_action ?? t("thread.workbench.notApplicable")}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Focus result: {iterationDetail.iteration.selected_result_id ?? "pending"}
+                    {t("thread.workbench.focusResult")}: {iterationDetail.iteration.selected_result_id ?? t("thread.workbench.pending")}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Source result: {iterationDetail.iteration.source_result_id ?? "origin"}
+                    {t("thread.workbench.sourceResult")}: {iterationDetail.iteration.source_result_id ?? t("thread.workbench.origin")}
                   </span>
                 </div>
               </article>
@@ -669,33 +663,33 @@ export function VideoThreadWorkbench({
                 <p>{executionSummary.summary}</p>
                 <div className="video-thread-workbench__intent-meta">
                   <span className="video-thread-workbench__meta">
-                    Agent:{" "}
+                    {t("thread.discussion.agent")}:{" "}
                     {executionSummary.agent_display_name ??
                       executionSummary.agent_role ??
                       executionSummary.agent_id ??
                       "pending"}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Task: {executionSummary.task_id ?? "not started"}
+                    {t("thread.workbench.taskLabel")}: {executionSummary.task_id ?? t("thread.workbench.notStarted")}
                   </span>
                   <span className="video-thread-workbench__meta">
-                    Current result: {executionSummary.result_id ?? "pending"}
+                    {t("thread.workbench.currentResultLabel")}: {executionSummary.result_id ?? t("thread.workbench.pending")}
                   </span>
                   {executionSummary.discussion_group_id ? (
                     <span className="video-thread-workbench__meta">
-                      Discussion group: {executionSummary.discussion_group_id}
+                      {t("thread.workbench.discussionGroupLabel")}: {executionSummary.discussion_group_id}
                     </span>
                   ) : null}
                   {executionSummary.reply_to_turn_id ? (
                     <span className="video-thread-workbench__meta">
-                      Reply target: {executionSummary.reply_to_turn_id}
+                      {t("thread.workbench.replyTargetLabel")}: {executionSummary.reply_to_turn_id}
                     </span>
                   ) : null}
                 </div>
               </article>
               <article className="video-thread-workbench__journal-entry">
                 <div className="video-thread-workbench__turn-row">
-                  <strong>Visible turns</strong>
+                  <strong>{t("thread.workbench.visibleTurns")}</strong>
                   <span>{iterationDetail.turns.length}</span>
                 </div>
                 {iterationDetail.turns.length ? (
@@ -711,7 +705,7 @@ export function VideoThreadWorkbench({
                       {turn.addressed_display_name || turn.addressed_participant_id ? (
                         <div className="video-thread-workbench__intent-meta">
                           <span className="video-thread-workbench__meta">
-                            Addressed to:{" "}
+                            {t("thread.workbench.addressedTo")}:{" "}
                             {turn.addressed_display_name ?? turn.addressed_participant_id}
                           </span>
                         </div>
@@ -719,12 +713,12 @@ export function VideoThreadWorkbench({
                     </div>
                   ))
                 ) : (
-                  <p className="video-thread-workbench__meta">No visible turns are attached yet.</p>
+                  <p className="video-thread-workbench__meta">{t("thread.workbench.noTurns")}</p>
                 )}
               </article>
               <article className="video-thread-workbench__journal-entry">
                 <div className="video-thread-workbench__turn-row">
-                  <strong>Agent runs</strong>
+                  <strong>{t("thread.workbench.agentRuns")}</strong>
                   <span>{iterationDetail.runs.length}</span>
                 </div>
                 {iterationDetail.runs.length ? (
@@ -738,12 +732,12 @@ export function VideoThreadWorkbench({
                     </div>
                   ))
                 ) : (
-                  <p className="video-thread-workbench__meta">No agent runs are attached yet.</p>
+                  <p className="video-thread-workbench__meta">{t("thread.workbench.noRuns")}</p>
                 )}
               </article>
               <article className="video-thread-workbench__journal-entry">
                 <div className="video-thread-workbench__turn-row">
-                  <strong>Produced results</strong>
+                  <strong>{t("thread.workbench.producedResults")}</strong>
                   <span>{iterationDetail.results.length}</span>
                 </div>
                 {iterationDetail.results.length ? (
@@ -751,26 +745,26 @@ export function VideoThreadWorkbench({
                     <div key={result.result_id} className="video-thread-workbench__reply">
                       <div className="video-thread-workbench__turn-row">
                         <strong>{result.result_id}</strong>
-                        <span>{result.selected ? "selected" : result.status}</span>
+                        <span>{result.selected ? t("thread.timeline.currentVersion") : result.status}</span>
                       </div>
                       {result.result_summary ? <p>{result.result_summary}</p> : null}
                     </div>
                   ))
                 ) : (
-                  <p className="video-thread-workbench__meta">No results are attached yet.</p>
+                  <p className="video-thread-workbench__meta">{t("thread.workbench.noResults")}</p>
                 )}
               </article>
             </div>
           ) : (
             <div className="video-thread-workbench__intent-meta">
               <span className="video-thread-workbench__meta">
-                Turns: {iterationDetailSummary.turn_count}
+                {t("thread.workbench.visibleTurns")}: {iterationDetailSummary.turn_count}
               </span>
               <span className="video-thread-workbench__meta">
-                Runs: {iterationDetailSummary.run_count}
+                {t("thread.workbench.agentRuns")}: {iterationDetailSummary.run_count}
               </span>
               <span className="video-thread-workbench__meta">
-                Results: {iterationDetailSummary.result_count}
+                {t("thread.workbench.producedResults")}: {iterationDetailSummary.result_count}
               </span>
             </div>
           )}
@@ -778,7 +772,7 @@ export function VideoThreadWorkbench({
       </div>
 
       <section className={getPanelClassName("process")}>
-        <h2>Process and agent activity</h2>
+        <h2>{t("thread.workbench.processTitle")}</h2>
         <div className="video-thread-workbench__process">
           {surface.process.runs.map((run) => (
             <article key={run.run_id} className="video-thread-workbench__run">
@@ -793,7 +787,7 @@ export function VideoThreadWorkbench({
       </section>
 
       <section className={getPanelClassName("participants")}>
-        <h2>Participants</h2>
+        <h2>{t("thread.workbench.participantsTitle")}</h2>
         <div className="video-thread-workbench__conversation">
           {surface.participants.items.map((participant) => (
             <article key={participant.participant_id} className="video-thread-workbench__turn">
@@ -821,13 +815,13 @@ export function VideoThreadWorkbench({
         </div>
         <div className="video-thread-workbench__participant-management">
           <div className="video-thread-workbench__turn-row">
-            <strong>Owner participant controls</strong>
-            <span>{participantManagement.can_manage ? "Active" : "View only"}</span>
+            <strong>{t("thread.workbench.ownerControls")}</strong>
+            <span>{participantManagement.can_manage ? t("thread.workbench.active") : t("thread.workbench.viewOnly")}</span>
           </div>
           <p>{participantManagement.context_hint || participantManagement.disabled_reason}</p>
           <div className="video-thread-workbench__participant-form">
             <label className="video-thread-workbench__label" htmlFor="participant-agent-id">
-              Participant agent id
+              {t("thread.workbench.participantAgentIdLabel")}
             </label>
             <input
               id="participant-agent-id"
@@ -838,18 +832,18 @@ export function VideoThreadWorkbench({
               disabled={participantSubmitting || !participantManagement.can_invite}
             />
             <label className="video-thread-workbench__label" htmlFor="participant-display-name">
-              Participant display name
+              {t("thread.workbench.participantDisplayNameLabel")}
             </label>
             <input
               id="participant-display-name"
               className="video-thread-workbench__input"
               value={participantDraft.displayName}
-              placeholder="Reviewer"
+              placeholder={t("thread.workbench.rolePlaceholder")}
               onChange={(event) => onParticipantDraftChange("displayName", event.target.value)}
               disabled={participantSubmitting || !participantManagement.can_invite}
             />
             <label className="video-thread-workbench__label" htmlFor="participant-role">
-              Participant role
+              {t("thread.workbench.participantRoleLabel")}
             </label>
             <input
               id="participant-role"

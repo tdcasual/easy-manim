@@ -426,7 +426,7 @@ export function TaskDetailPageV2() {
             <ArrowLeft size={18} />
             {t("taskDetail.back")}
           </button>
-          <h1 className="page-title-v2">{displayTitle}</h1>
+          <h1 className="page-title-v2 break-words">{displayTitle}</h1>
           <p className="page-description-v2">{taskId}</p>
         </div>
         <button className="refresh-btn" onClick={() => setReloadTick((t) => t + 1)}>

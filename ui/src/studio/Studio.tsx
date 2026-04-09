@@ -253,7 +253,7 @@ export function Studio() {
 
   return (
     <div
-      className="relative flex min-h-screen flex-col overflow-hidden"
+      className="relative flex min-h-screen flex-col"
       style={{ background: "var(--gradient-day)" }}
     >
       <SkyBackground isNight={isNight} />

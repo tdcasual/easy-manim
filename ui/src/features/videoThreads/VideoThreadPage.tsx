@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { useI18n } from "../../app/locale";
 import { useSession } from "../auth/useSession";
 import { ProcessDetailsAccordion } from "./ProcessDetailsAccordion";
 import { VideoThreadWorkbench } from "./VideoThreadWorkbench";
@@ -85,6 +86,7 @@ function resolveSelectedIterationId(
 }
 
 export function VideoThreadPage() {
+  const { t } = useI18n();
   const { threadId } = useParams();
   const { sessionToken } = useSession();
   const [surface, setSurface] = useState<VideoThreadSurface | null>(null);
@@ -142,7 +144,7 @@ export function VideoThreadPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load video thread");
+          setError(err instanceof Error ? err.message : t("thread.error.loadThread"));
         }
       });
 
@@ -167,7 +169,7 @@ export function VideoThreadPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load iteration detail");
+          setError(err instanceof Error ? err.message : t("thread.error.loadIteration"));
         }
       })
       .finally(() => {
@@ -271,7 +273,7 @@ export function VideoThreadPage() {
         setIterationDetail(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update thread");
+      setError(err instanceof Error ? err.message : t("thread.error.updateThread"));
     } finally {
       setSubmitting(false);
     }
@@ -309,7 +311,7 @@ export function VideoThreadPage() {
       });
       await refreshSurface();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update thread participants");
+      setError(err instanceof Error ? err.message : t("thread.error.updateParticipants"));
     } finally {
       setParticipantSubmitting(false);
     }
@@ -344,14 +346,14 @@ export function VideoThreadPage() {
       await refreshSurface();
       await refreshIterationDetail(selectedIterationId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to select version");
+      setError(err instanceof Error ? err.message : t("thread.error.selectVersion"));
     } finally {
       setSelectingResultId(null);
     }
   }
 
   if (!threadId) {
-    return <div className="page-v2">Missing thread id.</div>;
+    return <div className="page-v2">{t("thread.error.missingThreadId")}</div>;
   }
 
   if (!surface) {
@@ -360,11 +362,11 @@ export function VideoThreadPage() {
         <div className="page-header-v2">
           <div className="page-header-content-v2">
             <Link to="/videos" className="back-link">
-              Back to videos
+              {t("thread.backToVideos")}
             </Link>
           </div>
         </div>
-        {error ? <div role="alert">{error}</div> : <div>Loading video thread…</div>}
+        {error ? <div role="alert">{error}</div> : <div>{t("thread.loading")}</div>}
       </div>
     );
   }

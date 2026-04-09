@@ -49,14 +49,7 @@ function RequireAuth() {
 // 路由加载状态
 function RouteLoading() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <div className="flex min-h-screen items-center justify-center">
       <PageSkeleton />
     </div>
   );

@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 
+import { useI18n } from "../../app/locale";
 import "./VideoThreadWorkbench.css";
 
 type ProcessDetailsAccordionProps = {
@@ -15,21 +16,19 @@ export function ProcessDetailsAccordion({
   runCount,
   children,
 }: ProcessDetailsAccordionProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const contentId = useId();
 
   return (
     <section
-      aria-label="Process details"
+      aria-label={t("thread.process.ariaLabel")}
       className="process-details-accordion video-thread-workbench__panel video-thread-workbench__panel--tone-neutral video-thread-workbench__panel--emphasis-supporting"
     >
       <div className="process-details-accordion__header">
         <div>
-          <h2>Process details</h2>
-          <p>
-            Open the operator view for iteration history, participant controls, and agent execution
-            detail.
-          </p>
+          <h2>{t("thread.process.detailsTitle")}</h2>
+          <p>{t("thread.process.detailsDescription")}</p>
         </div>
         <button
           type="button"
@@ -38,14 +37,14 @@ export function ProcessDetailsAccordion({
           aria-controls={contentId}
           onClick={() => setOpen((current) => !current)}
         >
-          {open ? "Hide process details" : "Show process details"}
+          {open ? t("thread.process.hideDetails") : t("thread.process.showDetails")}
         </button>
       </div>
 
       <div className="video-thread-workbench__chip-list">
-        <span className="video-thread-workbench__chip">Iterations: {iterationCount}</span>
-        <span className="video-thread-workbench__chip">Participants: {participantCount}</span>
-        <span className="video-thread-workbench__chip">Runs: {runCount}</span>
+        <span className="video-thread-workbench__chip">{t("thread.process.iterationsLabel")}: {iterationCount}</span>
+        <span className="video-thread-workbench__chip">{t("thread.process.participantsLabel")}: {participantCount}</span>
+        <span className="video-thread-workbench__chip">{t("thread.process.runsLabel")}: {runCount}</span>
       </div>
 
       {open ? (

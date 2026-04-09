@@ -5,7 +5,13 @@ import { vi } from "vitest";
 
 import { ToastProvider } from "../../components/Toast";
 import { writeSessionToken } from "../../lib/session";
+import { writeLocale } from "../../app/locale";
 import { VideoThreadPage } from "./VideoThreadPage";
+import { beforeEach } from "vitest";
+
+beforeEach(() => {
+  writeLocale("en-US");
+});
 
 function createThreadSurface(overrides: Record<string, any> = {}) {
   const base = {
@@ -3697,10 +3703,10 @@ test("video thread page shows version cards with select and task actions", async
     (await within(versions).findAllByText("Earlier cut with a sharper title entrance.")).length
   ).toBeGreaterThan(0);
   expect(
-    within(versions).getByRole("link", { name: "Open task detail for result-1" })
+    within(versions).getByRole("link", { name: "Open task detail result-1" })
   ).toHaveAttribute("href", "/tasks/task-1");
   expect(
-    within(versions).getByRole("link", { name: "Download video for result-1" })
+    within(versions).getByRole("link", { name: "Download video result-1" })
   ).toHaveAttribute("href", "/api/tasks/task-1/artifacts/final_video.mp4");
   expect(
     within(versions).getByRole("button", { name: "Set as current version result-1" })

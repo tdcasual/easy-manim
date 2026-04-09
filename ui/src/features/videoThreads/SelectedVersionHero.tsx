@@ -1,5 +1,6 @@
 import { type TaskResult } from "../../lib/tasksApi";
 import { resolveApiUrl, ARTIFACT_PATHS } from "../../lib/api";
+import { useI18n } from "../../app/locale";
 import type {
   VideoThreadIterationDetailResult,
   VideoThreadSurface,
@@ -22,6 +23,7 @@ export function SelectedVersionHero({
   downloads,
   downloadError,
 }: SelectedVersionHeroProps) {
+  const { t } = useI18n();
   const videoDownloadHref =
     downloads?.video_download_url ?? (selectedTaskId ? ARTIFACT_PATHS.video(selectedTaskId) : null);
   const scriptDownloadHref =
@@ -33,31 +35,31 @@ export function SelectedVersionHero({
   const summary =
     selectedResult?.result_summary ??
     surface.current_focus.current_result_summary ??
-    "No selected version has been projected yet.";
+    t("thread.hero.noSelectedVersion");
 
   return (
-    <section aria-label="Selected version">
-      <h2>Selected version</h2>
+    <section aria-label={t("thread.hero.ariaLabel")}>
+      <h2>{t("thread.hero.title")}</h2>
       <p>{summary}</p>
       <p>
-        Selected result:{" "}
-        {selectedResult?.result_id ?? surface.current_focus.current_result_id ?? "none"}
+        {t("thread.hero.selectedResultLabel")}:{" "}
+        {selectedResult?.result_id ?? surface.current_focus.current_result_id ?? t("thread.workbench.none")}
       </p>
       <p>
-        Selected iteration:{" "}
-        {selectedIterationId ?? surface.current_focus.current_iteration_id ?? "none"}
+        {t("thread.hero.selectedIterationLabel")}:{" "}
+        {selectedIterationId ?? surface.current_focus.current_iteration_id ?? t("thread.workbench.none")}
       </p>
-      {selectedTaskId ? <p>Source task: {selectedTaskId}</p> : null}
+      {selectedTaskId ? <p>{t("thread.hero.sourceTaskLabel")}: {selectedTaskId}</p> : null}
       <div>
         {videoDownloadHref ? (
-          <a href={resolveApiUrl(videoDownloadHref) ?? undefined}>Download video</a>
+          <a href={resolveApiUrl(videoDownloadHref) ?? undefined}>{t("thread.hero.downloadVideo")}</a>
         ) : null}
         {scriptDownloadHref ? (
-          <a href={resolveApiUrl(scriptDownloadHref) ?? undefined}>Download script</a>
+          <a href={resolveApiUrl(scriptDownloadHref) ?? undefined}>{t("thread.hero.downloadScript")}</a>
         ) : null}
         {validationReportDownloadHref ? (
           <a href={resolveApiUrl(validationReportDownloadHref) ?? undefined}>
-            Download validation report
+            {t("thread.hero.downloadValidationReport")}
           </a>
         ) : null}
       </div>

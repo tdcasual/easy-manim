@@ -3,9 +3,11 @@ import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import { writeSessionToken } from "../../lib/session";
+import { writeLocale } from "../../app/locale";
 import { MemoryPageV2 } from "./MemoryPageV2";
 
 test("renders translated persistent memory status and retrieval diagnostics", async () => {
+  writeLocale("en-US");
   writeSessionToken("sess-token-1");
 
   // @ts-expect-error - test shim
@@ -74,7 +76,7 @@ test("renders translated persistent memory status and retrieval diagnostics", as
   );
 
   expect(await screen.findByText("mem-1")).toBeInTheDocument();
-  expect(screen.getByText("已停用")).toBeInTheDocument();
+  expect(screen.getByText("Disabled")).toBeInTheDocument();
 
   fireEvent.change(screen.getByLabelText(/memory retrieval query/i), {
     target: { value: "teaching" },

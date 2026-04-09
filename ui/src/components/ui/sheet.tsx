@@ -43,7 +43,7 @@ const SheetContent = React.forwardRef<
       ref={ref}
       aria-modal="true"
       className={cn(
-        "fixed z-50 flex h-full flex-col gap-4 border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl focus:outline-none",
+        "fixed z-50 flex h-full max-h-screen flex-col gap-4 overflow-y-auto border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl focus:outline-none",
         side === "left" &&
           "left-0 top-0 w-3/4 max-w-sm data-[state=open]:animate-slide-in-left data-[state=closed]:animate-slide-out-left",
         side === "right" &&

@@ -98,46 +98,36 @@ export function FloatingBubbles() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
       <div
-        className="absolute -bottom-[50px] left-[10%] animate-float-in [animation-duration:12s] rounded-full"
+        className="absolute -bottom-[50px] left-[10%] h-[40px] w-[40px] animate-float-in [animation-duration:12s] rounded-full"
         style={{
-          width: 40,
-          height: 40,
           background:
             "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,167,196,0.3))",
         }}
       />
       <div
-        className="absolute -bottom-[50px] left-[30%] animate-float-in [animation-duration:15s] [animation-delay:2s] rounded-full"
+        className="absolute -bottom-[50px] left-[30%] h-[25px] w-[25px] animate-float-in [animation-duration:15s] [animation-delay:2s] rounded-full"
         style={{
-          width: 25,
-          height: 25,
           background:
             "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,167,196,0.3))",
         }}
       />
       <div
-        className="absolute -bottom-[50px] left-[60%] animate-float-in [animation-duration:13s] [animation-delay:4s] rounded-full"
+        className="absolute -bottom-[50px] left-[60%] h-[35px] w-[35px] animate-float-in [animation-duration:13s] [animation-delay:4s] rounded-full"
         style={{
-          width: 35,
-          height: 35,
           background:
             "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,167,196,0.3))",
         }}
       />
       <div
-        className="absolute -bottom-[50px] left-[80%] animate-float-in [animation-duration:16s] [animation-delay:1s] rounded-full"
+        className="absolute -bottom-[50px] left-[80%] h-[20px] w-[20px] animate-float-in [animation-duration:16s] [animation-delay:1s] rounded-full"
         style={{
-          width: 20,
-          height: 20,
           background:
             "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,167,196,0.3))",
         }}
       />
       <div
-        className="absolute -bottom-[50px] left-[45%] animate-float-in [animation-duration:14s] [animation-delay:3s] rounded-full"
+        className="absolute -bottom-[50px] left-[45%] h-[30px] w-[30px] animate-float-in [animation-duration:14s] [animation-delay:3s] rounded-full"
         style={{
-          width: 30,
-          height: 30,
           background:
             "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,167,196,0.3))",
         }}

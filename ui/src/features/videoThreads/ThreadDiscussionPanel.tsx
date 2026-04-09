@@ -1,4 +1,5 @@
 import type { VideoThreadComposerTarget, VideoThreadSurface } from "../../lib/videoThreadsApi";
+import { useI18n } from "../../app/locale";
 import "./VideoThreadWorkbench.css";
 
 type ThreadDiscussionPanelProps = {
@@ -24,12 +25,13 @@ export function ThreadDiscussionPanel({
   onSelectAction,
   onSubmit,
 }: ThreadDiscussionPanelProps) {
+  const { t } = useI18n();
   const selectedAction =
     surface.actions.items.find((item) => item.action_id === activeActionId) ??
     surface.actions.items[0] ??
     null;
   const discussionRuntime = surface.discussion_runtime ?? {
-    title: "Discussion Runtime",
+    title: t("thread.discussion.title"),
     summary: "",
     active_iteration_id: null,
     active_discussion_group_id: null,
@@ -56,32 +58,32 @@ export function ThreadDiscussionPanel({
     activeComposerTarget?.addressed_participant_id ??
     discussionRuntime.addressed_display_name ??
     discussionRuntime.addressed_participant_id ??
-    "Agent choice";
+    t("thread.discussion.agentChoice");
 
   return (
     <section
-      aria-label="Discussion"
+      aria-label={t("thread.discussion.ariaLabel")}
       className="thread-discussion-panel video-thread-workbench__panel video-thread-workbench__panel--tone-accent video-thread-workbench__panel--emphasis-primary video-thread-workbench__panel--open"
     >
       <div className="thread-discussion-panel__header">
         <div>
-          <h2>Discussion</h2>
+          <h2>{t("thread.discussion.title")}</h2>
           <p>
             {discussionRuntime.summary ||
               surface.composer.context_hint ||
-              "Discuss the selected version here."}
+              t("thread.discussion.empty")}
           </p>
         </div>
         <div className="video-thread-workbench__chip-list">
           <span className="video-thread-workbench__chip">
-            Thread: {discussionRuntime.active_thread_title ?? "Open discussion"}
+            {t("thread.discussion.threadLabel")}: {discussionRuntime.active_thread_title ?? t("thread.discussion.openDiscussion")}
           </span>
           <span className="video-thread-workbench__chip">Reply target: {replyTarget}</span>
           <span className="video-thread-workbench__chip">
             Iteration:{" "}
             {activeComposerTarget?.iteration_id ??
               discussionRuntime.active_iteration_id ??
-              "thread"}
+              t("thread.discussion.threadWide")}
           </span>
         </div>
       </div>
@@ -92,16 +94,16 @@ export function ThreadDiscussionPanel({
 
       <div className="thread-discussion-panel__context video-thread-workbench__intent-meta">
         <span className="video-thread-workbench__meta">
-          Reply to: {composerReplyToTurnId ?? "start a new turn"}
+          {t("thread.discussion.replyToLabel")}: {composerReplyToTurnId ?? t("thread.discussion.startNewTurn")}
         </span>
         <span className="video-thread-workbench__meta">
-          Result: {composerResultId ?? "thread-wide"}
+          {t("thread.discussion.resultLabel")}: {composerResultId ?? t("thread.discussion.threadWide")}
         </span>
         <span className="video-thread-workbench__meta">
-          Continuity: {discussionRuntime.continuity_scope}
+          {t("thread.discussion.continuityLabel")}: {discussionRuntime.continuity_scope}
         </span>
         <span className="video-thread-workbench__meta">
-          Reply policy: {discussionRuntime.reply_policy}
+          {t("thread.discussion.replyPolicyLabel")}: {discussionRuntime.reply_policy}
         </span>
       </div>
 
@@ -116,11 +118,11 @@ export function ThreadDiscussionPanel({
               {group.prompt_summary ? <p>{group.prompt_summary}</p> : null}
               <div className="video-thread-workbench__intent-meta">
                 <span className="video-thread-workbench__meta">
-                  Prompt by: {group.prompt_actor_display_name ?? group.prompt_actor_role ?? "Owner"}
+                  {t("thread.discussion.promptByLabel")}: {group.prompt_actor_display_name ?? group.prompt_actor_role ?? t("thread.discussion.owner")}
                 </span>
                 {group.prompt_intent_type ? (
                   <span className="video-thread-workbench__meta">
-                    Intent: {group.prompt_intent_type}
+                    {t("thread.discussion.intentLabel")}: {group.prompt_intent_type}
                   </span>
                 ) : null}
                 {group.related_result_id ? (
@@ -135,7 +137,7 @@ export function ThreadDiscussionPanel({
                     <article key={reply.turn_id} className="video-thread-workbench__reply">
                       <div className="video-thread-workbench__turn-row">
                         <strong>{reply.title}</strong>
-                        <span>{reply.speaker_display_name ?? reply.speaker_role ?? "Agent"}</span>
+                        <span>{reply.speaker_display_name ?? reply.speaker_role ?? t("thread.discussion.agent")}</span>
                       </div>
                       {reply.summary ? <p>{reply.summary}</p> : null}
                     </article>
@@ -162,7 +164,7 @@ export function ThreadDiscussionPanel({
                 ) : null}
                 {turn.reply_to_turn_id ? (
                   <span className="video-thread-workbench__meta">
-                    Replies to: {turn.reply_to_turn_id}
+                    {t("thread.discussion.repliesToLabel")}: {turn.reply_to_turn_id}
                   </span>
                 ) : null}
                 {turn.related_result_id ? (
@@ -197,7 +199,7 @@ export function ThreadDiscussionPanel({
         </div>
         {selectedAction?.description ? <p>{selectedAction.description}</p> : null}
         <label className="video-thread-workbench__label" htmlFor="video-thread-discussion-composer">
-          {selectedAction?.label || "Add note"}
+          {selectedAction?.label || t("thread.discussion.addNote")}
         </label>
         <textarea
           id="video-thread-discussion-composer"
@@ -212,8 +214,8 @@ export function ThreadDiscussionPanel({
         {activeComposerTarget?.summary ? <p>{activeComposerTarget.summary}</p> : null}
         <div className="video-thread-workbench__composer-footer">
           <div className="video-thread-workbench__composer-strategy">
-            <span>Mode: {selectedAction?.label || "Add note"}</span>
-            <span>Reply target: {replyTarget}</span>
+            <span>{t("thread.composer.modeLabel")}: {selectedAction?.label || t("thread.discussion.addNote")}</span>
+            <span>{t("thread.composer.replyTargetLabel")}: {replyTarget}</span>
           </div>
           <button
             type="button"

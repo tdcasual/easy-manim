@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 
 import { App } from "./App";
 import { writeSessionToken } from "../lib/session";
+import { writeLocale } from "../app/locale";
 
 test("renders the operator console shell", () => {
   render(
@@ -16,6 +17,7 @@ test("renders the operator console shell", () => {
 });
 
 test("authenticated access to /threads/:threadId reaches the video thread page", async () => {
+  writeLocale("en-US");
   writeSessionToken("sess-token-1");
 
   // @ts-expect-error - test shim

@@ -262,7 +262,7 @@ export function MemoryPageV2() {
 
       <div className="flex flex-col gap-5">
         <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-          <div className="flex items-center justify-between border-b border-white/60 px-5 py-4 dark:border-white/10">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/60 px-5 py-4 dark:border-white/10">
             <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
               <Brain size={20} />
               {t("memory.sessionMemory")}
@@ -298,7 +298,7 @@ export function MemoryPageV2() {
             </div>
           ) : summary ? (
             <div className="p-5">
-              <p className="mb-4 text-sm leading-relaxed text-cloud-700 dark:text-cloud-200">
+              <p className="mb-4 break-words text-sm leading-relaxed text-cloud-700 dark:text-cloud-200">
                 {summary.summary_text ?? t("memory.noSummary")}
               </p>
               <div className="flex flex-wrap gap-4 text-xs text-cloud-500 dark:text-cloud-400">
@@ -353,7 +353,7 @@ export function MemoryPageV2() {
                     key={hit.memory_id}
                     className="rounded-xl border border-white/60 bg-white/40 p-4 dark:border-white/10 dark:bg-slate-800/40"
                   >
-                    <div className="mb-2 flex items-center justify-between">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <span className="font-mono text-xs text-cloud-500 dark:text-cloud-400">
                         {hit.memory_id}
                       </span>
@@ -361,12 +361,12 @@ export function MemoryPageV2() {
                         score {hit.score.toFixed(2)}
                       </span>
                     </div>
-                    <p className="mb-2 text-sm text-cloud-700 dark:text-cloud-200">
+                    <p className="mb-2 break-words text-sm text-cloud-700 dark:text-cloud-200">
                       {hit.summary_text}
                     </p>
-                    <div className="flex flex-wrap gap-3 text-xs text-cloud-500 dark:text-cloud-400">
-                      <span>Matched terms: {hit.matched_terms.join(", ") || "none"}</span>
-                      <span>Reasons: {hit.match_reasons.join(", ") || "none"}</span>
+                    <div className="flex flex-wrap gap-3 break-words text-xs text-cloud-500 dark:text-cloud-400">
+                      <span>{t("memory.matchedTermsLabel")}: {hit.matched_terms.join(", ") || t("profile.none")}</span>
+                      <span>{t("memory.matchReasonsLabel")}: {hit.match_reasons.join(", ") || t("profile.none")}</span>
                     </div>
                   </div>
                 ))}
@@ -395,7 +395,7 @@ export function MemoryPageV2() {
                   key={memory.memory_id}
                   className="border-b border-white/60 p-4 last:border-b-0 dark:border-white/10"
                 >
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <span className="font-mono text-xs text-cloud-500 dark:text-cloud-400">
                       {memory.memory_id}
                     </span>
