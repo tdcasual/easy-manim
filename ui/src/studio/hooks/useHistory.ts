@@ -66,7 +66,7 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
       setVideos(videosRes.items || []);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
-      console.error("Failed to load history:", err);
+      // loading failures are handled by the UI layer
     } finally {
       // 只有当这是当前活动的请求时才更新状态
       if (abortControllerRef.current === controller) {

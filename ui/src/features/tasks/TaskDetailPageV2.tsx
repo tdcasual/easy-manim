@@ -1,4 +1,3 @@
-// TaskDetailPage V2 - 占位符实现
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import {
@@ -37,7 +36,7 @@ import { AuthModal, useAuthGuard } from "../../components/AuthModal";
 import { TaskReviewPanel } from "./TaskReviewPanel";
 import "./TaskDetailPageV2.css";
 
-const TERMINAL = new Set(["completed", "failed", "cancelled"]);
+import { TERMINAL_STATUSES } from "../../lib/tasksApi";
 
 function asStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
@@ -158,7 +157,8 @@ export function TaskDetailPageV2() {
         setReviewBundle(nextReviewBundle);
 
         const shouldContinuePolling =
-          !TERMINAL.has(String(nextSnapshot.status)) || nextSnapshot.delivery_status === "pending";
+          !TERMINAL_STATUSES.has(String(nextSnapshot.status)) ||
+          nextSnapshot.delivery_status === "pending";
         if (shouldContinuePolling) {
           const delay = Math.min(250 * 2 ** attempt, 5000);
           attempt += 1;
@@ -365,7 +365,7 @@ export function TaskDetailPageV2() {
   const status = String(snapshot.status);
   const deliveryMode = result?.completion_mode ?? snapshot.completion_mode ?? null;
   const deliveryPending = snapshot.delivery_status === "pending";
-  const terminal = TERMINAL.has(status) && !deliveryPending;
+  const terminal = TERMINAL_STATUSES.has(status) && !deliveryPending;
   const videoUrl = resolveApiUrl(result?.video_download_url);
   const previewPosterUrl = resolveApiUrl(result?.preview_download_urls?.[0]);
   const displayTitle = snapshot.display_title ?? taskId;

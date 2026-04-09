@@ -34,6 +34,7 @@ import { useToast } from "../../components/useToast";
 import { useI18n } from "../../app/locale";
 import { getStatusLabel } from "../../app/ui";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
+import { cn } from "../../lib/utils";
 import "./ProfilePageV2.css";
 
 // 编辑器模式
@@ -63,26 +64,24 @@ const defaultFormData: VisualFormData = {
 
 // Kawaii 颜色选项 - 使用粉彩色系
 const colorOptions = [
-  { value: "blue", label: "天空蓝", hex: "#7FC4DB", emoji: "☁️" },
-  { value: "green", label: "薄荷绿", hex: "#7FD4B6", emoji: "🌿" },
-  { value: "purple", label: "薰衣草", hex: "#DDA0DD", emoji: "🪻" },
-  { value: "orange", label: "蜜桃橙", hex: "#FFB080", emoji: "🍑" },
-  { value: "pink", label: "樱花粉", hex: "#FFA0B5", emoji: "🌸" },
-  { value: "yellow", label: "柠檬黄", hex: "#FFF7A8", emoji: "🍋" },
+  { value: "blue", key: "sky", className: "bg-sky-300", emoji: "☁️" },
+  { value: "green", key: "mint", className: "bg-mint-300", emoji: "🌿" },
+  { value: "purple", key: "lavender", className: "bg-lavender-300", emoji: "🪻" },
+  { value: "orange", key: "peach", className: "bg-peach-300", emoji: "🍑" },
+  { value: "pink", key: "pink", className: "bg-pink-300", emoji: "🌸" },
+  { value: "yellow", key: "lemon", className: "bg-lemon-200", emoji: "🍋" },
 ];
 
-// 速度选项 - 带 emoji
 const speedOptions = [
-  { value: "slow", label: "慢速", desc: "舒缓的动画节奏", emoji: "🐢" },
-  { value: "normal", label: "正常", desc: "标准动画速度", emoji: "🐰" },
-  { value: "fast", label: "快速", desc: "紧凑的动画节奏", emoji: "⚡" },
+  { value: "slow", key: "slow", emoji: "🐢" },
+  { value: "normal", key: "normal", emoji: "🐰" },
+  { value: "fast", key: "fast", emoji: "⚡" },
 ];
 
-// 复杂度选项 - 带 emoji
 const complexityOptions = [
-  { value: "simple", label: "简洁", desc: "清晰的视觉呈现", emoji: "✨" },
-  { value: "medium", label: "适中", desc: "平衡的视觉效果", emoji: "🎨" },
-  { value: "complex", label: "丰富", desc: "多层次的动画", emoji: "🌈" },
+  { value: "simple", key: "simple", emoji: "✨" },
+  { value: "medium", key: "medium", emoji: "🎨" },
+  { value: "complex", key: "complex", emoji: "🌈" },
 ];
 
 // 趋势指示器组件
@@ -123,22 +122,28 @@ function VisualEditor({
           {t("profile.preferredColor")}
         </label>
         <div className="color-picker">
-          {colorOptions.map((color) => (
-            <button
-              key={color.value}
-              type="button"
-              className={`color-option ${data.preferred_color === color.value ? "active" : ""}`}
-              onClick={() => updateField("preferred_color", color.value)}
-              style={{ backgroundColor: color.hex }}
-              title={color.label}
-              aria-label={color.label}
-            >
-              <span className="color-emoji">{color.emoji}</span>
-              {data.preferred_color === color.value && (
-                <CheckCircle size={14} className="color-check" />
-              )}
-            </button>
-          ))}
+          {colorOptions.map((color) => {
+            const label = t(`profile.color.${color.key}.label`);
+            return (
+              <button
+                key={color.value}
+                type="button"
+                onClick={() => updateField("preferred_color", color.value)}
+                className={cn(
+                  "color-option",
+                  data.preferred_color === color.value && "active",
+                  color.className
+                )}
+                title={label}
+                aria-label={label}
+              >
+                <span className="color-emoji">{color.emoji}</span>
+                {data.preferred_color === color.value && (
+                  <CheckCircle size={14} className="color-check" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -159,8 +164,8 @@ function VisualEditor({
               }
             >
               <span className="option-emoji">{option.emoji}</span>
-              <span className="option-title">{option.label}</span>
-              <span className="option-desc">{option.desc}</span>
+              <span className="option-title">{t(`profile.speed.${option.key}.label`)}</span>
+              <span className="option-desc">{t(`profile.speed.${option.key}.desc`)}</span>
             </button>
           ))}
         </div>
@@ -183,8 +188,8 @@ function VisualEditor({
               }
             >
               <span className="option-emoji">{option.emoji}</span>
-              <span className="option-title">{option.label}</span>
-              <span className="option-desc">{option.desc}</span>
+              <span className="option-title">{t(`profile.complexity.${option.key}.label`)}</span>
+              <span className="option-desc">{t(`profile.complexity.${option.key}.desc`)}</span>
             </button>
           ))}
         </div>
@@ -614,7 +619,7 @@ export function ProfilePageV2() {
                 <div className="profile-header">
                   <div className="profile-avatar">
                     <span className="avatar-emoji">🌟</span>
-                    {profile.name.charAt(0).toUpperCase()}
+                    {profile.name?.charAt(0).toUpperCase() ?? "?"}
                   </div>
                   <div className="profile-info">
                     <h4>{profile.name}</h4>

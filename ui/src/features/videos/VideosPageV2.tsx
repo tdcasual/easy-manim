@@ -81,7 +81,7 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
 
   return (
     <div className="group flex flex-wrap items-center gap-4 rounded-2xl border border-white/60 bg-white/60 p-3 shadow-sm backdrop-blur-sm transition-all hover:translate-x-2 hover:border-pink-200 hover:bg-white/80 hover:shadow-md dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-slate-900/80 sm:flex-nowrap sm:p-4">
-      <div className="relative h-auto w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-pink-100 to-mint-100 aspect-video sm:h-[68px] sm:w-[120px]">
+      <div className="relative h-auto w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-pink-100 to-mint-100 aspect-video sm:w-32">
         {previewUrl ? (
           <img
             src={previewUrl}

@@ -6,6 +6,14 @@ export function apiBaseUrl(): string {
   return typeof base === "string" ? base.replace(/\/+$/, "") : "";
 }
 
+export const ARTIFACT_PATHS = {
+  video: (taskId: string) => `/api/tasks/${encodeURIComponent(taskId)}/artifacts/final_video.mp4`,
+  script: (taskId: string) =>
+    `/api/tasks/${encodeURIComponent(taskId)}/artifacts/current_script.py`,
+  validationReport: (taskId: string) =>
+    `/api/tasks/${encodeURIComponent(taskId)}/artifacts/validations/validation_report_v1.json`,
+} as const;
+
 export function resolveApiUrl(path?: string | null): string | null {
   if (!path) return null;
   if (/^https?:\/\//i.test(path)) return path;

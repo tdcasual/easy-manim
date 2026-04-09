@@ -27,6 +27,28 @@ import { KawaiiTag } from "../../components/KawaiiTag";
 import { AnimatedContainer, HoverAnimation } from "../../components/AnimatedContainer";
 import { cn } from "../../lib/utils";
 
+const TASK_AUTO_REFRESH_INTERVAL_MS = 5000;
+const ACTIVE_TASK_STATUSES = new Set(["queued", "running"]);
+const QUICK_PROMPT_EMOJIS = ["🎨", "📊", "✨", "🌊"];
+
+function normalizeTaskStatus(status: string) {
+  return status.toLowerCase();
+}
+
+function isActiveTaskStatus(status: string) {
+  return ACTIVE_TASK_STATUSES.has(normalizeTaskStatus(status));
+}
+
+function canAutoRefreshTasks(tasks: TaskListItem[]) {
+  if (typeof document === "undefined") {
+    return tasks.some((task) => isActiveTaskStatus(task.status));
+  }
+
+  return (
+    document.visibilityState === "visible" && tasks.some((task) => isActiveTaskStatus(task.status))
+  );
+}
+
 function StatusBadge({ status, size = "md" }: { status: string; size?: "sm" | "md" }) {
   const { locale } = useI18n();
 
@@ -64,7 +86,7 @@ function StatusBadge({ status, size = "md" }: { status: string; size?: "sm" | "m
 function VideoThumb({ video }: { video: RecentVideoItem }) {
   const previewUrl = resolveApiUrl(video.latest_preview_url);
   const videoUrl = resolveApiUrl(video.latest_video_url);
-  const displayTitle = video.display_title ?? video.task_id.slice(0, 8);
+  const displayTitle = video.display_title ?? video.task_id?.slice(0, 8) ?? "";
 
   return (
     <div className="group overflow-hidden rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/60">
@@ -107,8 +129,9 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
   const { t } = useI18n();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const displayTitle = task.display_title ?? task.task_id.slice(0, 12);
+  const displayTitle = task.display_title ?? task.task_id?.slice(0, 12) ?? "";
   const canCancel = ["queued", "running"].includes(task.status.toLowerCase());
 
   useEffect(() => {
@@ -117,8 +140,18 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
         setShowMenu(false);
       }
     };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowMenu(false);
+        triggerRef.current?.focus();
+      }
+    };
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, []);
 
   return (
@@ -133,16 +166,18 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
             {displayTitle}
           </p>
           <p className="truncate text-xs text-cloud-500 dark:text-cloud-400">
-            🆔 {task.task_id.slice(0, 8)}...
+            🆔 {task.task_id?.slice(0, 8) ?? ""}...
           </p>
         </div>
       </Link>
 
       <div className="relative" ref={menuRef}>
         <button
+          ref={triggerRef}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-cloud-100 text-cloud-600 transition-all hover:scale-110 hover:rotate-12 hover:bg-pink-100 hover:text-pink-500 dark:bg-slate-800 dark:text-cloud-400 dark:hover:bg-pink-900/30"
           onClick={() => setShowMenu(!showMenu)}
           aria-label={t("tasks.moreActions")}
+          aria-expanded={showMenu}
         >
           <MoreHorizontal size={18} />
         </button>
@@ -188,9 +223,8 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
   const [isFocused, setIsFocused] = useState(false);
   const blurTimeoutRef = useRef<number | null>(null);
 
-  const quickPromptEmojis = ["🎨", "📊", "✨", "🌊"];
   const quickPrompts = list("tasks.quickPrompts").map((text, index) => ({
-    emoji: quickPromptEmojis[index % quickPromptEmojis.length],
+    emoji: QUICK_PROMPT_EMOJIS[index % QUICK_PROMPT_EMOJIS.length],
     text,
   }));
 
@@ -367,9 +401,41 @@ export function TasksPageV2() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
   }, [loadData]);
+
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
+  const loadDataRef = useRef(loadData);
+  loadDataRef.current = loadData;
+
+  useEffect(() => {
+    if (!sessionToken) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (canAutoRefreshTasks(tasksRef.current)) {
+        void loadDataRef.current();
+      }
+    }, TASK_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [sessionToken]);
+
+  useEffect(() => {
+    if (!sessionToken || typeof document === "undefined") {
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadDataRef.current();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [sessionToken]);
 
   const { success: toastSuccess, error: toastError } = useToast();
 
@@ -418,16 +484,17 @@ export function TasksPageV2() {
 
   const filteredTasks = tasks
     .filter((t) => {
-      if (activeTab === "running") return ["queued", "running"].includes(t.status.toLowerCase());
-      if (activeTab === "completed") return t.status.toLowerCase() === "completed";
+      const status = normalizeTaskStatus(t.status);
+      if (activeTab === "running") return isActiveTaskStatus(status);
+      if (activeTab === "completed") return status === "completed";
       return true;
     })
     .slice(0, 20);
 
   const stats = {
     total: tasks.length,
-    running: tasks.filter((t) => ["queued", "running"].includes(t.status.toLowerCase())).length,
-    completed: tasks.filter((t) => t.status.toLowerCase() === "completed").length,
+    running: tasks.filter((t) => isActiveTaskStatus(t.status)).length,
+    completed: tasks.filter((t) => normalizeTaskStatus(t.status) === "completed").length,
   };
 
   return (

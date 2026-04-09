@@ -37,9 +37,9 @@ export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
         </DialogHeader>
 
         <div className="flex flex-col gap-1 p-5">
-          {shortcuts.map((shortcut, index) => (
+          {shortcuts.map((shortcut) => (
             <div
-              key={index}
+              key={shortcut.key}
               className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
             >
               <div className="flex items-center gap-2 text-sm text-foreground">

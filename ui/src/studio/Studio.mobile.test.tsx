@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { writeLocale } from "../app/locale";
@@ -32,7 +33,7 @@ vi.mock("./hooks", () => ({
   }),
   useKeyboardShortcuts: () => {},
   useResponsive: () => ({
-    isMobile: false,
+    isMobile: true,
   }),
 }));
 
@@ -107,19 +108,23 @@ vi.mock("./components/HelpPanel", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  writeLocale("zh-CN");
+  writeLocale("en-US");
 });
 
-test("studio surfaces follow the active locale after login", () => {
-  writeLocale("en-US");
+test("studio uses a compact overflow menu for mobile toolbar actions", async () => {
+  const user = userEvent.setup();
 
   render(<Studio />);
 
+  expect(screen.queryByRole("button", { name: /open history/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /open studio actions/i })).toBeInTheDocument();
   expect(screen.getByRole("group", { name: /switch language/i })).toBeInTheDocument();
-  expect(screen.getByText(/AI animation studio/i)).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: /open studio actions/i }));
+
+  expect(await screen.findByRole("dialog", { name: /more actions/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /open history/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /open help/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /open settings/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /switch to night mode/i })).toBeInTheDocument();
-  expect(screen.getByPlaceholderText(/describe the animation you want/i)).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /animate a blue sphere/i })).toBeInTheDocument();
-  expect(screen.getByText(/start your creative journey/i)).toBeInTheDocument();
 });

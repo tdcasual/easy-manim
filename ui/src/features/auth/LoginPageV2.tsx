@@ -102,7 +102,7 @@ export function LoginPageV2() {
         <LocaleToggle />
       </div>
 
-      <div className="relative z-10 grid w-full max-w-6xl grid-cols-1 gap-8 p-4 lg:grid-cols-[1fr_480px] lg:gap-16 lg:p-8">
+      <div className="relative z-10 grid w-full max-w-6xl grid-cols-1 gap-8 p-4 lg:grid-cols-[1fr_minmax(0,26rem)] lg:gap-16 lg:p-8">
         {/* Left brand */}
         <div className="relative flex flex-col justify-center lg:p-10">
           <div className="relative z-10 text-center lg:text-left">

@@ -48,6 +48,8 @@ export type TaskListItem = {
 
 export type TaskListResponse = { items: TaskListItem[] };
 
+export const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
+
 export type CreateTaskResponse = {
   task_id: string;
   display_title?: string | null;

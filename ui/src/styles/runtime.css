@@ -1,0 +1,17 @@
+/*
+ * Runtime style entrypoint
+ *
+ * Order matters:
+ * 1. Tailwind utility/runtime layer
+ * 2. Current kawaii visual system + motion helpers
+ * 3. Legacy compatibility layers for surfaces not migrated yet
+ */
+
+@import "./tailwind.css";
+@import "./kawaii-theme.css";
+@import "./animations.css";
+
+/* Legacy compatibility layers */
+@import "./tokens.css";
+@import "./ghibli-theme.css";
+@import "./reset.css";

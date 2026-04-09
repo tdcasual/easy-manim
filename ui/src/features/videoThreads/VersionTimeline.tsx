@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { resolveApiUrl } from "../../lib/api";
+import { resolveApiUrl, ARTIFACT_PATHS } from "../../lib/api";
 import type { VideoThreadIterationDetailResult } from "../../lib/videoThreadsApi";
 import "./VideoThreadWorkbench.css";
 
@@ -45,12 +45,8 @@ export function VersionTimeline({
           results.map((result) => {
             const taskId = taskIdFromVideoResource(result.video_resource);
             const isSelected = result.result_id === selectedResultId || result.selected;
-            const videoDownloadHref = taskId
-              ? `/api/tasks/${encodeURIComponent(taskId)}/artifacts/final_video.mp4`
-              : null;
-            const scriptDownloadHref = taskId
-              ? `/api/tasks/${encodeURIComponent(taskId)}/artifacts/current_script.py`
-              : null;
+            const videoDownloadHref = taskId ? ARTIFACT_PATHS.video(taskId) : null;
+            const scriptDownloadHref = taskId ? ARTIFACT_PATHS.script(taskId) : null;
 
             return (
               <article

@@ -123,7 +123,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         <div className="flex flex-wrap gap-2">
           {quickPrompts.map((prompt, index) => (
             <button
-              key={index}
+              key={prompt.text}
               type="button"
               onClick={() => handleQuickPrompt(prompt.text)}
               className="animate-float-in flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] px-3 py-1.5 text-sm text-cloud-700 shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-sm"

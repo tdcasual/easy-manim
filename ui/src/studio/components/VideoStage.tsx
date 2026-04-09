@@ -8,6 +8,7 @@ interface VideoStageProps {
   posterUrl?: string | null;
   isGenerating?: boolean;
   title?: string;
+  compact?: boolean;
   onPlay?: () => void;
   onPause?: () => void;
   onCancel?: () => void;
@@ -121,15 +122,20 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
 }
 
 // 空状态
-function EmptyState() {
+function EmptyState({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
 
   return (
-    <div className="flex flex-col items-center gap-4 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-200 to-lavender-200 text-pink-600 shadow-md">
+    <div className={cn("flex flex-col items-center text-center", compact ? "gap-2.5" : "gap-4")}>
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-full bg-gradient-to-br from-pink-200 to-lavender-200 text-pink-600 shadow-md",
+          compact ? "h-12 w-12" : "h-16 w-16"
+        )}
+      >
         <svg
-          width="32"
-          height="32"
+          width={compact ? "24" : "32"}
+          height={compact ? "24" : "32"}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -139,8 +145,12 @@ function EmptyState() {
         </svg>
       </div>
       <div className="flex flex-col gap-1">
-        <p className="text-base font-semibold text-foreground">{t("studio.video.emptyTitle")}</p>
-        <p className="text-sm text-muted-foreground">{t("studio.video.emptySubtitle")}</p>
+        <p className={cn("font-semibold text-foreground", compact ? "text-sm" : "text-base")}>
+          {t("studio.video.emptyTitle")}
+        </p>
+        <p className={cn("text-muted-foreground", compact ? "text-xs" : "text-sm")}>
+          {t("studio.video.emptySubtitle")}
+        </p>
       </div>
     </div>
   );
@@ -168,6 +178,7 @@ export function VideoStage({
   posterUrl,
   isGenerating = false,
   title,
+  compact = false,
   onPlay,
   onPause,
   onCancel,
@@ -202,8 +213,8 @@ export function VideoStage({
   }, [resolvedVideoUrl]);
 
   useEffect(() => {
+    const stage = stageRef.current;
     return () => {
-      const stage = stageRef.current;
       if (document.fullscreenElement && stage?.contains(document.fullscreenElement)) {
         document.exitFullscreen().catch(() => {});
       }
@@ -241,24 +252,36 @@ export function VideoStage({
   return (
     <div
       ref={stageRef}
-      className="relative flex w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border-2 border-[var(--glass-border)] bg-[var(--glass-white)] p-1 shadow-lg backdrop-blur-xl"
+      className={cn(
+        "relative flex w-full items-center justify-center overflow-hidden border-2 border-[var(--glass-border)] bg-[var(--glass-white)] p-1 shadow-lg backdrop-blur-xl",
+        compact ? "max-w-full rounded-2xl" : "max-w-4xl rounded-3xl"
+      )}
       role="region"
       aria-label={t("studio.video.regionLabel")}
+      data-stage-layout={compact ? "compact" : "default"}
     >
       <div
-        className="absolute inset-0 rounded-3xl border-2 border-pink-200/30"
+        className={cn(
+          "absolute inset-0 border-2 border-pink-200/30",
+          compact ? "rounded-2xl" : "rounded-3xl"
+        )}
         aria-hidden="true"
       />
 
-      <CornerDecoration position="tl" />
-      <CornerDecoration position="tr" />
-      <CornerDecoration position="bl" />
-      <CornerDecoration position="br" />
+      {!compact && (
+        <>
+          <CornerDecoration position="tl" />
+          <CornerDecoration position="tr" />
+          <CornerDecoration position="bl" />
+          <CornerDecoration position="br" />
+        </>
+      )}
 
       <div
         className={cn(
-          "relative z-10 flex min-h-[280px] w-full items-center justify-center rounded-2xl p-6",
-          resolvedVideoUrl ? "bg-black/5" : "bg-gradient-to-br from-pink-50/50 to-lavender-50/50"
+          "relative z-10 flex w-full items-center justify-center rounded-2xl",
+          compact ? "min-h-56 p-4 sm:min-h-72 sm:p-6" : "min-h-72 p-6",
+          resolvedVideoUrl ? "bg-black/5" : "bg-gradient-to-br from-pink-50/40 to-lavender-50/40"
         )}
       >
         {isGenerating ? (
@@ -269,7 +292,7 @@ export function VideoStage({
               ref={videoRef}
               src={resolvedVideoUrl}
               poster={resolvedPosterUrl ?? undefined}
-              className="max-h-[480px] w-full rounded-xl object-contain"
+              className="max-h-[min(30rem,50vh)] w-full rounded-xl object-contain"
               onEnded={() => setIsPlaying(false)}
               aria-label={title ?? t("studio.video.generatedLabel")}
             />
@@ -334,7 +357,7 @@ export function VideoStage({
             )}
           </>
         ) : (
-          <EmptyState />
+          <EmptyState compact={compact} />
         )}
       </div>
     </div>

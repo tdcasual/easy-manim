@@ -291,7 +291,7 @@ export function EvalsPageV2() {
           {decisions.length > 0 ? (
             decisions.slice(0, 5).map((decision, index) => (
               <div
-                key={`${decision.strategy_id}:${decision.recorded_at}:${index}`}
+                key={`${decision.strategy_id}:${decision.recorded_at}`}
                 className="flex animate-slide-up items-center gap-4 rounded-xl px-4 py-4"
                 style={{ animationDelay: `${index * 50}ms` }}
               >

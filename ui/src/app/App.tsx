@@ -8,7 +8,6 @@ import { PageSkeleton } from "../components/Skeleton";
 import { ToastProvider } from "../components/Toast";
 import { useLocaleDocument } from "./locale";
 import { Studio } from "../studio/Studio";
-import "./App.css";
 
 // 懒加载原有页面（作为折叠功能保留）
 const TasksPageLazy = lazy(() =>

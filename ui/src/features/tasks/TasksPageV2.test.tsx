@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { vi } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 
 import { ToastProvider } from "../../components/Toast";
 import { writeLocale } from "../../app/locale";
@@ -12,6 +12,26 @@ vi.mock("../../components/AnimatedContainer", () => ({
   AnimatedContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   HoverAnimation: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
+
+let documentVisibilityState: DocumentVisibilityState = "visible";
+
+beforeEach(() => {
+  documentVisibilityState = "visible";
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => documentVisibilityState,
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+async function flushMicrotasks() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
 
 test("tasks page renders localized placeholder and clean tab labels", async () => {
   writeSessionToken("sess-token-1");
@@ -246,4 +266,119 @@ test("quick input clears pending blur timers on unmount", async () => {
 
   expect(vi.getTimerCount()).toBe(0);
   vi.useRealTimers();
+});
+
+test("does not keep polling when there are no active tasks", async () => {
+  writeSessionToken("sess-token-1");
+  vi.useFakeTimers();
+
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const parsed = new URL(String(input), "http://example.test");
+    const path = `${parsed.pathname}${parsed.search}`;
+
+    if (path === "/api/tasks" && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (path.startsWith("/api/videos/recent") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response("not found", { status: 404 });
+  });
+
+  globalThis.fetch = fetchMock;
+
+  render(
+    <MemoryRouter>
+      <ToastProvider>
+        <TasksPageV2 />
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  await flushMicrotasks();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+
+  await act(async () => {
+    vi.advanceTimersByTime(15000);
+  });
+
+  await flushMicrotasks();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("keeps polling only while active tasks are visible", async () => {
+  writeSessionToken("sess-token-1");
+  vi.useFakeTimers();
+
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const parsed = new URL(String(input), "http://example.test");
+    const path = `${parsed.pathname}${parsed.search}`;
+
+    if (path === "/api/tasks" && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              task_id: "task-running-1",
+              status: "queued",
+              display_title: "蓝色圆形动画",
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }
+      );
+    }
+
+    if (path.startsWith("/api/videos/recent") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response("not found", { status: 404 });
+  });
+
+  globalThis.fetch = fetchMock;
+
+  render(
+    <MemoryRouter>
+      <ToastProvider>
+        <TasksPageV2 />
+      </ToastProvider>
+    </MemoryRouter>
+  );
+
+  await flushMicrotasks();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+
+  await act(async () => {
+    vi.advanceTimersByTime(5000);
+  });
+
+  await flushMicrotasks();
+  expect(fetchMock).toHaveBeenCalledTimes(4);
+
+  documentVisibilityState = "hidden";
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  await act(async () => {
+    vi.advanceTimersByTime(5000);
+  });
+
+  await flushMicrotasks();
+  expect(fetchMock).toHaveBeenCalledTimes(4);
 });

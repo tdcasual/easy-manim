@@ -187,8 +187,7 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
       setIsGenerating(false);
       updateTaskStatus("cancelled");
       return { success: true };
-    } catch (err) {
-      console.error("Failed to cancel task:", err);
+    } catch {
       cleanupPolling();
       setIsGenerating(false);
       return { success: false };

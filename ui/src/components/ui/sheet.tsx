@@ -41,6 +41,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      aria-modal="true"
       className={cn(
         "fixed z-50 flex h-full flex-col gap-4 border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl focus:outline-none",
         side === "left" &&
