@@ -455,7 +455,7 @@ export function Studio() {
                 type="button"
                 onClick={clearError}
                 aria-label={t("studio.error.close")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border-none bg-transparent text-cloud-700 transition-all hover:rotate-90 hover:bg-pink-100 hover:text-pink-600"
+                className="flex h-11 w-11 items-center justify-center rounded-full border-none bg-transparent text-cloud-700 transition-all hover:rotate-90 hover:bg-pink-100 hover:text-pink-600"
               >
                 <svg
                   width="18"

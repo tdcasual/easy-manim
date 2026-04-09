@@ -2,7 +2,7 @@
  * useHistory - 历史记录管理 Hook
  */
 import { useState, useCallback, useRef, useEffect } from "react";
-import { readLocale } from "../../app/locale";
+import { readLocale, translate } from "../../app/locale";
 import { listTasks, TaskListItem } from "../../lib/tasksApi";
 import { listRecentVideos, RecentVideoItem } from "../../lib/videosApi";
 
@@ -21,7 +21,7 @@ function formatTime(date: Date): string {
   const diff = now.getTime() - date.getTime();
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 
-  if (diff < 60000) return locale === "zh-CN" ? "刚刚" : "just now";
+  if (diff < 60000) return translate(locale, "history.justNow");
   if (diff < 3600000) return formatter.format(-Math.floor(diff / 60000), "minute");
   if (diff < 86400000) return formatter.format(-Math.floor(diff / 3600000), "hour");
   return formatter.format(-Math.floor(diff / 86400000), "day");

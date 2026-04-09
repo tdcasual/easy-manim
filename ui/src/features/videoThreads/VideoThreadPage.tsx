@@ -8,6 +8,7 @@ import { SelectedVersionHero } from "./SelectedVersionHero";
 import { ThreadDiscussionPanel } from "./ThreadDiscussionPanel";
 import { useTaskArtifactDownloads } from "./useTaskArtifactDownloads";
 import { VersionTimeline } from "./VersionTimeline";
+import "../../styles/page-shell-v2.css";
 import {
   appendVideoTurn,
   getVideoThreadIteration,

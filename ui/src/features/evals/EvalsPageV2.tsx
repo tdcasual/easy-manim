@@ -303,12 +303,14 @@ export function EvalsPageV2() {
                     {decision.kind} · {decision.promotion_decision.mode ?? "shadow"}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex min-w-0 flex-col items-end gap-1">
                   <div className="text-sm font-semibold text-cloud-800 dark:text-cloud-100">
-                    {decision.promotion_decision.approved ? "approved" : "not approved"}
+                    {decision.promotion_decision.approved
+                      ? t("evals.approved")
+                      : t("evals.notApproved")}
                   </div>
-                  <div className="text-xs text-cloud-500 dark:text-cloud-400">
-                    {decision.promotion_decision.reasons.join(", ") || "no blockers"}
+                  <div className="max-w-full truncate text-xs text-cloud-500 dark:text-cloud-400">
+                    {decision.promotion_decision.reasons.join(", ") || t("evals.noBlockers")}
                   </div>
                 </div>
               </div>

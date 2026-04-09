@@ -109,9 +109,9 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
         <h4 className="truncate text-sm font-semibold text-cloud-800 dark:text-cloud-100">
           {displayTitle}
         </h4>
-        <div className="flex gap-3 text-xs text-cloud-500 dark:text-cloud-400">
-          <span className="font-mono">{video.task_id}</span>
-          <span>{new Date(video.updated_at ?? Date.now()).toLocaleDateString()}</span>
+        <div className="flex flex-wrap gap-3 text-xs text-cloud-500 dark:text-cloud-400">
+          <span className="min-w-0 truncate font-mono">{video.task_id}</span>
+          <span>{new Date(video.updated_at ?? Date.now()).toLocaleDateString(locale)}</span>
         </div>
       </div>
 

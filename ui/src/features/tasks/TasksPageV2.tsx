@@ -183,7 +183,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-full z-50 mt-2 min-w-[10rem] animate-pop-in rounded-xl border border-white/60 bg-white/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
+          <div className="absolute right-0 top-full z-40 mt-2 min-w-[10rem] animate-pop-in rounded-xl border border-white/60 bg-white/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
             <Link
               to={`/tasks/${encodeURIComponent(task.task_id)}`}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-cloud-700 transition-colors hover:bg-pink-50 hover:text-pink-600 dark:text-cloud-200 dark:hover:bg-pink-900/20"

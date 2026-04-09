@@ -3,13 +3,9 @@ import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { cn } from "../../lib/utils";
+import type { GenerationParams as StoreGenerationParams } from "../store";
 
-export interface GenerationParams {
-  resolution: "480p" | "720p" | "1080p";
-  duration: "5s" | "10s" | "15s";
-  style: "natural" | "vivid" | "anime" | "cinematic";
-  quality: "standard" | "high" | "ultra";
-}
+export type GenerationParams = StoreGenerationParams;
 
 interface SettingsPanelProps {
   isOpen: boolean;

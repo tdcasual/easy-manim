@@ -23,7 +23,7 @@ test("error banner follows the active locale", async () => {
     />
   );
 
-  expect(screen.getByRole("alert")).toHaveTextContent(/network error/i);
+  expect(screen.getByRole("alert")).toHaveTextContent(/Network connection failed/i);
 
   await user.click(screen.getByRole("button", { name: /retry/i }));
   await user.click(screen.getByRole("button", { name: /close error banner/i }));

@@ -35,6 +35,7 @@ import { useI18n } from "../../app/locale";
 import { getStatusLabel } from "../../app/ui";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
 import { cn } from "../../lib/utils";
+import "../../styles/page-shell-v2.css";
 import "./ProfilePageV2.css";
 
 // 编辑器模式
@@ -284,49 +285,40 @@ function FloatingClouds() {
   );
 }
 
-const capabilityLabels: Record<string, string> = {
-  agent_learning_auto_apply_enabled: "Agent learning auto apply",
-  auto_repair_enabled: "Auto repair",
-  multi_agent_workflow_enabled: "Multi-agent workflow",
-  multi_agent_workflow_auto_challenger_enabled: "Auto challenger",
-  multi_agent_workflow_auto_arbitration_enabled: "Auto arbitration",
-  multi_agent_workflow_guarded_rollout_enabled: "Guarded rollout",
-  strategy_promotion_enabled: "Strategy promotion",
-  strategy_promotion_guarded_auto_apply_enabled: "Guarded strategy promotion",
-};
-
-function formatCapabilityLabel(key: string) {
-  return capabilityLabels[key] ?? key.replaceAll("_", " ");
-}
-
-function formatSupportSummary(counts?: Record<string, number>) {
-  const entries = Object.entries(counts ?? {});
-  if (!entries.length) return "No field evidence";
-  return entries
-    .slice(0, 3)
-    .map(([field, count]) => `${field}: ${count}`)
-    .join(" | ");
-}
-
-function formatCountSummary(counts?: Record<string, number>) {
-  const entries = Object.entries(counts ?? {}).sort(([left], [right]) => left.localeCompare(right));
-  if (!entries.length) return "none";
-  return entries.map(([label, count]) => `${label} ${count}`).join(" | ");
-}
-
-function formatRoleStatusSummary(roleStatusCounts?: Record<string, Record<string, number>>) {
-  const entries = Object.entries(roleStatusCounts ?? {}).sort(([left], [right]) =>
-    left.localeCompare(right)
-  );
-  if (!entries.length) return "none";
-  return entries.map(([role, counts]) => `${role} [${formatCountSummary(counts)}]`).join(" | ");
-}
-
 // 主组件
 export function ProfilePageV2() {
   const { sessionToken } = useSession();
   const { locale, t } = useI18n();
   const { success: toastSuccess, error: toastError } = useToast();
+
+  function formatCapabilityLabel(key: string) {
+    return t(`profile.capability.${key}`) ?? key.replaceAll("_", " ");
+  }
+
+  function formatSupportSummary(counts?: Record<string, number>) {
+    const entries = Object.entries(counts ?? {});
+    if (!entries.length) return t("profile.noFieldEvidence");
+    return entries
+      .slice(0, 3)
+      .map(([field, count]) => `${field}: ${count}`)
+      .join(" | ");
+  }
+
+  function formatCountSummary(counts?: Record<string, number>) {
+    const entries = Object.entries(counts ?? {}).sort(([left], [right]) =>
+      left.localeCompare(right)
+    );
+    if (!entries.length) return t("profile.none");
+    return entries.map(([label, count]) => `${label} ${count}`).join(" | ");
+  }
+
+  function formatRoleStatusSummary(roleStatusCounts?: Record<string, Record<string, number>>) {
+    const entries = Object.entries(roleStatusCounts ?? {}).sort(([left], [right]) =>
+      left.localeCompare(right)
+    );
+    if (!entries.length) return t("profile.none");
+    return entries.map(([role, counts]) => `${role} [${formatCountSummary(counts)}]`).join(" | ");
+  }
   const { showAuthModal, closeAuthModal } = useAuthGuard();
   const [profile, setProfile] = useState<AgentProfile | null>(null);
   const [scorecard, setScorecard] = useState<ProfileScorecard | null>(null);
@@ -719,7 +711,8 @@ export function ProfilePageV2() {
                       {Object.entries(runtimeStatus.capabilities.effective).map(
                         ([key, enabled]) => (
                           <li key={key}>
-                            {formatCapabilityLabel(key)}: {enabled ? "enabled" : "disabled"}
+                            {formatCapabilityLabel(key)}:{" "}
+                            {enabled ? t("profile.enabled") : t("profile.disabled")}
                           </li>
                         )
                       )}

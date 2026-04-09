@@ -34,6 +34,7 @@ import { useToast } from "../../components/useToast";
 import { getStatusLabel } from "../../app/ui";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
 import { TaskReviewPanel } from "./TaskReviewPanel";
+import "../../styles/page-shell-v2.css";
 import "./TaskDetailPageV2.css";
 
 import { TERMINAL_STATUSES } from "../../lib/tasksApi";
@@ -183,7 +184,7 @@ export function TaskDetailPageV2() {
     token: string
   ) {
     if (refreshScope === "navigate") {
-      navigate(`/tasks/${refreshTaskId}`);
+      navigate(`/tasks/${encodeURIComponent(refreshTaskId)}`);
       return;
     }
 

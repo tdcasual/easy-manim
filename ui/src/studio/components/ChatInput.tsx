@@ -126,7 +126,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               key={prompt.text}
               type="button"
               onClick={() => handleQuickPrompt(prompt.text)}
-              className="animate-float-in flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] px-3 py-1.5 text-sm text-cloud-700 shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-sm"
+              className="animate-float-in flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] px-4 py-2.5 text-sm text-cloud-700 shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-sm"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <span>{prompt.icon}</span>
@@ -146,7 +146,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             {/* 左侧图标 */}
             <div
               className={cn(
-                "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-all",
+                "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-all",
                 isLoading
                   ? "bg-cloud-100 text-cloud-500"
                   : "bg-gradient-to-br from-pink-300 to-peach-300 text-white shadow-md animate-pulse-glow"
@@ -189,7 +189,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               disabled={!value.trim() || isLoading}
               aria-label={isLoading ? t("studio.chat.sending") : t("studio.chat.send")}
               className={cn(
-                "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-all",
+                "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-all",
                 value.trim() && !isLoading
                   ? "bg-gradient-to-br from-mint-400 to-sky-400 text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg"
                   : "bg-cloud-100 text-cloud-400"

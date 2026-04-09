@@ -1,5 +1,5 @@
 import { type TaskResult } from "../../lib/tasksApi";
-import { resolveApiUrl } from "../../lib/api";
+import { resolveApiUrl, ARTIFACT_PATHS } from "../../lib/api";
 import type {
   VideoThreadIterationDetailResult,
   VideoThreadSurface,
@@ -23,20 +23,13 @@ export function SelectedVersionHero({
   downloadError,
 }: SelectedVersionHeroProps) {
   const videoDownloadHref =
-    downloads?.video_download_url ??
-    (selectedTaskId
-      ? `/api/tasks/${encodeURIComponent(selectedTaskId)}/artifacts/final_video.mp4`
-      : null);
+    downloads?.video_download_url ?? (selectedTaskId ? ARTIFACT_PATHS.video(selectedTaskId) : null);
   const scriptDownloadHref =
     downloads?.script_download_url ??
-    (selectedTaskId
-      ? `/api/tasks/${encodeURIComponent(selectedTaskId)}/artifacts/current_script.py`
-      : null);
+    (selectedTaskId ? ARTIFACT_PATHS.script(selectedTaskId) : null);
   const validationReportDownloadHref =
     downloads?.validation_report_download_url ??
-    (selectedTaskId
-      ? `/api/tasks/${encodeURIComponent(selectedTaskId)}/artifacts/validations/validation_report_v1.json`
-      : null);
+    (selectedTaskId ? ARTIFACT_PATHS.validationReport(selectedTaskId) : null);
   const summary =
     selectedResult?.result_summary ??
     surface.current_focus.current_result_summary ??

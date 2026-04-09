@@ -4,38 +4,41 @@
  */
 import { useCallback, useRef, useEffect } from "react";
 import { createTask, getTask, getTaskResult, cancelTask } from "../../lib/tasksApi";
+import { readLocale, translate } from "../../app/locale";
 import { useStudioStore } from "../store";
 import type { TaskError } from "../store";
 
 function parseError(err: unknown): TaskError {
   const message = err instanceof Error ? err.message : String(err);
+  const locale = readLocale();
+  const t = (key: string) => translate(locale, key);
 
   if (
     message.includes("fetch") ||
     message.includes("network") ||
     message.includes("Failed to fetch")
   ) {
-    return { type: "network", message: "网络连接失败，请检查网络设置", retryable: true };
+    return { type: "network", message: t("studio.error.network"), retryable: true };
   }
 
   if (message.includes("timeout") || message.includes("ETIMEDOUT")) {
-    return { type: "timeout", message: "请求超时，请稍后重试", retryable: true };
+    return { type: "timeout", message: t("studio.error.timeout"), retryable: true };
   }
 
   if (message.includes("http_")) {
     const statusCode = message.match(/http_(\d+)/)?.[1];
     if (statusCode === "429") {
-      return { type: "generation", message: "请求过于频繁，请稍后再试", retryable: true };
+      return { type: "generation", message: t("studio.error.rateLimit"), retryable: true };
     }
     if (statusCode === "500" || statusCode === "502" || statusCode === "503") {
-      return { type: "generation", message: "服务器繁忙，请稍后重试", retryable: true };
+      return { type: "generation", message: t("studio.error.serverError"), retryable: true };
     }
     if (statusCode === "401" || statusCode === "403") {
-      return { type: "unknown", message: "登录已过期，请重新登录", retryable: false };
+      return { type: "unknown", message: t("studio.error.unauthorized"), retryable: false };
     }
   }
 
-  return { type: "unknown", message: message || "发生未知错误", retryable: true };
+  return { type: "unknown", message: message || t("studio.error.unknown"), retryable: true };
 }
 
 interface UseTaskManagerOptions {

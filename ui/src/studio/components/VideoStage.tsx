@@ -333,7 +333,7 @@ export function VideoStage({
               type="button"
               onClick={toggleFullscreen}
               aria-label={t("studio.video.fullscreen")}
-              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-pink-600"
+              className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-pink-600"
             >
               <svg
                 width="18"

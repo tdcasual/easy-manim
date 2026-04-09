@@ -216,9 +216,9 @@ test("renders translated profile status", async () => {
   expect(screen.getByText(/strategy-geometry/i)).toBeInTheDocument();
   expect(screen.getByText(/triangle, geometry/i)).toBeInTheDocument();
   expect(screen.getByText(/shadow passes: 2/i)).toBeInTheDocument();
-  expect(screen.getByText(/auto challenger: enabled/i)).toBeInTheDocument();
-  expect(screen.getByText(/auto arbitration: disabled/i)).toBeInTheDocument();
-  expect(screen.getByText(/guarded rollout: disabled/i)).toBeInTheDocument();
+  expect(screen.getByText(/自动挑战者: 已启用/i)).toBeInTheDocument();
+  expect(screen.getByText(/自动仲裁: 已禁用/i)).toBeInTheDocument();
+  expect(screen.getByText(/受控灰度发布: 已禁用/i)).toBeInTheDocument();
   expect(screen.getByText(/guarded autonomy: blocked/i)).toBeInTheDocument();
   expect(screen.getByText(/branch_rejection_rate_above_threshold/i)).toBeInTheDocument();
   expect(
