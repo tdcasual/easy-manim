@@ -1,18 +1,14 @@
-/**
- * ChatInput - 对话式输入组件
- * 重构后版本 - 使用 CSS Modules
- */
 import {
   useState,
   useRef,
   useCallback,
   forwardRef,
   useImperativeHandle,
-  KeyboardEvent,
+  type KeyboardEvent,
   useEffect,
 } from "react";
 import { useI18n } from "../../app/locale";
-import styles from "../styles/ChatInput.module.css";
+import { cn } from "../../lib/utils";
 
 interface QuickPrompt {
   icon: string;
@@ -32,8 +28,18 @@ function SeedFlying({ isAnimating, onComplete }: { isAnimating: boolean; onCompl
   if (!isAnimating) return null;
 
   return (
-    <div className={styles.seedFlying}>
-      <div className={styles.seed} onAnimationEnd={onComplete} />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+      <div
+        className="absolute bottom-6 right-12 h-3 w-3 rounded-full bg-gradient-to-br from-mint-300 to-sky-300 shadow-md"
+        style={{ animation: "seedFly 0.6s ease-out forwards" }}
+        onAnimationEnd={onComplete}
+      />
+      <style>{`
+        @keyframes seedFly {
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(120px, -80px) scale(0.5); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -55,7 +61,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     }));
     const resolvedPlaceholder = placeholder ?? t("studio.chat.placeholder");
 
-    // 暴露 focus 方法给父组件
     useImperativeHandle(
       ref,
       () => ({
@@ -66,7 +71,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       []
     );
 
-    // 清理 timeout
     useEffect(() => {
       return () => {
         if (submitTimeoutRef.current) {
@@ -75,7 +79,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       };
     }, []);
 
-    // 自动调整高度
     const adjustHeight = useCallback(() => {
       const textarea = textareaRef.current;
       if (!textarea) return;
@@ -85,7 +88,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       textarea.style.height = `${newHeight}px`;
     }, []);
 
-    // 内容变化时调整高度
     useEffect(() => {
       adjustHeight();
     }, [value, adjustHeight]);
@@ -116,34 +118,42 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     };
 
     return (
-      <div className={styles.container}>
+      <div className="flex flex-col gap-3">
         {/* 快捷提示 */}
-        <div className={styles.quickPrompts}>
+        <div className="flex flex-wrap gap-2">
           {quickPrompts.map((prompt, index) => (
             <button
               key={index}
               type="button"
               onClick={() => handleQuickPrompt(prompt.text)}
-              className={styles.quickPromptCard}
+              className="animate-float-in flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] px-3 py-1.5 text-sm text-cloud-700 shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-sm"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <span className={styles.quickPromptIcon}>{prompt.icon}</span>
+              <span>{prompt.icon}</span>
               <span>{prompt.text}</span>
             </button>
           ))}
         </div>
 
         {/* 输入框 */}
-        <div className={styles.inputWrapper}>
-          <div className={styles.topAccent} aria-hidden="true" />
+        <div className="relative">
+          <div
+            className="absolute left-0 right-0 top-0 h-1 rounded-t-3xl bg-gradient-to-r from-pink-300 via-lavender-300 to-sky-300"
+            aria-hidden="true"
+          />
 
-          <div className={styles.inputContent}>
+          <div className="flex items-center gap-3 rounded-3xl border-2 border-[var(--glass-border)] bg-[var(--glass-white)] p-3 shadow-md backdrop-blur-xl transition-all focus-within:border-pink-300 focus-within:shadow-lg">
             {/* 左侧图标 */}
             <div
-              className={`${styles.iconWrapper} ${!isLoading ? styles.iconWrapperAnimating : ""}`}
+              className={cn(
+                "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-all",
+                isLoading
+                  ? "bg-cloud-100 text-cloud-500"
+                  : "bg-gradient-to-br from-pink-300 to-peach-300 text-white shadow-md animate-pulse-glow"
+              )}
             >
               {isLoading ? (
-                <div className={styles.spinner} />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-cloud-300 border-t-cloud-600" />
               ) : (
                 <svg
                   width="20"
@@ -167,7 +177,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               placeholder={isLoading ? t("studio.chat.loadingPlaceholder") : resolvedPlaceholder}
               disabled={isLoading}
               rows={1}
-              className={styles.textarea}
+              className="min-h-[40px] w-full resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               aria-label={t("studio.chat.label")}
               aria-busy={isLoading}
             />
@@ -178,7 +188,12 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               onClick={handleSubmit}
               disabled={!value.trim() || isLoading}
               aria-label={isLoading ? t("studio.chat.sending") : t("studio.chat.send")}
-              className={`${styles.sendButton} ${value.trim() && !isLoading ? styles.sendButtonActive : ""}`}
+              className={cn(
+                "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-all",
+                value.trim() && !isLoading
+                  ? "bg-gradient-to-br from-mint-400 to-sky-400 text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg"
+                  : "bg-cloud-100 text-cloud-400"
+              )}
             >
               <svg
                 width="20"
@@ -198,7 +213,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         </div>
 
         {/* 提示 */}
-        <p className={styles.hint}>{t("studio.chat.hint")}</p>
+        <p className="text-center text-xs text-cloud-600">{t("studio.chat.hint")}</p>
       </div>
     );
   }

@@ -14,7 +14,7 @@ import { useI18n } from "../../app/locale";
 import { SkeletonCard } from "../../components/Skeleton";
 import { getStatusLabel } from "../../app/ui";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
-import "./EvalDetailPageV2.css";
+import { cn } from "../../lib/utils";
 
 function formatPercent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
@@ -49,30 +49,38 @@ export function EvalDetailPageV2() {
 
   if (!runId) {
     return (
-      <div className="page-v2">
-        <div className="empty-state-v2">{t("evalDetail.missingRunId")}</div>
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="rounded-2xl border border-white/60 bg-white/60 px-6 py-10 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
+            {t("evalDetail.missingRunId")}
+          </p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="page-v2">
-        <div className="empty-state-v2">{t("evalDetail.loadFailed", { error })}</div>
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="rounded-2xl border border-white/60 bg-white/60 px-6 py-10 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
+            {t("evalDetail.loadFailed", { error })}
+          </p>
+        </div>
       </div>
     );
   }
 
   if (!run) {
     return (
-      <div className="page-v2">
-        <div className="page-header-v2">
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
           <SkeletonCard />
         </div>
-        <div className="eval-detail-header">
+        <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
           <SkeletonCard />
         </div>
-        <div className="section-card-v2">
+        <div className="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
           <SkeletonCard />
         </div>
       </div>
@@ -87,52 +95,83 @@ export function EvalDetailPageV2() {
   );
 
   return (
-    <div className="page-v2">
-      <div className="page-header-v2">
-        <div className="page-header-content-v2">
-          <button onClick={() => navigate(-1)} className="back-link">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-2 flex items-center gap-1 text-sm text-cloud-500 hover:text-pink-500 dark:text-cloud-400"
+          >
             <ArrowLeft size={18} />
             {t("evalDetail.back")}
           </button>
-          <h1 className="page-title-v2">{t("evalDetail.title")}</h1>
-          <p className="page-description-v2">{run.run_id}</p>
+          <h1 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100 sm:text-3xl">
+            {t("evalDetail.title")}
+          </h1>
+          <p className="text-sm font-mono text-cloud-500 dark:text-cloud-400">{run.run_id}</p>
         </div>
       </div>
 
-      <div className="eval-detail-header">
-        <div className="eval-detail-stats">
-          <div className="eval-stat">
-            <span className="stat-label">{t("evalDetail.suite")}</span>
-            <span className="stat-value">{run.suite_id}</span>
-          </div>
-          <div className="eval-stat">
-            <span className="stat-label">{t("evalDetail.cases")}</span>
-            <span className="stat-value">{run.total_cases}</span>
-          </div>
-          <div className="eval-stat">
-            <span className="stat-label">{t("evalDetail.passRate")}</span>
-            <span className={`stat-value ${getRateTone(qualityPassRate)}`.trim()}>
-              {formatPercent(qualityPassRate)}
-            </span>
-          </div>
-          <div className="eval-stat">
-            <span className="stat-label">{t("evalDetail.deliveryRate")}</span>
-            <span className={`stat-value ${getRateTone(deliveryRate)}`.trim()}>
-              {formatPercent(deliveryRate)}
-            </span>
-          </div>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+            {t("evalDetail.suite")}
+          </span>
+          <span className="text-xl font-bold text-cloud-800 dark:text-cloud-100">
+            {run.suite_id}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+            {t("evalDetail.cases")}
+          </span>
+          <span className="text-xl font-bold text-cloud-800 dark:text-cloud-100">
+            {run.total_cases}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+            {t("evalDetail.passRate")}
+          </span>
+          <span
+            className={cn(
+              "text-xl font-bold",
+              getRateTone(qualityPassRate) === "success" && "text-mint-600 dark:text-mint-300",
+              getRateTone(qualityPassRate) === "warning" && "text-amber-600 dark:text-amber-300",
+              getRateTone(qualityPassRate) === "error" && "text-red-600 dark:text-red-300",
+              getRateTone(qualityPassRate) === "" && "text-cloud-800 dark:text-cloud-100"
+            )}
+          >
+            {formatPercent(qualityPassRate)}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+            {t("evalDetail.deliveryRate")}
+          </span>
+          <span
+            className={cn(
+              "text-xl font-bold",
+              getRateTone(deliveryRate) === "success" && "text-mint-600 dark:text-mint-300",
+              getRateTone(deliveryRate) === "warning" && "text-amber-600 dark:text-amber-300",
+              getRateTone(deliveryRate) === "error" && "text-red-600 dark:text-red-300",
+              getRateTone(deliveryRate) === "" && "text-cloud-800 dark:text-cloud-100"
+            )}
+          >
+            {formatPercent(deliveryRate)}
+          </span>
         </div>
       </div>
 
-      <div className="section-card-v2">
-        <div className="section-header-v2">
-          <h3 className="section-title-v2">
+      <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
+          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <BarChart3 size={20} />
             {t("evalDetail.caseResults")}
           </h3>
         </div>
 
-        <div className="case-list">
+        <div className="flex flex-col p-2">
           {cases.length > 0 ? (
             cases.map((item) => {
               const normalizedStatus = item.status.toLowerCase();
@@ -150,39 +189,49 @@ export function EvalDetailPageV2() {
                   : t("evalDetail.none");
 
               return (
-                <div key={`${item.task_id}:${item.root_task_id}`} className="case-item">
-                  <div className="case-header">
-                    <span className="case-id">{item.task_id}</span>
-                    <div className="case-badges">
+                <div
+                  key={`${item.task_id}:${item.root_task_id}`}
+                  className="rounded-xl border-b border-white/60 p-4 last:border-b-0 dark:border-white/10"
+                >
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-mono text-sm font-medium text-cloud-800 dark:text-cloud-100">
+                      {item.task_id}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
                       {item.manual_review_required && (
-                        <span className="case-badge review">
+                        <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                           <AlertCircle size={12} />
                           {t("evalDetail.review")}
                         </span>
                       )}
-                      <span className={`case-badge ${normalizedStatus}`}>
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+                          normalizedStatus === "completed"
+                            ? "bg-mint-100 text-mint-700 dark:bg-mint-900/30 dark:text-mint-300"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                        )}
+                      >
                         {getStatusLabel(item.status, locale)}
                       </span>
                       {qualityPassed ? (
-                        <span className="case-badge completed">
+                        <span className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-mint-700 dark:bg-mint-900/30 dark:text-mint-300">
                           {t("evalDetail.qualityPassed")}
                         </span>
                       ) : deliveryPassed ? (
-                        <span className="case-badge delivery-only">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                           {t("evalDetail.deliveryOnly")}
                         </span>
                       ) : null}
                     </div>
                   </div>
-                  <div className="case-details">
-                    <div className="case-stat">
+                  <div className="flex flex-wrap gap-4 text-xs text-cloud-500 dark:text-cloud-400">
+                    <div className="flex items-center gap-1">
                       <Clock size={14} />
                       {duration}
                     </div>
-                    <div className="case-stat">
-                      {t("evalDetail.qualityScore", { value: quality })}
-                    </div>
-                    <div className="case-issues">
+                    <div>{t("evalDetail.qualityScore", { value: quality })}</div>
+                    <div className="text-cloud-600 dark:text-cloud-300">
                       {t("evalDetail.issues", { value: issueCodes })}
                     </div>
                   </div>
@@ -190,58 +239,73 @@ export function EvalDetailPageV2() {
               );
             })
           ) : (
-            <div className="empty-state-v2 case-empty">
-              <ClipboardList size={48} />
-              <p>{t("evalDetail.noCases")}</p>
-              <span>{t("evalDetail.noCasesHint")}</span>
+            <div className="flex flex-col items-center px-6 py-10 text-center text-cloud-500">
+              <ClipboardList size={48} className="mb-3 text-cloud-400" />
+              <p className="text-base font-semibold text-cloud-700 dark:text-cloud-200">
+                {t("evalDetail.noCases")}
+              </p>
+              <span className="text-sm">{t("evalDetail.noCasesHint")}</span>
             </div>
           )}
         </div>
       </div>
 
-      <div className="section-card-v2">
-        <div className="section-header-v2">
-          <h3 className="section-title-v2">
+      <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
+          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <ClipboardList size={20} />
             Decision Timeline
           </h3>
         </div>
 
-        <div className="case-list">
+        <div className="flex flex-col p-2">
           {matchingDecisions.length > 0 ? (
             matchingDecisions.map((item) => (
-              <div key={`${item.strategy_id}:${item.recorded_at}`} className="case-item">
-                <div className="case-header">
-                  <span className="case-id">{item.strategy_id}</span>
-                  <div className="case-badges">
-                    <span className="case-badge">{item.promotion_decision.mode ?? "shadow"}</span>
+              <div
+                key={`${item.strategy_id}:${item.recorded_at}`}
+                className="rounded-xl border-b border-white/60 p-4 last:border-b-0 dark:border-white/10"
+              >
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono text-sm font-medium text-cloud-800 dark:text-cloud-100">
+                    {item.strategy_id}
+                  </span>
+                  <div className="flex gap-2">
+                    <span className="rounded-full bg-cloud-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-cloud-700 dark:bg-slate-700 dark:text-cloud-300">
+                      {item.promotion_decision.mode ?? "shadow"}
+                    </span>
                     <span
-                      className={`case-badge ${item.promotion_decision.approved ? "completed" : "failed"}`}
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+                        item.promotion_decision.approved
+                          ? "bg-mint-100 text-mint-700 dark:bg-mint-900/30 dark:text-mint-300"
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                      )}
                     >
                       {item.promotion_decision.approved ? "approved" : "not approved"}
                     </span>
                   </div>
                 </div>
-                <div className="case-details">
-                  <div className="case-stat">{item.kind}</div>
-                  <div className="case-stat">
-                    Reasons: {item.promotion_decision.reasons.join(", ") || "no blockers"}
-                  </div>
-                  <div className="case-issues">Recorded at: {item.recorded_at}</div>
+                <div className="flex flex-wrap gap-4 text-xs text-cloud-500 dark:text-cloud-400">
+                  <div>{item.kind}</div>
+                  <div>Reasons: {item.promotion_decision.reasons.join(", ") || "no blockers"}</div>
+                  <div>Recorded at: {item.recorded_at}</div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="empty-state-v2 case-empty">
-              <ClipboardList size={48} />
-              <p>No matching strategy decisions.</p>
-              <span>Shadow challenger runs linked to this eval will appear here.</span>
+            <div className="flex flex-col items-center px-6 py-10 text-center text-cloud-500">
+              <ClipboardList size={48} className="mb-3 text-cloud-400" />
+              <p className="text-base font-semibold text-cloud-700 dark:text-cloud-200">
+                No matching strategy decisions.
+              </p>
+              <span className="text-sm">
+                Shadow challenger runs linked to this eval will appear here.
+              </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* 🔐 认证弹窗 */}
       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );

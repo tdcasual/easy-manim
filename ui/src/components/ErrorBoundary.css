@@ -14,9 +14,11 @@
   min-height: 400px;
   padding: var(--space-8);
   text-align: center;
-  background: linear-gradient(180deg,
+  background: linear-gradient(
+    180deg,
     var(--error-boundary-surface) 0%,
-    color-mix(in srgb, var(--error) 3%, var(--surface-primary) 97%) 100%);
+    color-mix(in srgb, var(--error) 3%, var(--surface-primary) 97%) 100%
+  );
   border: 1px solid var(--error-boundary-border);
   border-radius: var(--radius-lg);
   margin: var(--space-6);
@@ -29,7 +31,8 @@
 }
 
 @keyframes error-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }

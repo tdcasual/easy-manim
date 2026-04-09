@@ -240,7 +240,9 @@
     box-shadow: var(--kawaii-tag-shadow-rest);
   }
   50% {
-    box-shadow: var(--kawaii-tag-shadow-rest), 0 0 20px currentColor;
+    box-shadow:
+      var(--kawaii-tag-shadow-rest),
+      0 0 20px currentColor;
   }
 }
 

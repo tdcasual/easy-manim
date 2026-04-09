@@ -1,9 +1,5 @@
-/**
- * GradientBackground - 渐变背景装饰组件
- * 二次元风格的柔和渐变背景，增强视觉层次
- */
 import { useEffect, useState } from "react";
-import "./GradientBackground.css";
+import { cn } from "../lib/utils";
 
 interface OrbConfig {
   id: number;
@@ -20,43 +16,38 @@ interface ColorScheme {
   staticColors: [string, string, string];
 }
 
-// 预定义的渐变配色方案（使用设计系统语义 token）
 const colorSchemes: Record<string, ColorScheme> = {
-  // 梦幻森林 - 绿紫粉
   dreamy: {
     gradients: [
-      "linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-mint-500) 50%, var(--color-mint-300) 100%)",
-      "linear-gradient(135deg, var(--color-lavender-400) 0%, var(--color-lavender-500) 50%, var(--color-lavender-300) 100%)",
+      "linear-gradient(135deg, var(--color-mint-300) 0%, var(--color-mint-500) 50%, var(--color-mint-200) 100%)",
+      "linear-gradient(135deg, var(--color-lavender-300) 0%, var(--color-lavender-500) 50%, var(--color-lavender-200) 100%)",
       "linear-gradient(135deg, var(--color-pink-300) 0%, var(--color-pink-500) 50%, var(--color-pink-400) 100%)",
     ],
-    staticColors: ["var(--color-mint-400)", "var(--color-lavender-400)", "var(--color-pink-400)"],
+    staticColors: ["var(--color-mint-300)", "var(--color-lavender-300)", "var(--color-pink-300)"],
   },
-  // 日落海滩 - 橙黄红
   sunset: {
     gradients: [
-      "linear-gradient(135deg, var(--color-peach-400) 0%, var(--color-peach-500) 50%, var(--color-peach-300) 100%)",
-      "linear-gradient(135deg, var(--color-lemon-400) 0%, var(--color-lemon-500) 50%, var(--color-peach-400) 100%)",
-      "linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-pink-500) 50%, var(--color-peach-500) 100%)",
+      "linear-gradient(135deg, var(--color-peach-500) 0%, var(--color-peach-200) 50%, var(--color-peach-100) 100%)",
+      "linear-gradient(135deg, var(--color-lemon-500) 0%, var(--color-lemon-100) 50%, var(--color-peach-500) 100%)",
+      "linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-pink-500) 50%, var(--color-peach-200) 100%)",
     ],
-    staticColors: ["var(--color-peach-400)", "var(--color-lemon-400)", "var(--color-pink-400)"],
+    staticColors: ["var(--color-peach-500)", "var(--color-lemon-500)", "var(--color-pink-400)"],
   },
-  // 海洋天空 - 蓝青紫
   ocean: {
     gradients: [
-      "linear-gradient(135deg, var(--color-sky-400) 0%, var(--color-sky-500) 50%, var(--color-sky-300) 100%)",
-      "linear-gradient(135deg, var(--color-mint-400) 0%, var(--color-sky-500) 50%, var(--color-sky-400) 100%)",
-      "linear-gradient(135deg, var(--color-lavender-400) 0%, var(--color-lavender-500) 50%, var(--color-lavender-300) 100%)",
+      "linear-gradient(135deg, var(--color-sky-400) 0%, var(--color-sky-500) 50%, var(--color-sky-200) 100%)",
+      "linear-gradient(135deg, var(--color-mint-300) 0%, var(--color-sky-500) 50%, var(--color-sky-400) 100%)",
+      "linear-gradient(135deg, var(--color-lavender-300) 0%, var(--color-lavender-500) 50%, var(--color-lavender-200) 100%)",
     ],
-    staticColors: ["var(--color-sky-400)", "var(--color-mint-400)", "var(--color-lavender-400)"],
+    staticColors: ["var(--color-sky-400)", "var(--color-mint-300)", "var(--color-lavender-300)"],
   },
-  // 极简黑白 - 灰白银
   minimal: {
     gradients: [
-      "linear-gradient(135deg, var(--color-cloud-300) 0%, var(--color-cloud-400) 50%, var(--color-cloud-200) 100%)",
-      "linear-gradient(135deg, var(--color-cloud-500) 0%, var(--color-cloud-600) 50%, var(--color-cloud-300) 100%)",
-      "linear-gradient(135deg, var(--color-cloud-200) 0%, var(--color-cloud-50) 50%, var(--color-cloud-100) 100%)",
+      "linear-gradient(135deg, var(--color-cloud-400) 0%, var(--color-cloud-500) 50%, var(--color-cloud-300) 100%)",
+      "linear-gradient(135deg, var(--color-cloud-600) 0%, var(--color-cloud-700) 50%, var(--color-cloud-400) 100%)",
+      "linear-gradient(135deg, var(--color-cloud-300) 0%, var(--color-cloud-100) 50%, var(--color-cloud-200) 100%)",
     ],
-    staticColors: ["var(--color-cloud-300)", "var(--color-cloud-500)", "var(--color-cloud-200)"],
+    staticColors: ["var(--color-cloud-400)", "var(--color-cloud-600)", "var(--color-cloud-300)"],
   },
 };
 
@@ -76,24 +67,17 @@ export function GradientBackground({
   const [orbs, setOrbs] = useState<OrbConfig[]>([]);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  // 检测用户是否偏好减少动画
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
-    };
-
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  // 生成随机渐变球体配置
   useEffect(() => {
     const colors = colorSchemes[scheme].gradients;
     const newOrbs: OrbConfig[] = [];
-
     for (let i = 0; i < orbCount; i++) {
       newOrbs.push({
         id: i,
@@ -105,26 +89,17 @@ export function GradientBackground({
         delay: i * -5,
       });
     }
-
     setOrbs(newOrbs);
   }, [scheme, orbCount]);
 
-  // 根据强度调整透明度
-  const opacityMap = {
-    low: 0.08,
-    medium: 0.15,
-    high: 0.25,
-  };
-
+  const opacityMap = { low: 0.08, medium: 0.15, high: 0.25 };
   const baseOpacity = opacityMap[intensity];
 
   if (prefersReducedMotion) {
     const [primaryColor, secondaryColor, tertiaryColor] = colorSchemes[scheme].staticColors;
-
-    // 减少动画模式：静态渐变
     return (
       <div
-        className="gradient-background-static"
+        className="pointer-events-none fixed inset-0 -z-10"
         aria-hidden="true"
         style={{
           background: `radial-gradient(ellipse at 20% 30%, ${primaryColor} 0%, transparent 50%),
@@ -137,11 +112,14 @@ export function GradientBackground({
   }
 
   return (
-    <div className="gradient-background" aria-hidden="true">
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
       {orbs.map((orb) => (
         <div
           key={orb.id}
-          className={`gradient-orb ${animated ? "animated" : ""}`}
+          className={cn(
+            "absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-[80px] will-change-transform",
+            animated && "animate-orb-float"
+          )}
           style={{
             width: orb.size,
             height: orb.size,
@@ -154,13 +132,17 @@ export function GradientBackground({
           }}
         />
       ))}
-      {/* 噪点纹理叠加 */}
-      <div className="noise-overlay" />
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+        }}
+      />
     </div>
   );
 }
 
-// 页面特定的渐变背景预设
 export function DreamyBackground() {
   return <GradientBackground scheme="dreamy" intensity="medium" />;
 }

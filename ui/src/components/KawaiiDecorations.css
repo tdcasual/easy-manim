@@ -149,7 +149,8 @@
 }
 
 @keyframes twinkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -244,7 +245,11 @@
 .bubble {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), color-mix(in srgb, var(--color-pink-200) 30%, transparent));
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.8),
+    color-mix(in srgb, var(--color-pink-200) 30%, transparent)
+  );
   animation: bubble-rise linear infinite;
 }
 
@@ -370,7 +375,8 @@
 }
 
 @keyframes orb-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.5;
   }
@@ -404,7 +410,11 @@
 }
 
 [data-theme="night"] .bubble {
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), color-mix(in srgb, var(--color-pink-300) 20%, transparent));
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.4),
+    color-mix(in srgb, var(--color-pink-300) 20%, transparent)
+  );
 }
 
 [data-theme="night"] .orb-pink {
@@ -438,19 +448,19 @@
   .orb {
     animation: none !important;
   }
-  
+
   .cloud {
     transform: none;
   }
-  
+
   .star {
     opacity: 0.6;
   }
-  
+
   .petal {
     display: none;
   }
-  
+
   .bubble {
     display: none;
   }
@@ -464,16 +474,16 @@
     width: 40px;
     height: 40px;
   }
-  
+
   .cloud-1,
   .cloud-3 {
     display: none;
   }
-  
+
   .petal {
     font-size: 18px;
   }
-  
+
   .orb {
     filter: blur(40px);
     transform: scale(0.6);

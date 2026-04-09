@@ -1,11 +1,7 @@
-/**
- * VideoStage - 视频展示舞台
- * 重构后版本 - 使用 CSS Modules
- */
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useI18n } from "../../app/locale";
 import { resolveApiUrl } from "../../lib/api";
-import styles from "../styles/VideoStage.module.css";
+import { cn } from "../../lib/utils";
 
 interface VideoStageProps {
   videoUrl?: string | null;
@@ -21,11 +17,16 @@ interface VideoStageProps {
 function ProgressBar({ progress }: { progress: number }) {
   const clamped = Math.min(100, Math.max(0, progress));
   return (
-    <div className={styles.progressBar}>
-      <div className={styles.progressTrack}>
-        <div className={styles.progressFill} style={{ width: `${clamped}%` }} />
+    <div className="flex w-full max-w-xs items-center gap-3">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-cloud-200">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-pink-400 to-mint-400 transition-all"
+          style={{ width: `${clamped}%` }}
+        />
       </div>
-      <div className={styles.progressText}>{Math.round(clamped)}%</div>
+      <div className="w-10 text-right text-sm font-medium text-cloud-600">
+        {Math.round(clamped)}%
+      </div>
     </div>
   );
 }
@@ -55,34 +56,52 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
   }, []);
 
   return (
-    <div className={styles.generating}>
-      <div className={styles.brushAnimation}>
-        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className={styles.brush}>
-          <path d="M20 60L30 30L50 25L55 45L30 55L20 60Z" className={styles.brushPath1} />
-          <path d="M50 25L55 45L65 35L55 15L50 25Z" className={styles.brushPath2} />
-          <circle cx="25" cy="57" r="3" className={styles.brushTip} />
+    <div className="flex flex-col items-center gap-5 text-center">
+      <div className="relative">
+        <svg
+          width="80"
+          height="80"
+          viewBox="0 0 80 80"
+          fill="none"
+          className="animate-bounce-kawaii"
+        >
+          <path d="M20 60L30 30L50 25L55 45L30 55L20 60Z" fill="var(--color-pink-300)" />
+          <path d="M50 25L55 45L65 35L55 15L50 25Z" fill="var(--color-peach-300)" />
+          <circle cx="25" cy="57" r="3" fill="var(--color-mint-300)" />
         </svg>
-        <div className={styles.paintTrail} />
       </div>
 
-      <div className={styles.generatingText}>
-        <p className={styles.generatingTitle}>{t("studio.video.generatingTitle")}</p>
-        <p className={styles.generatingSubtitle}>{t("studio.video.generatingSubtitle")}</p>
-        <p className={styles.estimatedTime}>
+      <div className="flex flex-col gap-1">
+        <p className="text-lg font-semibold text-foreground">{t("studio.video.generatingTitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("studio.video.generatingSubtitle")}</p>
+        <p className="text-xs text-cloud-600">
           {t("studio.video.generatingEta", { seconds: timeLeft })}
         </p>
       </div>
 
       <ProgressBar progress={progress} />
 
-      <div className={styles.dots}>
-        <div className={styles.dot} />
-        <div className={styles.dot} />
-        <div className={styles.dot} />
+      <div className="flex gap-2">
+        <div
+          className="h-2 w-2 animate-bounce rounded-full bg-pink-400"
+          style={{ animationDelay: "0s" }}
+        />
+        <div
+          className="h-2 w-2 animate-bounce rounded-full bg-mint-400"
+          style={{ animationDelay: "0.2s" }}
+        />
+        <div
+          className="h-2 w-2 animate-bounce rounded-full bg-sky-400"
+          style={{ animationDelay: "0.4s" }}
+        />
       </div>
 
       {onCancel && (
-        <button type="button" onClick={onCancel} className={styles.cancelButton}>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-all hover:bg-destructive/20"
+        >
           <svg
             width="16"
             height="16"
@@ -106,11 +125,11 @@ function EmptyState() {
   const { t } = useI18n();
 
   return (
-    <div className={styles.emptyState}>
-      <div className={styles.emptyIcon}>
+    <div className="flex flex-col items-center gap-4 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-200 to-lavender-200 text-pink-600 shadow-md">
         <svg
-          width="40"
-          height="40"
+          width="32"
+          height="32"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -119,9 +138,9 @@ function EmptyState() {
           <path d="M12 3l1.912 5.813a2 2 0 001.272 1.272L21 12l-5.813 1.912a2 2 0 00-1.272 1.272L12 21l-1.912-5.813a2 2 0 00-1.272-1.272L3 12l5.813-1.912a2 2 0 001.272-1.272L12 3z" />
         </svg>
       </div>
-      <div className={styles.emptyText}>
-        <p className={styles.emptyTitle}>{t("studio.video.emptyTitle")}</p>
-        <p className={styles.emptySubtitle}>{t("studio.video.emptySubtitle")}</p>
+      <div className="flex flex-col gap-1">
+        <p className="text-base font-semibold text-foreground">{t("studio.video.emptyTitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("studio.video.emptySubtitle")}</p>
       </div>
     </div>
   );
@@ -129,14 +148,19 @@ function EmptyState() {
 
 // 角落装饰
 function CornerDecoration({ position }: { position: "tl" | "tr" | "bl" | "br" }) {
-  const className = {
-    tl: styles.cornerTopLeft,
-    tr: styles.cornerTopRight,
-    bl: styles.cornerBottomLeft,
-    br: styles.cornerBottomRight,
+  const posClass = {
+    tl: "left-3 top-3 rounded-br-xl",
+    tr: "right-3 top-3 rounded-bl-xl",
+    bl: "bottom-3 left-3 rounded-tr-xl",
+    br: "bottom-3 right-3 rounded-tl-xl",
   }[position];
 
-  return <div className={`${styles.corner} ${className}`} aria-hidden="true" />;
+  return (
+    <div
+      className={cn("absolute h-6 w-6 border-2 border-pink-300/40", posClass)}
+      aria-hidden="true"
+    />
+  );
 }
 
 export function VideoStage({
@@ -153,16 +177,13 @@ export function VideoStage({
   const stageRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // 解析 URL
   const resolvedVideoUrl = videoUrl ? resolveApiUrl(videoUrl) : undefined;
   const resolvedPosterUrl = posterUrl ? resolveApiUrl(posterUrl) : undefined;
 
-  // 同步视频状态 + 清理
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // 初始化播放状态
     setIsPlaying(!video.paused);
 
     const handlePlay = () => setIsPlaying(true);
@@ -174,23 +195,21 @@ export function VideoStage({
     return () => {
       video.removeEventListener("play", handlePlay);
       video.removeEventListener("pause", handlePause);
-      // 暂停视频并清理 src 以防止内存泄漏
       video.pause();
       video.removeAttribute("src");
       video.load();
     };
   }, [resolvedVideoUrl]);
 
-  // 组件卸载时退出全屏
   useEffect(() => {
     return () => {
-      if (document.fullscreenElement && stageRef.current?.contains(document.fullscreenElement)) {
+      const stage = stageRef.current;
+      if (document.fullscreenElement && stage?.contains(document.fullscreenElement)) {
         document.exitFullscreen().catch(() => {});
       }
     };
   }, []);
 
-  // 切换播放
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -206,10 +225,8 @@ export function VideoStage({
     }
   }, [onPlay, onPause]);
 
-  // 全屏
   const toggleFullscreen = useCallback(async () => {
     if (!stageRef.current) return;
-
     try {
       if (!document.fullscreenElement) {
         await stageRef.current.requestFullscreen();
@@ -217,18 +234,21 @@ export function VideoStage({
         await document.exitFullscreen();
       }
     } catch {
-      // 忽略不支持全屏的情况
+      // ignore fullscreen errors
     }
   }, []);
 
   return (
     <div
       ref={stageRef}
-      className={styles.stage}
+      className="relative flex w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border-2 border-[var(--glass-border)] bg-[var(--glass-white)] p-1 shadow-lg backdrop-blur-xl"
       role="region"
       aria-label={t("studio.video.regionLabel")}
     >
-      <div className={styles.border} aria-hidden="true" />
+      <div
+        className="absolute inset-0 rounded-3xl border-2 border-pink-200/30"
+        aria-hidden="true"
+      />
 
       <CornerDecoration position="tl" />
       <CornerDecoration position="tr" />
@@ -236,7 +256,10 @@ export function VideoStage({
       <CornerDecoration position="br" />
 
       <div
-        className={`${styles.content} ${resolvedVideoUrl ? styles.contentVideo : styles.contentPlaceholder}`}
+        className={cn(
+          "relative z-10 flex min-h-[280px] w-full items-center justify-center rounded-2xl p-6",
+          resolvedVideoUrl ? "bg-black/5" : "bg-gradient-to-br from-pink-50/50 to-lavender-50/50"
+        )}
       >
         {isGenerating ? (
           <GeneratingAnimation onCancel={onCancel} />
@@ -246,7 +269,7 @@ export function VideoStage({
               ref={videoRef}
               src={resolvedVideoUrl}
               poster={resolvedPosterUrl ?? undefined}
-              className={styles.video}
+              className="max-h-[480px] w-full rounded-xl object-contain"
               onEnded={() => setIsPlaying(false)}
               aria-label={title ?? t("studio.video.generatedLabel")}
             />
@@ -255,7 +278,7 @@ export function VideoStage({
               type="button"
               onClick={togglePlay}
               aria-label={isPlaying ? t("studio.video.pause") : t("studio.video.play")}
-              className={styles.playButton}
+              className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-pink-600 shadow-lg backdrop-blur-md transition-all hover:scale-110"
             >
               {isPlaying ? (
                 <svg
@@ -287,7 +310,7 @@ export function VideoStage({
               type="button"
               onClick={toggleFullscreen}
               aria-label={t("studio.video.fullscreen")}
-              className={styles.fullscreenButton}
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-pink-600"
             >
               <svg
                 width="18"
@@ -302,7 +325,10 @@ export function VideoStage({
             </button>
 
             {title && (
-              <div className={styles.title} title={title}>
+              <div
+                className="absolute bottom-4 left-4 max-w-[80%] truncate rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-foreground shadow-sm backdrop-blur-sm"
+                title={title}
+              >
                 {title}
               </div>
             )}

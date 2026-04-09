@@ -20,27 +20,29 @@
   --login-bg-orb-sky: color-mix(in srgb, var(--color-sky-300) 30%, transparent);
   --login-title-shadow: color-mix(in srgb, var(--color-pink-300) 30%, transparent);
   --login-card-shadow: 0 25px 50px color-mix(in srgb, var(--color-pink-300) 20%, transparent);
-  --login-card-inner-border: 0 0 0 1px color-mix(in srgb, var(--surface-primary) 80%, transparent) inset;
+  --login-card-inner-border: 0 0 0 1px color-mix(in srgb, var(--surface-primary) 80%, transparent)
+    inset;
   --login-focus-ring: 0 0 0 4px color-mix(in srgb, var(--color-pink-300) 15%, transparent);
   --login-focus-elevation: 0 4px 12px color-mix(in srgb, var(--color-pink-300) 20%, transparent);
   --login-error-surface: color-mix(in srgb, var(--color-error-500) 10%, transparent);
   --login-error-border: color-mix(in srgb, var(--color-error-500) 20%, transparent);
   --login-submit-shadow: 0 4px 16px color-mix(in srgb, var(--color-pink-500) 30%, transparent);
   --login-submit-shadow-hover: 0 8px 24px color-mix(in srgb, var(--color-pink-500) 40%, transparent);
-  --login-submit-inner-border: 0 0 0 1px color-mix(in srgb, var(--surface-primary) 50%, transparent) inset;
+  --login-submit-inner-border: 0 0 0 1px color-mix(in srgb, var(--surface-primary) 50%, transparent)
+    inset;
   --login-submit-gloss: color-mix(in srgb, var(--surface-primary) 30%, transparent);
   --login-spinner-track: color-mix(in srgb, var(--surface-primary) 30%, transparent);
 }
 
 /* 🌸 装饰性背景元素 */
 .login-page::before {
-  content: '';
+  content: "";
   position: fixed;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: 
+  background:
     radial-gradient(circle at 20% 30%, var(--login-bg-orb-pink) 0%, transparent 40%),
     radial-gradient(circle at 80% 70%, var(--login-bg-orb-mint) 0%, transparent 40%),
     radial-gradient(circle at 50% 50%, var(--login-bg-orb-sky) 0%, transparent 50%);
@@ -50,8 +52,13 @@
 }
 
 @keyframes gradient-rotate {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.1); }
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
 }
 
 .login-page-toolbar {
@@ -101,11 +108,31 @@
   animation: twinkle 2s ease-in-out infinite;
 }
 
-.star-decoration.star-1 { top: 15%; left: 15%; animation-delay: 0s; }
-.star-decoration.star-2 { top: 25%; right: 20%; animation-delay: 0.5s; }
-.star-decoration.star-3 { top: 60%; left: 8%; animation-delay: 1s; }
-.star-decoration.star-4 { bottom: 30%; right: 15%; animation-delay: 1.5s; }
-.star-decoration.star-5 { top: 40%; left: 25%; animation-delay: 0.3s; }
+.star-decoration.star-1 {
+  top: 15%;
+  left: 15%;
+  animation-delay: 0s;
+}
+.star-decoration.star-2 {
+  top: 25%;
+  right: 20%;
+  animation-delay: 0.5s;
+}
+.star-decoration.star-3 {
+  top: 60%;
+  left: 8%;
+  animation-delay: 1s;
+}
+.star-decoration.star-4 {
+  bottom: 30%;
+  right: 15%;
+  animation-delay: 1.5s;
+}
+.star-decoration.star-5 {
+  top: 40%;
+  left: 25%;
+  animation-delay: 0.3s;
+}
 
 /* 🌸 花瓣飘落装饰 */
 .petal {
@@ -117,11 +144,26 @@
   opacity: 0.7;
 }
 
-.petal:nth-child(1) { left: 10%; animation-delay: 0s; }
-.petal:nth-child(2) { left: 30%; animation-delay: 3s; }
-.petal:nth-child(3) { left: 50%; animation-delay: 6s; }
-.petal:nth-child(4) { left: 70%; animation-delay: 2s; }
-.petal:nth-child(5) { left: 90%; animation-delay: 5s; }
+.petal:nth-child(1) {
+  left: 10%;
+  animation-delay: 0s;
+}
+.petal:nth-child(2) {
+  left: 30%;
+  animation-delay: 3s;
+}
+.petal:nth-child(3) {
+  left: 50%;
+  animation-delay: 6s;
+}
+.petal:nth-child(4) {
+  left: 70%;
+  animation-delay: 2s;
+}
+.petal:nth-child(5) {
+  left: 90%;
+  animation-delay: 5s;
+}
 
 /* 登录容器 */
 .login-container {
@@ -158,14 +200,24 @@
 }
 
 @keyframes shimmer {
-  0% { left: -100%; }
-  50%, 100% { left: 100%; }
+  0% {
+    left: -100%;
+  }
+  50%,
+  100% {
+    left: 100%;
+  }
 }
 
 .brand-title-large {
   font-size: 3.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--color-pink-500) 0%, var(--color-lavender-500) 50%, var(--color-mint-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-pink-500) 0%,
+    var(--color-lavender-500) 50%,
+    var(--color-mint-500) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -261,9 +313,7 @@
   border: 1px solid var(--glass-border);
   border-radius: 32px;
   padding: var(--space-8);
-  box-shadow: 
-    var(--login-card-shadow),
-    var(--login-card-inner-border);
+  box-shadow: var(--login-card-shadow), var(--login-card-inner-border);
   animation: card-appear 0.6s var(--ease-kawaii);
 }
 
@@ -326,7 +376,7 @@
 }
 
 .form-label::before {
-  content: '🌸';
+  content: "🌸";
   font-size: 0.75rem;
 }
 
@@ -354,9 +404,7 @@
 .form-input:focus {
   background: white;
   border-color: var(--color-pink-300);
-  box-shadow: 
-    var(--login-focus-ring),
-    var(--login-focus-elevation);
+  box-shadow: var(--login-focus-ring), var(--login-focus-elevation);
 }
 
 .form-input:focus-visible {
@@ -387,7 +435,7 @@
 }
 
 .form-hint::before {
-  content: '💡';
+  content: "💡";
 }
 
 .form-error {
@@ -403,7 +451,7 @@
 }
 
 .form-error::before {
-  content: '⚠️';
+  content: "⚠️";
 }
 
 /* 🎀 提交按钮 - Kawaii 风格 */
@@ -428,7 +476,7 @@
 }
 
 .submit-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, var(--login-submit-gloss), transparent);
@@ -438,9 +486,7 @@
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 
-    var(--login-submit-shadow-hover),
-    var(--login-submit-inner-border);
+  box-shadow: var(--login-submit-shadow-hover), var(--login-submit-inner-border);
 }
 
 .submit-btn:hover:not(:disabled)::before {
@@ -469,7 +515,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 表单底部 */
@@ -488,7 +536,7 @@
 }
 
 .form-footer p::before {
-  content: '🌟';
+  content: "🌟";
 }
 
 /* 响应式 */
@@ -497,32 +545,32 @@
     grid-template-columns: 1fr;
     gap: var(--space-8);
   }
-  
+
   .login-brand {
     text-align: center;
     padding: var(--space-6);
   }
-  
+
   .brand-logo-large {
     margin: 0 auto var(--space-6);
   }
-  
+
   .brand-title-large {
     font-size: 2.5rem;
   }
-  
+
   .brand-features {
     align-items: center;
   }
-  
+
   .brand-decoration {
     display: none;
   }
-  
+
   .login-form-wrapper {
     justify-content: center;
   }
-  
+
   .login-form-card {
     max-width: 420px;
   }
@@ -537,26 +585,26 @@
     top: var(--space-4);
     right: var(--space-4);
   }
-  
+
   .brand-title-large {
     font-size: 2rem;
   }
-  
+
   .brand-logo-large {
     width: 80px;
     height: 80px;
   }
-  
+
   .login-form-card {
     padding: var(--space-6);
     border-radius: 24px;
   }
-  
+
   .form-icon {
     width: 60px;
     height: 60px;
   }
-  
+
   .cloud-decoration,
   .petal {
     display: none;
@@ -571,18 +619,40 @@
 
 /* 🌙 深色主题适配 */
 [data-theme="night"] .login-page {
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-bottom) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 50%,
+    var(--sky-bottom) 100%
+  );
 }
 
 [data-theme="night"] .login-page::before {
-  background: 
-    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--color-pink-300) 30%, transparent) 0%, transparent 40%),
-    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--color-mint-300) 30%, transparent) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--color-sky-300) 20%, transparent) 0%, transparent 50%);
+  background:
+    radial-gradient(
+      circle at 20% 30%,
+      color-mix(in srgb, var(--color-pink-300) 30%, transparent) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 70%,
+      color-mix(in srgb, var(--color-mint-300) 30%, transparent) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--color-sky-300) 20%, transparent) 0%,
+      transparent 50%
+    );
 }
 
 [data-theme="night"] .brand-title-large {
-  background: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-lavender-400) 50%, var(--color-mint-400) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-pink-400) 0%,
+    var(--color-lavender-400) 50%,
+    var(--color-mint-400) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -602,7 +672,7 @@
 
 [data-theme="night"] .login-form-card {
   background: var(--glass-white);
-  box-shadow: 
+  box-shadow:
     0 25px 50px color-mix(in srgb, var(--primary-950) 30%, transparent),
     0 0 0 1px color-mix(in srgb, var(--surface-primary) 10%, transparent) inset;
 }

@@ -1,6 +1,6 @@
 /**
  * Studio - 宫崎骏风格创作工作室主容器
- * 重构后版本 - 使用 Hooks + Zustand
+ * 重构后版本 - 使用 Hooks + Zustand + Tailwind CSS
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
@@ -25,20 +25,19 @@ import { HelpPanel } from "./components/HelpPanel";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { AuthModal, useAuthGuard } from "../components/AuthModal";
 import { LocaleToggle } from "../components/LocaleToggle";
-
-// Styles
-import styles from "./styles/Studio.module.css";
+import { cn } from "../lib/utils";
 
 // Loading Screen
 function LoadingScreen() {
   const { t } = useI18n();
 
   return (
-    <div className={styles.loadingScreen}>
-      <div className={styles.loadingIcon}>
-        <Sparkles size={48} color="var(--accent-primary)" />
-      </div>
-      <p className={styles.loadingText}>{t("studio.loading")}</p>
+    <div
+      className="flex min-h-screen flex-col items-center justify-center gap-4"
+      style={{ background: "var(--gradient-day)" }}
+    >
+      <div className="animate-pop-in text-5xl">🎨</div>
+      <p className="m-0 text-lg text-cloud-700 animate-fade-in">{t("studio.loading")} ✨</p>
     </div>
   );
 }
@@ -50,7 +49,7 @@ export function Studio() {
   const { isMobile } = useResponsive();
   const { showAuthModal, closeAuthModal } = useAuthGuard();
 
-  // Store - 使用 selector 模式获取状态
+  // Store
   const {
     prompt,
     setPrompt,
@@ -120,7 +119,6 @@ export function Studio() {
         startPolling(taskId);
       }
     } catch (err) {
-      // submitTask 内部已处理错误，这里只是防止意外异常
       console.error("Submit task failed:", err);
     }
   }, [sessionToken, prompt, generationParams, submitTask, startPolling, setPrompt]);
@@ -130,7 +128,6 @@ export function Studio() {
     try {
       await cancelCurrentTask();
     } catch (err) {
-      // cancelCurrentTask 内部已处理错误
       console.error("Cancel task failed:", err);
     }
   }, [cancelCurrentTask]);
@@ -152,39 +149,56 @@ export function Studio() {
     [historyItems, setCurrentTask, closeHistory]
   );
 
-  // Loading state
   if (!isReady) {
     return <LoadingScreen />;
   }
 
-  // Auth check
   if (!sessionToken) {
     return <Navigate to="/login" replace />;
   }
 
+  const isNetworkError = error?.type === "network";
+
   return (
-    <div className={styles.studio}>
+    <div
+      className="relative flex min-h-screen flex-col overflow-hidden"
+      style={{ background: "var(--gradient-day)" }}
+    >
       <SkyBackground isNight={isNight} />
 
-      <main className={styles.main}>
+      <main className="relative z-10 mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-6 overflow-y-auto p-6 min-h-0">
         {/* Header */}
-        <header className={styles.header}>
-          <div className={styles.logoSection}>
-            <div className={styles.logo}>
+        <header className="mb-2 flex items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-white)] p-3 px-4 shadow-md backdrop-blur-xl transition-all duration-300 hover:shadow-lg">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg animate-float transition-transform duration-300 hover:scale-110 hover:rotate-[5deg]"
+              style={{
+                background:
+                  "linear-gradient(135deg, var(--color-pink-300) 0%, var(--color-peach-300) 100%)",
+                boxShadow: "var(--shadow-glow-pink)",
+              }}
+            >
               <Sparkles size={22} />
             </div>
-            <div className={styles.brand}>
-              <h1 className={styles.brandTitle}>easy-manim</h1>
-              {!isMobile && <p className={styles.brandSubtitle}>{t("studio.brandSubtitle")}</p>}
+            <div className="flex flex-col">
+              <h1 className="m-0 bg-gradient-to-br from-pink-500 to-lavender-500 bg-clip-text text-2xl font-bold text-transparent">
+                easy-manim
+              </h1>
+              {!isMobile && (
+                <p className="m-0 flex items-center gap-1 text-xs text-cloud-700">
+                  <span>✨</span>
+                  {t("studio.brandSubtitle")}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className={styles.toolbar}>
+          <div className="flex items-center gap-2">
             <LocaleToggle />
             <button
               type="button"
               onClick={toggleHistory}
-              className={styles.toolbarButton}
+              className="flex items-center gap-1 rounded-full border-none bg-[var(--glass-white)] px-3 py-2 text-sm font-medium text-cloud-700 shadow-xs transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md active:scale-95"
               aria-label={t("studio.toolbar.historyAria")}
               title={t("studio.toolbar.historyTitle")}
             >
@@ -198,12 +212,12 @@ export function Studio() {
               >
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
               </svg>
-              <span>{t("studio.toolbar.history")}</span>
+              <span className="hidden sm:inline">{t("studio.toolbar.history")}</span>
             </button>
             <button
               type="button"
               onClick={toggleHelp}
-              className={styles.toolbarButton}
+              className="flex items-center gap-1 rounded-full border-none bg-[var(--glass-white)] px-3 py-2 text-sm font-medium text-cloud-700 shadow-xs transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md active:scale-95"
               aria-label={t("studio.toolbar.helpAria")}
               title={t("studio.toolbar.helpTitle")}
             >
@@ -219,12 +233,12 @@ export function Studio() {
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
-              <span>{t("studio.toolbar.help")}</span>
+              <span className="hidden sm:inline">{t("studio.toolbar.help")}</span>
             </button>
             <button
               type="button"
               onClick={toggleSettings}
-              className={styles.toolbarButton}
+              className="flex items-center gap-1 rounded-full border-none bg-[var(--glass-white)] px-3 py-2 text-sm font-medium text-cloud-700 shadow-xs transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md active:scale-95"
               aria-label={t("studio.toolbar.settingsAria")}
               title={t("studio.toolbar.settingsTitle")}
             >
@@ -239,10 +253,10 @@ export function Studio() {
                 <circle cx="12" cy="12" r="3" />
                 <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 6.34L2.1 2.1m17.8 17.8l-4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24 4.24l-4.24-4.24M6.34 6.34L2.1 2.1" />
               </svg>
-              <span>{t("studio.toolbar.settings")}</span>
+              <span className="hidden sm:inline">{t("studio.toolbar.settings")}</span>
             </button>
-            <div className={styles.toolbarDivider} />
-            <div className={styles.spacer} />
+            <div className="h-6 w-px bg-pink-200/50" />
+            <div className="w-1" />
             <ThemeToggle isNight={isNight} onToggle={toggleTheme} />
           </div>
         </header>
@@ -251,12 +265,20 @@ export function Studio() {
         {error && (
           <div
             role="alert"
-            className={`${styles.errorBanner} ${error.type === "network" ? styles.errorBannerNetwork : styles.errorBannerOther}`}
+            className={cn(
+              "animate-slide-up flex items-start gap-3 rounded-2xl border-2 p-4 px-5",
+              isNetworkError
+                ? "border-pink-300 bg-[var(--glass-pink)] shadow-[var(--shadow-glow-pink)]"
+                : "border-mint-300 bg-[var(--glass-mint)] shadow-[var(--shadow-glow-mint)]"
+            )}
           >
             <div
-              className={`${styles.errorIcon} ${error.type === "network" ? styles.errorIconNetwork : styles.errorIconOther}`}
+              className={cn(
+                "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-xl",
+                isNetworkError ? "bg-pink-100 text-pink-600" : "bg-mint-100 text-mint-600"
+              )}
             >
-              {error.type === "network" ? (
+              {isNetworkError ? (
                 <svg
                   width="18"
                   height="18"
@@ -283,21 +305,28 @@ export function Studio() {
               )}
             </div>
 
-            <div className={styles.errorContent}>
+            <div className="min-w-0 flex-1">
               <div
-                className={`${styles.errorTitle} ${error.type === "network" ? styles.errorTitleNetwork : styles.errorTitleOther}`}
+                className={cn(
+                  "mb-1 font-semibold",
+                  isNetworkError ? "text-pink-600" : "text-mint-600"
+                )}
               >
                 {error.type === "network" && t("studio.error.network")}
                 {error.type === "timeout" && t("studio.error.timeout")}
                 {error.type === "generation" && t("studio.error.generation")}
                 {error.type === "unknown" && t("studio.error.unknown")}
               </div>
-              <div className={styles.errorMessage}>{error.message}</div>
+              <div className="text-sm text-cloud-800">{error.message}</div>
             </div>
 
-            <div className={styles.errorActions}>
+            <div className="flex items-center gap-2">
               {error.retryable && (
-                <button type="button" onClick={handleSubmit} className={styles.retryButton}>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="flex items-center gap-1 rounded-xl border-none bg-gradient-to-br from-mint-400 to-sky-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
                   <svg
                     width="14"
                     height="14"
@@ -308,14 +337,14 @@ export function Studio() {
                   >
                     <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
                   </svg>
-                  {t("studio.error.retry")}
+                  🔄 {t("studio.error.retry")}
                 </button>
               )}
               <button
                 type="button"
                 onClick={clearError}
                 aria-label={t("studio.error.close")}
-                className={styles.closeButton}
+                className="flex h-9 w-9 items-center justify-center rounded-full border-none bg-transparent text-cloud-700 transition-all hover:rotate-90 hover:bg-pink-100 hover:text-pink-600"
               >
                 <svg
                   width="18"
@@ -334,7 +363,7 @@ export function Studio() {
         )}
 
         {/* Video Stage */}
-        <section className={styles.videoSection}>
+        <section className="flex flex-1 items-center justify-center py-4">
           <VideoStage
             videoUrl={currentTask?.videoUrl}
             isGenerating={isGenerating}
@@ -344,7 +373,7 @@ export function Studio() {
         </section>
 
         {/* Chat Input */}
-        <section className={styles.inputSection}>
+        <section className="pb-5">
           <ChatInput
             ref={textareaRef}
             value={prompt}
@@ -373,7 +402,7 @@ export function Studio() {
 
       <HelpPanel isOpen={isHelpOpen} onClose={closeHelp} />
 
-      {/* 🔐 认证弹窗 - 默认折叠，需要时自动弹出 */}
+      {/* Auth Modal */}
       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );

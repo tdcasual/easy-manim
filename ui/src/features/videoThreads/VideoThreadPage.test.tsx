@@ -3694,7 +3694,7 @@ test("video thread page shows version cards with select and task actions", async
   const versions = screen.getByRole("region", { name: "Versions" });
   expect(within(versions).getByRole("heading", { name: "Versions" })).toBeInTheDocument();
   expect(
-    within(versions).getAllByText("Earlier cut with a sharper title entrance.").length
+    (await within(versions).findAllByText("Earlier cut with a sharper title entrance.")).length
   ).toBeGreaterThan(0);
   expect(
     within(versions).getByRole("link", { name: "Open task detail for result-1" })

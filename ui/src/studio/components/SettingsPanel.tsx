@@ -1,12 +1,8 @@
-/**
- * SettingsPanel - 参数控制面板
- * Kawaii 二次元风格
- */
-import { type CSSProperties, useRef } from "react";
+import { type CSSProperties } from "react";
 import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
-import { DialogShell } from "../../components/DialogShell/DialogShell";
-import styles from "../styles/SettingsPanel.module.css";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { cn } from "../../lib/utils";
 
 export interface GenerationParams {
   resolution: "480p" | "720p" | "1080p";
@@ -99,169 +95,179 @@ const qualityOptions = [
 
 export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: SettingsPanelProps) {
   const { t } = useI18n();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <DialogShell
-      isOpen={isOpen}
-      onClose={onClose}
-      dialogRef={panelRef}
-      initialFocusRef={closeButtonRef}
-      className={styles.panel}
-      ariaLabel={t("studio.settings.dialog")}
-      overlayClassName={styles.overlay}
-      overlayAriaLabel="Dismiss settings panel backdrop"
-    >
-      {/* 头部 */}
-      <div className={styles.header}>
-        <div className={styles.headerTitle}>
-          <EmojiIcon emoji="⚙️" color="mint" size="sm" />
-          <h2>{t("studio.settings.title")}</h2>
-        </div>
-        <button
-          ref={closeButtonRef}
-          type="button"
-          onClick={onClose}
-          aria-label={t("studio.settings.close")}
-          className={styles.closeButton}
-        >
-          <EmojiIcon emoji="✖️" color="white" size="xs" />
-        </button>
-      </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        closeLabel={t("studio.settings.close")}
+        closeAutoFocus
+        className="max-h-[80vh] overflow-y-auto rounded-3xl border-[var(--glass-border)] bg-[var(--glass-white)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg"
+      >
+        <DialogHeader className="border-b border-[var(--glass-border)] p-5">
+          <div className="flex items-center gap-2">
+            <EmojiIcon emoji="⚙️" color="mint" size="sm" />
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              {t("studio.settings.title")}
+            </DialogTitle>
+          </div>
+        </DialogHeader>
 
-      {/* 内容 */}
-      <div className={styles.content}>
-        {/* 分辨率 */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <EmojiIcon emoji="🖥️" color="sky" size="xs" />
-            <h3>{t("studio.settings.resolution")}</h3>
-          </div>
-          <div className={styles.optionsGrid3}>
-            {resolutionOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onParamsChange({ ...params, resolution: opt.value })}
-                className={
-                  params.resolution === opt.value ? styles.optionButtonActive : styles.optionButton
-                }
-              >
-                <div
-                  className={
-                    params.resolution === opt.value ? styles.optionLabelActive : styles.optionLabel
-                  }
-                >
-                  {opt.emoji} {opt.label}
-                </div>
-                <div className={styles.optionDescription}>
-                  {opt.width}×{opt.height}
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* 时长 */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <EmojiIcon emoji="⏱️" color="peach" size="xs" />
-            <h3>{t("studio.settings.duration")}</h3>
-          </div>
-          <div className={styles.optionsGrid3}>
-            {durationOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onParamsChange({ ...params, duration: opt.value })}
-                className={
-                  params.duration === opt.value ? styles.optionButtonActive : styles.optionButton
-                }
-              >
-                <div
-                  className={
-                    params.duration === opt.value ? styles.optionLabelActive : styles.optionLabel
-                  }
-                >
-                  {opt.emoji} {t(opt.labelKey)}
-                </div>
-                <div className={styles.optionDescription}>{t(opt.descriptionKey)}</div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* 风格 */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <EmojiIcon emoji="🎨" color="pink" size="xs" />
-            <h3>{t("studio.settings.style")}</h3>
-          </div>
-          <div className={styles.optionsGrid4}>
-            {styleOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onParamsChange({ ...params, style: opt.value })}
-                className={
-                  params.style === opt.value ? styles.styleButtonActive : styles.styleButton
-                }
-                style={
-                  {
-                    "--style-accent": opt.color,
-                  } as CSSProperties
-                }
-              >
-                <span className={styles.styleEmoji}>{opt.emoji}</span>
-                <div
-                  className={
-                    params.style === opt.value ? styles.styleLabelActive : styles.styleLabel
-                  }
-                >
-                  {t(opt.labelKey)}
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* 质量 */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <EmojiIcon emoji="💎" color="lavender" size="xs" />
-            <h3>{t("studio.settings.quality")}</h3>
-          </div>
-          <div className={styles.optionsVertical}>
-            {qualityOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onParamsChange({ ...params, quality: opt.value })}
-                className={
-                  params.quality === opt.value ? styles.qualityButtonActive : styles.qualityButton
-                }
-              >
-                <div className={styles.qualityInfo}>
-                  <div
-                    className={
-                      params.quality === opt.value ? styles.qualityLabelActive : styles.qualityLabel
-                    }
+        <div className="flex flex-col gap-5 p-5">
+          {/* Resolution */}
+          <section className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <EmojiIcon emoji="🖥️" color="sky" size="xs" />
+              <h3>{t("studio.settings.resolution")}</h3>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {resolutionOptions.map((opt) => {
+                const active = params.resolution === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onParamsChange({ ...params, resolution: opt.value })}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-all",
+                      active
+                        ? "border-pink-300 bg-pink-50/60 shadow-sm"
+                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                    )}
                   >
-                    {opt.emoji} {t(opt.labelKey)}
-                  </div>
-                  <div className={styles.qualityDescription}>{t(opt.descriptionKey)}</div>
-                </div>
-                {params.quality === opt.value && (
-                  <div className={styles.checkIndicator}>
-                    <EmojiIcon emoji="✓" color="mint" size="xs" />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
-    </DialogShell>
+                    <div
+                      className={cn(
+                        "text-sm font-medium",
+                        active ? "text-pink-600" : "text-foreground"
+                      )}
+                    >
+                      {opt.emoji} {opt.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {opt.width}×{opt.height}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Duration */}
+          <section className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <EmojiIcon emoji="⏱️" color="peach" size="xs" />
+              <h3>{t("studio.settings.duration")}</h3>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {durationOptions.map((opt) => {
+                const active = params.duration === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onParamsChange({ ...params, duration: opt.value })}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-all",
+                      active
+                        ? "border-pink-300 bg-pink-50/60 shadow-sm"
+                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "text-sm font-medium",
+                        active ? "text-pink-600" : "text-foreground"
+                      )}
+                    >
+                      {opt.emoji} {t(opt.labelKey)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{t(opt.descriptionKey)}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Style */}
+          <section className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <EmojiIcon emoji="🎨" color="pink" size="xs" />
+              <h3>{t("studio.settings.style")}</h3>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {styleOptions.map((opt) => {
+                const active = params.style === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onParamsChange({ ...params, style: opt.value })}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-all",
+                      active
+                        ? "border-pink-300 bg-pink-50/60 shadow-sm"
+                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                    )}
+                    style={{ "--style-accent": opt.color } as CSSProperties}
+                  >
+                    <span className="text-lg">{opt.emoji}</span>
+                    <div
+                      className={cn(
+                        "text-xs font-medium",
+                        active ? "text-pink-600" : "text-foreground"
+                      )}
+                    >
+                      {t(opt.labelKey)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Quality */}
+          <section className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <EmojiIcon emoji="💎" color="lavender" size="xs" />
+              <h3>{t("studio.settings.quality")}</h3>
+            </div>
+            <div className="flex flex-col gap-2">
+              {qualityOptions.map((opt) => {
+                const active = params.quality === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onParamsChange({ ...params, quality: opt.value })}
+                    className={cn(
+                      "flex items-center justify-between rounded-2xl border p-3 text-left transition-all",
+                      active
+                        ? "border-pink-300 bg-pink-50/60 shadow-sm"
+                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                    )}
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <div
+                        className={cn(
+                          "text-sm font-medium",
+                          active ? "text-pink-600" : "text-foreground"
+                        )}
+                      >
+                        {opt.emoji} {t(opt.labelKey)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{t(opt.descriptionKey)}</div>
+                    </div>
+                    {active && (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-mint-100">
+                        <EmojiIcon emoji="✓" color="mint" size="xs" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

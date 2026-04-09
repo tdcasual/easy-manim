@@ -91,7 +91,9 @@ test("shows an error state instead of an empty state when the first task load fa
     </MemoryRouter>
   );
 
-  expect(await screen.findByRole("alert")).toHaveTextContent(/加载任务列表失败/i);
+  const alerts = await screen.findAllByRole("alert", {}, { timeout: 3000 });
+  expect(alerts.length).toBeGreaterThanOrEqual(1);
+  expect(alerts[0]).toHaveTextContent(/加载任务列表失败/i);
   expect(screen.queryByText(/还没有任务呢/i)).not.toBeInTheDocument();
 });
 

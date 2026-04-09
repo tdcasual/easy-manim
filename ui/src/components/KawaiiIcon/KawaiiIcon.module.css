@@ -10,15 +10,22 @@
   --kawaii-icon-shadow-pink: 0 4px 12px color-mix(in srgb, var(--color-pink-500) 30%, transparent);
   --kawaii-icon-shadow-mint: 0 4px 12px color-mix(in srgb, var(--color-mint-500) 30%, transparent);
   --kawaii-icon-shadow-sky: 0 4px 12px color-mix(in srgb, var(--color-sky-500) 30%, transparent);
-  --kawaii-icon-shadow-lavender: 0 4px 12px color-mix(in srgb, var(--color-lavender-500) 30%, transparent);
+  --kawaii-icon-shadow-lavender: 0 4px 12px
+    color-mix(in srgb, var(--color-lavender-500) 30%, transparent);
   --kawaii-icon-shadow-peach: 0 4px 12px color-mix(in srgb, var(--color-peach-500) 30%, transparent);
   --kawaii-icon-shadow-lemon: 0 4px 12px color-mix(in srgb, var(--color-lemon-500) 34%, transparent);
-  --kawaii-icon-shadow-gradient: 0 4px 16px color-mix(in srgb, var(--color-pink-300) 40%, transparent);
-  --kawaii-icon-shadow-pink-hover: 0 6px 20px color-mix(in srgb, var(--color-pink-500) 50%, transparent);
-  --kawaii-icon-shadow-mint-hover: 0 6px 20px color-mix(in srgb, var(--color-mint-500) 50%, transparent);
-  --kawaii-icon-shadow-sky-hover: 0 6px 20px color-mix(in srgb, var(--color-sky-500) 50%, transparent);
-  --kawaii-icon-shadow-lavender-hover: 0 6px 20px color-mix(in srgb, var(--color-lavender-500) 50%, transparent);
-  --kawaii-icon-shadow-peach-hover: 0 6px 20px color-mix(in srgb, var(--color-peach-500) 50%, transparent);
+  --kawaii-icon-shadow-gradient: 0 4px 16px
+    color-mix(in srgb, var(--color-pink-300) 40%, transparent);
+  --kawaii-icon-shadow-pink-hover: 0 6px 20px
+    color-mix(in srgb, var(--color-pink-500) 50%, transparent);
+  --kawaii-icon-shadow-mint-hover: 0 6px 20px
+    color-mix(in srgb, var(--color-mint-500) 50%, transparent);
+  --kawaii-icon-shadow-sky-hover: 0 6px 20px
+    color-mix(in srgb, var(--color-sky-500) 50%, transparent);
+  --kawaii-icon-shadow-lavender-hover: 0 6px 20px
+    color-mix(in srgb, var(--color-lavender-500) 50%, transparent);
+  --kawaii-icon-shadow-peach-hover: 0 6px 20px
+    color-mix(in srgb, var(--color-peach-500) 50%, transparent);
 }
 
 /* 基础图标容器 */
@@ -109,7 +116,12 @@
 }
 
 .gradient {
-  background: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-mint-400) 50%, var(--color-sky-400) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-pink-400) 0%,
+    var(--color-mint-400) 50%,
+    var(--color-sky-400) 100%
+  );
   box-shadow: var(--kawaii-icon-shadow-gradient);
 }
 
@@ -160,7 +172,8 @@
 }
 
 @keyframes icon-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -175,7 +188,8 @@
 }
 
 @keyframes icon-bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -255,7 +269,8 @@
 }
 
 @keyframes floating {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
   33% {

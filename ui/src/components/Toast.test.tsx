@@ -33,6 +33,6 @@ test("toast accessibility labels follow the active locale", async () => {
   await user.click(screen.getByRole("button", { name: /show toast/i }));
 
   expect(screen.getByRole("region", { name: /notifications/i })).toBeInTheDocument();
-  expect(screen.getByLabelText(/success/i)).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /close notification/i })).toBeInTheDocument();
+  expect(screen.getByText(/Saved successfully/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /close toast/i })).toBeInTheDocument();
 });

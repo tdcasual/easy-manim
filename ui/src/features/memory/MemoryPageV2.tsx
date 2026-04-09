@@ -28,7 +28,7 @@ import { useARIAMessage } from "../../components/useARIAMessage";
 import { useConfirm } from "../../components/useConfirm";
 import { getStatusLabel } from "../../app/ui";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
-import "./MemoryPageV2.css";
+import { cn } from "../../lib/utils";
 
 export function MemoryPageV2() {
   const { sessionToken } = useSession();
@@ -69,8 +69,6 @@ export function MemoryPageV2() {
 
   const handleClear = useCallback(async () => {
     if (!sessionToken) return;
-
-    // 显示确认对话框
     const confirmed = await confirm({
       title: t("memory.clearConfirmTitle"),
       message: t("memory.clearConfirmMessage"),
@@ -78,9 +76,7 @@ export function MemoryPageV2() {
       cancelText: t("common.cancel"),
       danger: true,
     });
-
     if (!confirmed) return;
-
     setActionState("clearing");
     setActionError(null);
     try {
@@ -98,8 +94,6 @@ export function MemoryPageV2() {
 
   const handlePromote = useCallback(async () => {
     if (!sessionToken) return;
-
-    // 显示确认对话框
     const confirmed = await confirm({
       title: t("memory.promoteConfirmTitle"),
       message: t("memory.promoteConfirmMessage"),
@@ -107,9 +101,7 @@ export function MemoryPageV2() {
       cancelText: t("common.cancel"),
       danger: false,
     });
-
     if (!confirmed) return;
-
     setActionState("promoting");
     setActionError(null);
     try {
@@ -128,8 +120,6 @@ export function MemoryPageV2() {
   const handleDisable = useCallback(
     async (memoryId: string) => {
       if (!sessionToken) return;
-
-      // 显示确认对话框
       const confirmed = await confirm({
         title: t("memory.disableConfirmTitle"),
         message: t("memory.disableConfirmMessage", { memoryId: `${memoryId.slice(0, 8)}...` }),
@@ -137,9 +127,7 @@ export function MemoryPageV2() {
         cancelText: t("common.cancel"),
         danger: true,
       });
-
       if (!confirmed) return;
-
       setActionState("disabling");
       setActionError(null);
       try {
@@ -159,7 +147,6 @@ export function MemoryPageV2() {
 
   const handleRetrieve = useCallback(async () => {
     if (!sessionToken || !retrievalQuery.trim()) return;
-
     setRetrievalState("searching");
     setActionError(null);
     try {
@@ -181,104 +168,109 @@ export function MemoryPageV2() {
 
   if (!sessionToken) {
     return (
-      <div className="page-v2">
-        <div className="empty-state-v2">
-          <p>{t("common.notLoggedIn")}</p>
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/60 bg-white/60 px-6 py-16 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
+            {t("common.notLoggedIn")}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page-v2">
-      {/* ARIA Live 区域 */}
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
       <ARIALiveRegion />
-
-      {/* 确认对话框 */}
       <ConfirmDialog />
 
-      <div className="page-header-v2">
-        <div className="page-header-content-v2">
-          <div className="page-eyebrow">{t("memory.page.eyebrow")}</div>
-          <h1 className="page-title-v2">{t("memory.page.title")}</h1>
-          <p className="page-description-v2">{t("memory.page.description")}</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-pink-500">
+            {t("memory.page.eyebrow")}
+          </div>
+          <h1 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100 sm:text-3xl">
+            {t("memory.page.title")}
+          </h1>
+          <p className="text-sm text-cloud-500 dark:text-cloud-400">
+            {t("memory.page.description")}
+          </p>
         </div>
         <button
-          className="refresh-btn"
+          className="flex items-center gap-2 rounded-xl border border-white/60 bg-white/60 px-4 py-2 text-sm font-semibold text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-200"
           onClick={refresh}
           disabled={status === "loading"}
           aria-busy={status === "loading"}
         >
-          {status === "loading" ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
+          {status === "loading" ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <RefreshCw size={18} />
+          )}
           {t("memory.refresh")}
         </button>
       </div>
 
       {error && (
-        <div className="form-error-v2" role="alert">
+        <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
           <AlertCircle size={16} />
           {error}
         </div>
       )}
 
       {actionError && (
-        <div className="form-error-v2" role="alert">
+        <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
           <AlertCircle size={16} />
           {actionError}
         </div>
       )}
 
       {status === "loading" && !summary ? (
-        <div className="metrics-grid-v2">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SkeletonMetricCard />
           <SkeletonMetricCard />
         </div>
       ) : (
-        <div className="metrics-grid-v2">
-          <div
-            className="metric-card-v2"
-            style={{ "--card-color": "var(--accent-pink)" } as React.CSSProperties}
-          >
-            <div
-              className="metric-icon-wrapper"
-              style={{ background: "rgba(236, 72, 153, 0.15)", color: "var(--accent-pink)" }}
-            >
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex items-center gap-4 rounded-2xl border border-pink-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300">
               <Brain size={20} />
             </div>
-            <div className="metric-content">
-              <p className="metric-label-v2">{t("memory.sessionEntries")}</p>
-              <h3 className="metric-value-v2">{summary?.entry_count ?? 0}</h3>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+                {t("memory.sessionEntries")}
+              </p>
+              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+                {summary?.entry_count ?? 0}
+              </h3>
             </div>
           </div>
-          <div
-            className="metric-card-v2"
-            style={{ "--card-color": "var(--success)" } as React.CSSProperties}
-          >
-            <div
-              className="metric-icon-wrapper"
-              style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)" }}
-            >
+          <div className="flex items-center gap-4 rounded-2xl border border-mint-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-mint-100 text-mint-600 dark:bg-mint-900/30 dark:text-mint-300">
               <Brain size={20} />
             </div>
-            <div className="metric-content">
-              <p className="metric-label-v2">{t("memory.activeMemories")}</p>
-              <h3 className="metric-value-v2">{activeCount}</h3>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+                {t("memory.activeMemories")}
+              </p>
+              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+                {activeCount}
+              </h3>
             </div>
           </div>
         </div>
       )}
 
-      <div className="content-grid-v2 single-column">
-        <div className="section-card-v2">
-          <div className="section-header-v2">
-            <h3 className="section-title-v2">
+      <div className="flex flex-col gap-5">
+        <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center justify-between border-b border-white/60 px-5 py-4 dark:border-white/10">
+            <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
               <Brain size={20} />
               {t("memory.sessionMemory")}
             </h3>
-            <div className="memory-actions">
+            <div className="flex gap-2">
               <button
                 type="button"
-                className="action-btn danger"
+                className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400"
                 onClick={handleClear}
                 disabled={actionState !== "idle"}
                 aria-busy={actionState === "clearing"}
@@ -288,7 +280,7 @@ export function MemoryPageV2() {
               </button>
               <button
                 type="button"
-                className="action-btn primary"
+                className="flex items-center gap-1.5 rounded-lg bg-mint-50 px-3 py-2 text-xs font-semibold text-mint-600 transition-colors hover:bg-mint-100 dark:bg-mint-900/20 dark:text-mint-400"
                 onClick={handlePromote}
                 disabled={actionState !== "idle"}
                 aria-busy={actionState === "promoting"}
@@ -300,14 +292,16 @@ export function MemoryPageV2() {
           </div>
 
           {status === "loading" && !summary ? (
-            <div className="loading-state-v2">
-              <Loader2 size={24} className="spin" />
+            <div className="flex flex-col items-center gap-3 px-5 py-10 text-cloud-500">
+              <Loader2 size={24} className="animate-spin" />
               <p>{t("memory.loading")}</p>
             </div>
           ) : summary ? (
-            <div className="memory-content">
-              <p className="memory-summary">{summary.summary_text ?? t("memory.noSummary")}</p>
-              <div className="memory-meta">
+            <div className="p-5">
+              <p className="mb-4 text-sm leading-relaxed text-cloud-700 dark:text-cloud-200">
+                {summary.summary_text ?? t("memory.noSummary")}
+              </p>
+              <div className="flex flex-wrap gap-4 text-xs text-cloud-500 dark:text-cloud-400">
                 <span>{t("memory.entryCount", { count: summary.entry_count })}</span>
                 {summary.summary_digest && (
                   <span>{t("memory.summaryDigest", { digest: summary.summary_digest })}</span>
@@ -315,87 +309,114 @@ export function MemoryPageV2() {
               </div>
             </div>
           ) : (
-            <div className="empty-state-v2 memory-empty">
-              <Lightbulb size={48} />
-              <p>{t("memory.emptySummary")}</p>
-              <span>{t("memory.emptySummaryHint")}</span>
+            <div className="flex flex-col items-center px-5 py-10 text-center text-cloud-500">
+              <Lightbulb size={48} className="mb-3 text-cloud-400" />
+              <p className="text-base font-semibold text-cloud-700 dark:text-cloud-200">
+                {t("memory.emptySummary")}
+              </p>
+              <span className="text-sm">{t("memory.emptySummaryHint")}</span>
             </div>
           )}
         </div>
 
-        <div className="section-card-v2">
-          <div className="section-header-v2">
-            <h3 className="section-title-v2">
+        <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
+            <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
               <Search size={20} />
               Memory Retrieval Diagnostics
             </h3>
           </div>
-          <div className="memory-actions">
-            <input
-              className="form-select"
-              aria-label="Memory retrieval query"
-              placeholder="Search ranking signals"
-              value={retrievalQuery}
-              onChange={(event) => setRetrievalQuery(event.target.value)}
-            />
-            <button
-              type="button"
-              className="action-btn primary"
-              onClick={handleRetrieve}
-              disabled={retrievalState !== "idle" || !retrievalQuery.trim()}
-              aria-busy={retrievalState === "searching"}
-            >
-              <Search size={16} />
-              {retrievalState === "searching" ? "Inspecting..." : "Inspect Retrieval"}
-            </button>
+          <div className="p-5">
+            <div className="flex flex-wrap gap-2">
+              <input
+                className="min-w-[200px] flex-1 rounded-xl border-2 border-transparent bg-cloud-100 px-4 py-2 text-sm text-cloud-800 outline-none transition-all focus:border-pink-300 focus:bg-white dark:bg-slate-800 dark:text-cloud-100"
+                aria-label="Memory retrieval query"
+                placeholder="Search ranking signals"
+                value={retrievalQuery}
+                onChange={(event) => setRetrievalQuery(event.target.value)}
+              />
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-400 to-peach-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleRetrieve}
+                disabled={retrievalState !== "idle" || !retrievalQuery.trim()}
+                aria-busy={retrievalState === "searching"}
+              >
+                <Search size={16} />
+                {retrievalState === "searching" ? "Inspecting..." : "Inspect Retrieval"}
+              </button>
+            </div>
+            {retrievalHits.length ? (
+              <div className="mt-4 flex flex-col gap-3">
+                {retrievalHits.map((hit) => (
+                  <div
+                    key={hit.memory_id}
+                    className="rounded-xl border border-white/60 bg-white/40 p-4 dark:border-white/10 dark:bg-slate-800/40"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-mono text-xs text-cloud-500 dark:text-cloud-400">
+                        {hit.memory_id}
+                      </span>
+                      <span className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-mint-700 dark:bg-mint-900/30 dark:text-mint-300">
+                        score {hit.score.toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="mb-2 text-sm text-cloud-700 dark:text-cloud-200">
+                      {hit.summary_text}
+                    </p>
+                    <div className="flex flex-wrap gap-3 text-xs text-cloud-500 dark:text-cloud-400">
+                      <span>Matched terms: {hit.matched_terms.join(", ") || "none"}</span>
+                      <span>Reasons: {hit.match_reasons.join(", ") || "none"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4">
+                <p className="text-sm text-cloud-600 dark:text-cloud-300">
+                  Run a retrieval query to inspect matched terms and ranking reasons.
+                </p>
+              </div>
+            )}
           </div>
-          {retrievalHits.length ? (
-            <div className="memory-list">
-              {retrievalHits.map((hit) => (
-                <div key={hit.memory_id} className="memory-item">
-                  <div className="memory-item-header">
-                    <span className="memory-id">{hit.memory_id}</span>
-                    <span className="memory-status active">score {hit.score.toFixed(2)}</span>
-                  </div>
-                  <p className="memory-text">{hit.summary_text}</p>
-                  <div className="memory-meta">
-                    <span>Matched terms: {hit.matched_terms.join(", ") || "none"}</span>
-                    <span>Reasons: {hit.match_reasons.join(", ") || "none"}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="memory-content">
-              <p className="memory-summary">
-                Run a retrieval query to inspect matched terms and ranking reasons.
-              </p>
-            </div>
-          )}
         </div>
 
         {memories.length > 0 && (
-          <div className="section-card-v2">
-            <div className="section-header-v2">
-              <h3 className="section-title-v2">
+          <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
+              <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
                 <Brain size={20} />
                 {t("memory.longTermMemory")}
               </h3>
             </div>
-            <div className="memory-list">
+            <div className="flex flex-col">
               {memories.map((memory) => (
-                <div key={memory.memory_id} className="memory-item">
-                  <div className="memory-item-header">
-                    <span className="memory-id">{memory.memory_id}</span>
-                    <span className={`memory-status ${memory.status.toLowerCase()}`}>
+                <div
+                  key={memory.memory_id}
+                  className="border-b border-white/60 p-4 last:border-b-0 dark:border-white/10"
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="font-mono text-xs text-cloud-500 dark:text-cloud-400">
+                      {memory.memory_id}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+                        memory.status.toLowerCase() === "active"
+                          ? "bg-mint-100 text-mint-700 dark:bg-mint-900/30 dark:text-mint-300"
+                          : "bg-cloud-100 text-cloud-600 dark:bg-slate-700 dark:text-cloud-300"
+                      )}
+                    >
                       {getStatusLabel(memory.status, locale)}
                     </span>
                   </div>
-                  <p className="memory-text">{memory.summary_text}</p>
+                  <p className="mb-3 text-sm text-cloud-700 dark:text-cloud-200">
+                    {memory.summary_text}
+                  </p>
                   {memory.status.toLowerCase() === "active" && (
                     <button
                       type="button"
-                      className="memory-disable-btn"
+                      className="rounded-md bg-red-50 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400"
                       onClick={() => handleDisable(memory.memory_id)}
                       disabled={actionState !== "idle"}
                       aria-busy={actionState === "disabling"}
@@ -410,7 +431,6 @@ export function MemoryPageV2() {
         )}
       </div>
 
-      {/* 🔐 认证弹窗 */}
       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );

@@ -1,23 +1,34 @@
-/**
- * Input - 统一输入组件
- * 设计系统表单组件，支持多种变体和状态
- */
 import {
   forwardRef,
   type ReactNode,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
-import styles from "./Input.module.css";
+import {
+  Input as UIInput,
+  Textarea as UITextarea,
+  Select as UISelect,
+  Checkbox as UICheckbox,
+  Radio as UIRadio,
+} from "../ui/input";
+import { cn } from "../../lib/utils";
 
 export type InputSize = "sm" | "md" | "lg";
 export type InputVariant = "default" | "filled" | "outline" | "ghost";
-export type InputColor = "default" | "pink" | "mint" | "sky" | "lavender"; // 🌸 Kawaii 粉彩色
+export type InputColor = "default" | "pink" | "mint" | "sky" | "lavender";
+
+const colorRingMap: Record<InputColor, string> = {
+  default: "",
+  pink: "focus-visible:ring-pink-400",
+  mint: "focus-visible:ring-mint-400",
+  sky: "focus-visible:ring-sky-400",
+  lavender: "focus-visible:ring-lavender-400",
+};
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   inputSize?: InputSize;
   variant?: InputVariant;
-  color?: InputColor; // 🌸 Kawaii 粉彩色
+  color?: InputColor;
   label?: string;
   helperText?: string;
   error?: string;
@@ -47,44 +58,51 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     const inputId = id ?? `input-${Math.random().toString(36).slice(2, 11)}`;
+    const sizeClass =
+      inputSize === "sm" ? "h-8 text-xs" : inputSize === "lg" ? "h-12 text-base" : "h-10 text-sm";
+    const variantClass =
+      variant === "ghost"
+        ? "border-transparent bg-transparent shadow-none"
+        : variant === "filled"
+          ? "bg-muted border-transparent"
+          : "";
 
     return (
-      <div className={`${styles.inputWrapper} ${fullWidth ? styles.fullWidth : ""} ${className}`}>
+      <div className={cn("flex flex-col gap-1.5", fullWidth && "w-full", className)}>
         {label && (
-          <label htmlFor={inputId} className={styles.label}>
+          <label htmlFor={inputId} className="text-sm font-medium text-foreground">
             {label}
           </label>
         )}
-        <div
-          className={`
-            ${styles.inputContainer}
-            ${styles[inputSize]}
-            ${styles[variant]}
-            ${color !== "default" ? styles[color] : ""}
-            ${error ? styles.error : ""}
-            ${rounded ? styles.rounded : ""}
-          `}
-        >
-          {leftIcon && <span className={styles.leftIcon}>{leftIcon}</span>}
-          <input
+        <div className={cn("relative flex items-center", fullWidth && "w-full")}>
+          {leftIcon && <span className="absolute left-3 text-muted-foreground">{leftIcon}</span>}
+          <UIInput
             ref={ref}
             id={inputId}
-            className={styles.input}
+            className={cn(
+              sizeClass,
+              variantClass,
+              colorRingMap[color],
+              rounded && "rounded-full",
+              leftIcon && "pl-10",
+              rightIcon && "pr-10",
+              error && "border-destructive focus-visible:ring-destructive"
+            )}
             aria-invalid={!!error}
             aria-describedby={
               error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
             }
             {...props}
           />
-          {rightIcon && <span className={styles.rightIcon}>{rightIcon}</span>}
+          {rightIcon && <span className="absolute right-3 text-muted-foreground">{rightIcon}</span>}
         </div>
         {helperText && !error && (
-          <span id={`${inputId}-helper`} className={styles.helperText}>
+          <span id={`${inputId}-helper`} className="text-xs text-muted-foreground">
             {helperText}
           </span>
         )}
         {error && (
-          <span id={`${inputId}-error`} className={styles.errorText} role="alert">
+          <span id={`${inputId}-error`} className="text-xs text-destructive" role="alert">
             {error}
           </span>
         )}
@@ -95,7 +113,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
 Input.displayName = "Input";
 
-// Textarea 组件
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   size?: InputSize;
   variant?: InputVariant;
@@ -126,8 +143,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     ref
   ) => {
     const textareaId = id ?? `textarea-${Math.random().toString(36).slice(2, 11)}`;
+    const sizeClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
+    const variantClass =
+      variant === "ghost"
+        ? "border-transparent bg-transparent shadow-none"
+        : variant === "filled"
+          ? "bg-muted border-transparent"
+          : "";
 
-    const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const handleInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
       if (autoResize) {
         const target = e.currentTarget;
         target.style.height = "auto";
@@ -137,22 +161,21 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     };
 
     return (
-      <div className={`${styles.inputWrapper} ${fullWidth ? styles.fullWidth : ""} ${className}`}>
+      <div className={cn("flex flex-col gap-1.5", fullWidth && "w-full", className)}>
         {label && (
-          <label htmlFor={textareaId} className={styles.label}>
+          <label htmlFor={textareaId} className="text-sm font-medium text-foreground">
             {label}
           </label>
         )}
-        <textarea
+        <UITextarea
           ref={ref}
           id={textareaId}
-          className={`
-            ${styles.textarea}
-            ${styles[size]}
-            ${styles[variant]}
-            ${error ? styles.error : ""}
-            ${rounded ? styles.rounded : ""}
-          `}
+          className={cn(
+            sizeClass,
+            variantClass,
+            rounded && "rounded-3xl",
+            error && "border-destructive focus-visible:ring-destructive"
+          )}
           aria-invalid={!!error}
           aria-describedby={
             error ? `${textareaId}-error` : helperText ? `${textareaId}-helper` : undefined
@@ -161,12 +184,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {helperText && !error && (
-          <span id={`${textareaId}-helper`} className={styles.helperText}>
+          <span id={`${textareaId}-helper`} className="text-xs text-muted-foreground">
             {helperText}
           </span>
         )}
         {error && (
-          <span id={`${textareaId}-error`} className={styles.errorText} role="alert">
+          <span id={`${textareaId}-error`} className="text-xs text-destructive" role="alert">
             {error}
           </span>
         )}
@@ -177,7 +200,6 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
 Textarea.displayName = "Textarea";
 
-// Select 组件
 interface SelectProps extends Omit<InputHTMLAttributes<HTMLSelectElement>, "size"> {
   selectSize?: InputSize;
   variant?: InputVariant;
@@ -209,52 +231,55 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     ref
   ) => {
     const selectId = id ?? `select-${Math.random().toString(36).slice(2, 11)}`;
+    const sizeClass =
+      selectSize === "sm" ? "h-8 text-xs" : selectSize === "lg" ? "h-12 text-base" : "h-10 text-sm";
+    const variantClass =
+      variant === "ghost"
+        ? "border-transparent bg-transparent shadow-none"
+        : variant === "filled"
+          ? "bg-muted border-transparent"
+          : "";
 
     return (
-      <div className={`${styles.inputWrapper} ${fullWidth ? styles.fullWidth : ""} ${className}`}>
+      <div className={cn("flex flex-col gap-1.5", fullWidth && "w-full", className)}>
         {label && (
-          <label htmlFor={selectId} className={styles.label}>
+          <label htmlFor={selectId} className="text-sm font-medium text-foreground">
             {label}
           </label>
         )}
-        <div
-          className={`
-            ${styles.selectContainer}
-            ${styles[selectSize]}
-            ${styles[variant]}
-            ${error ? styles.error : ""}
-            ${rounded ? styles.rounded : ""}
-          `}
+        <UISelect
+          ref={ref}
+          id={selectId}
+          className={cn(
+            sizeClass,
+            variantClass,
+            rounded && "rounded-full",
+            error && "border-destructive focus-visible:ring-destructive"
+          )}
+          aria-invalid={!!error}
+          aria-describedby={
+            error ? `${selectId}-error` : helperText ? `${selectId}-helper` : undefined
+          }
+          {...props}
         >
-          <select
-            ref={ref}
-            id={selectId}
-            className={styles.select}
-            aria-invalid={!!error}
-            aria-describedby={
-              error ? `${selectId}-error` : helperText ? `${selectId}-helper` : undefined
-            }
-            {...props}
-          >
-            {placeholder && (
-              <option value="" disabled>
-                {placeholder}
-              </option>
-            )}
-            {options.map((option) => (
-              <option key={option.value} value={option.value} disabled={option.disabled}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+          {placeholder && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
+          {options.map((option) => (
+            <option key={option.value} value={option.value} disabled={option.disabled}>
+              {option.label}
+            </option>
+          ))}
+        </UISelect>
         {helperText && !error && (
-          <span id={`${selectId}-helper`} className={styles.helperText}>
+          <span id={`${selectId}-helper`} className="text-xs text-muted-foreground">
             {helperText}
           </span>
         )}
         {error && (
-          <span id={`${selectId}-error`} className={styles.errorText} role="alert">
+          <span id={`${selectId}-error`} className="text-xs text-destructive" role="alert">
             {error}
           </span>
         )}
@@ -265,7 +290,6 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
 Select.displayName = "Select";
 
-// Checkbox 组件
 interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   helperText?: string;
@@ -284,9 +308,9 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     };
 
     return (
-      <div className={`${styles.checkboxWrapper} ${className}`}>
-        <label className={styles.checkboxLabel}>
-          <input
+      <div className={cn("flex flex-col gap-1", className)}>
+        <label className="flex cursor-pointer items-start gap-3">
+          <UICheckbox
             ref={(el) => {
               setIndeterminate(el);
               if (typeof ref === "function") {
@@ -296,18 +320,17 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               }
             }}
             id={checkboxId}
-            type="checkbox"
-            className={`${styles.checkbox} ${error ? styles.error : ""}`}
+            className={cn("mt-0.5", error && "border-destructive")}
             aria-invalid={!!error}
             {...props}
           />
-          <span className={styles.checkboxText}>
-            {label && <span className={styles.checkboxTitle}>{label}</span>}
-            {helperText && <span className={styles.checkboxHelper}>{helperText}</span>}
+          <span className="flex flex-col">
+            {label && <span className="text-sm font-medium text-foreground">{label}</span>}
+            {helperText && <span className="text-xs text-muted-foreground">{helperText}</span>}
           </span>
         </label>
         {error && (
-          <span className={styles.errorText} role="alert">
+          <span className="text-xs text-destructive" role="alert">
             {error}
           </span>
         )}
@@ -318,7 +341,6 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
 
 Checkbox.displayName = "Checkbox";
 
-// Radio 组件
 interface RadioProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   helperText?: string;
@@ -330,23 +352,22 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
     const radioId = id ?? `radio-${Math.random().toString(36).slice(2, 11)}`;
 
     return (
-      <div className={`${styles.radioWrapper} ${className}`}>
-        <label className={styles.radioLabel}>
-          <input
+      <div className={cn("flex flex-col gap-1", className)}>
+        <label className="flex cursor-pointer items-start gap-3">
+          <UIRadio
             ref={ref}
             id={radioId}
-            type="radio"
-            className={`${styles.radio} ${error ? styles.error : ""}`}
+            className={cn("mt-0.5", error && "border-destructive")}
             aria-invalid={!!error}
             {...props}
           />
-          <span className={styles.radioText}>
-            {label && <span className={styles.radioTitle}>{label}</span>}
-            {helperText && <span className={styles.radioHelper}>{helperText}</span>}
+          <span className="flex flex-col">
+            {label && <span className="text-sm font-medium text-foreground">{label}</span>}
+            {helperText && <span className="text-xs text-muted-foreground">{helperText}</span>}
           </span>
         </label>
         {error && (
-          <span className={styles.errorText} role="alert">
+          <span className="text-xs text-destructive" role="alert">
             {error}
           </span>
         )}

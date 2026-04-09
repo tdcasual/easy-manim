@@ -10,7 +10,9 @@
   overflow-x: hidden;
   --profile-text-shadow-soft: 0 1px 2px color-mix(in srgb, var(--primary-950) 10%, transparent);
   --profile-text-shadow-md: 0 2px 4px color-mix(in srgb, var(--primary-950) 10%, transparent);
-  --profile-drop-shadow-soft: drop-shadow(0 1px 2px color-mix(in srgb, var(--primary-950) 20%, transparent));
+  --profile-drop-shadow-soft: drop-shadow(
+    0 1px 2px color-mix(in srgb, var(--primary-950) 20%, transparent)
+  );
   --profile-focus-ring: 0 0 0 3px var(--color-pink-300);
 }
 
@@ -60,10 +62,19 @@
 }
 
 @keyframes cloudFloat {
-  0%, 100% { transform: translateX(0) translateY(0); }
-  25% { transform: translateX(10px) translateY(-5px); }
-  50% { transform: translateX(20px) translateY(0); }
-  75% { transform: translateX(10px) translateY(5px); }
+  0%,
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+  25% {
+    transform: translateX(10px) translateY(-5px);
+  }
+  50% {
+    transform: translateX(20px) translateY(0);
+  }
+  75% {
+    transform: translateX(10px) translateY(5px);
+  }
 }
 
 /* ================================
@@ -166,8 +177,13 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .page-kawaii .page-description-v2 {
@@ -304,8 +320,15 @@
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
 }
 
 /* ================================
@@ -932,8 +955,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ================================

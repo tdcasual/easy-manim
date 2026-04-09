@@ -1,12 +1,6 @@
-/**
- * HelpPanel - 快捷键帮助面板
- * Kawaii 二次元风格
- */
-import { useRef } from "react";
 import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
-import { DialogShell } from "../../components/DialogShell/DialogShell";
-import styles from "../styles/HelpPanel.module.css";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 
 interface HelpPanelProps {
   isOpen: boolean;
@@ -15,8 +9,6 @@ interface HelpPanelProps {
 
 export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
   const { t } = useI18n();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const shortcuts = [
     { key: "/", description: t("studio.help.shortcuts.focusPrompt"), emoji: "🔍" },
     { key: "Enter", description: t("studio.help.shortcuts.submit"), emoji: "🚀" },
@@ -29,50 +21,42 @@ export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
   ];
 
   return (
-    <DialogShell
-      isOpen={isOpen}
-      onClose={onClose}
-      dialogRef={panelRef}
-      initialFocusRef={closeButtonRef}
-      className={styles.panel}
-      ariaLabel={t("studio.help.dialog")}
-      overlayClassName={styles.overlay}
-      overlayAriaLabel="Dismiss help panel backdrop"
-    >
-      {/* 头部 */}
-      <div className={styles.header}>
-        <div className={styles.headerTitle}>
-          <EmojiIcon emoji="⌨️" color="sky" size="sm" />
-          <h2>{t("studio.help.title")}</h2>
-        </div>
-        <button
-          ref={closeButtonRef}
-          type="button"
-          onClick={onClose}
-          aria-label={t("studio.help.close")}
-          className={styles.closeButton}
-        >
-          <EmojiIcon emoji="✖️" color="white" size="xs" />
-        </button>
-      </div>
-
-      {/* 快捷键列表 */}
-      <div className={styles.shortcutList}>
-        {shortcuts.map((shortcut, index) => (
-          <div key={index} className={styles.shortcutItem}>
-            <div className={styles.shortcutDesc}>
-              <EmojiIcon emoji={shortcut.emoji} color="white" size="xs" />
-              <span>{shortcut.description}</span>
-            </div>
-            <kbd className={styles.kbd}>{shortcut.key}</kbd>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        closeLabel={t("studio.help.close")}
+        closeAutoFocus
+        className="rounded-3xl border-[var(--glass-border)] bg-[var(--glass-white)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-md"
+      >
+        <DialogHeader className="border-b border-[var(--glass-border)] p-5">
+          <div className="flex items-center gap-2">
+            <EmojiIcon emoji="⌨️" color="sky" size="sm" />
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              {t("studio.help.title")}
+            </DialogTitle>
           </div>
-        ))}
-      </div>
+        </DialogHeader>
 
-      {/* 底部提示 */}
-      <div className={styles.footer}>
-        <p>💡 {t("studio.help.footer")}</p>
-      </div>
-    </DialogShell>
+        <div className="flex flex-col gap-1 p-5">
+          {shortcuts.map((shortcut, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
+            >
+              <div className="flex items-center gap-2 text-sm text-foreground">
+                <EmojiIcon emoji={shortcut.emoji} color="white" size="xs" />
+                <span>{shortcut.description}</span>
+              </div>
+              <kbd className="rounded-lg border border-[var(--glass-border)] bg-white/60 px-2 py-1 text-xs font-semibold text-cloud-700">
+                {shortcut.key}
+              </kbd>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-[var(--glass-border)] p-4 text-center text-xs text-muted-foreground">
+          💡 {t("studio.help.footer")}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

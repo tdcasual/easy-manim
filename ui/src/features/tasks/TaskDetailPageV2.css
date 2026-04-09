@@ -22,7 +22,11 @@
   --task-border-warning: color-mix(in srgb, var(--warning) 32%, transparent);
   --task-border-warning-soft: color-mix(in srgb, var(--warning) 26%, transparent);
   --task-border-warning-strong: color-mix(in srgb, var(--warning) 44%, var(--glass-border));
-  --task-border-surface-strong: color-mix(in oklab, var(--glass-border) 75%, color-mix(in srgb, var(--surface-primary) 14%, transparent));
+  --task-border-surface-strong: color-mix(
+    in oklab,
+    var(--glass-border) 75%,
+    color-mix(in srgb, var(--surface-primary) 14%, transparent)
+  );
   --task-accent-info-soft: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
   --task-accent-info: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
   --task-accent-info-strong: color-mix(in srgb, var(--accent-cyan) 14%, transparent);
@@ -56,9 +60,7 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-5);
-  background: linear-gradient(180deg,
-    var(--task-surface-soft) 0%,
-    var(--task-surface-softer) 100%);
+  background: linear-gradient(180deg, var(--task-surface-soft) 0%, var(--task-surface-softer) 100%);
   backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
@@ -78,7 +80,7 @@
 }
 
 .task-status-bar::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
@@ -314,7 +316,7 @@
   border: 1px solid color-mix(in oklab, var(--glass-border) 80%, var(--task-border-info));
   background:
     radial-gradient(circle at top right, var(--task-accent-info-soft), transparent 35%),
-    linear-gradient(180deg, var(--task-surface-muted) , var(--task-surface-softer));
+    linear-gradient(180deg, var(--task-surface-muted), var(--task-surface-softer));
 }
 
 .task-discussion-placeholder--high {
@@ -375,7 +377,11 @@
   border: 1px solid var(--task-border-warning-strong);
   background:
     radial-gradient(circle at top left, var(--task-accent-warning-strong), transparent 42%),
-    linear-gradient(135deg, color-mix(in srgb, var(--primary-950) 32%, transparent), var(--task-accent-info-soft));
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary-950) 32%, transparent),
+      var(--task-accent-info-soft)
+    );
 }
 
 .task-discussion-placeholder__workbench-header {
@@ -465,7 +471,11 @@
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent-cyan) 8%, transparent), color-mix(in srgb, var(--primary-950) 10%, transparent)),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-cyan) 8%, transparent),
+      color-mix(in srgb, var(--primary-950) 10%, transparent)
+    ),
     var(--task-surface-panel-dark-soft);
 }
 
@@ -574,7 +584,11 @@
 
 .task-discussion-placeholder__action-chip {
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .task-discussion-placeholder__action-chip:hover:not(:disabled) {
@@ -700,12 +714,19 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    background 0.2s ease;
   white-space: nowrap;
 }
 
 .task-review-panel__sticky-action--strong {
-  background: linear-gradient(135deg, color-mix(in oklab, var(--accent-blue) 78%, white 6%), color-mix(in oklab, var(--accent-cyan) 72%, black 8%));
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--accent-blue) 78%, white 6%),
+    color-mix(in oklab, var(--accent-cyan) 72%, black 8%)
+  );
   color: white;
 }
 
@@ -850,11 +871,19 @@
 }
 
 .task-review-panel__section--accent {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-cyan) 8%, transparent), color-mix(in srgb, var(--surface-primary) 3%, transparent));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-cyan) 8%, transparent),
+    color-mix(in srgb, var(--surface-primary) 3%, transparent)
+  );
 }
 
 .task-review-panel__section--muted {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--warning) 8%, transparent), color-mix(in srgb, var(--surface-primary) 2.5%, transparent));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--warning) 8%, transparent),
+    color-mix(in srgb, var(--surface-primary) 2.5%, transparent)
+  );
 }
 
 .task-review-panel__section-header {
@@ -961,7 +990,10 @@
   color: var(--text-primary);
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    background 0.2s ease;
 }
 
 .task-review-panel__action-button--primary {

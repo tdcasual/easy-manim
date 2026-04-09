@@ -11,13 +11,13 @@
   --duration-normal: 0.4s;
   --duration-slow: 0.8s;
   --duration-ambient: 20s;
-  
+
   /* 缓动函数 */
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-dramatic: cubic-bezier(0.87, 0, 0.13, 1);
   --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  
+
   /* 圆角 - 有机形状 */
   --radius-sm: 12px;
   --radius-md: 20px;
@@ -25,13 +25,13 @@
   --radius-xl: 48px;
   --radius-full: 9999px;
   --radius-organic: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  
+
   /* 阴影 - 柔和散射 */
   --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
   --shadow-medium: 0 8px 32px rgba(0, 0, 0, 0.12);
   --shadow-heavy: 0 16px 48px rgba(0, 0, 0, 0.16);
   --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.3);
-  
+
   /* 间距 */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -45,65 +45,65 @@
 /* ===== 白天模式（默认）===== */
 [data-theme="day"] {
   /* 天空渐变 */
-  --sky-top: #E8F4F8;
-  --sky-mid: #F0F7FA;
-  --sky-bottom: #FFF8F0;
-  
+  --sky-top: #e8f4f8;
+  --sky-mid: #f0f7fa;
+  --sky-bottom: #fff8f0;
+
   /* 自然色彩 */
-  --grass-light: #C8E6C9;
-  --grass-mid: #A5D6A7;
-  --grass-dark: #81C784;
-  --earth: #D7CCC8;
-  --wood: #8D6E63;
-  
+  --grass-light: #c8e6c9;
+  --grass-mid: #a5d6a7;
+  --grass-dark: #81c784;
+  --earth: #d7ccc8;
+  --wood: #8d6e63;
+
   /* 云朵 */
-  --cloud: #FFFFFF;
+  --cloud: #ffffff;
   --cloud-shadow: rgba(200, 220, 230, 0.5);
-  
+
   /* 花朵/点缀 */
-  --flower-pink: #F8BBD9;
-  --flower-yellow: #FFF59D;
-  --flower-blue: #B3E5FC;
-  
+  --flower-pink: #f8bbd9;
+  --flower-yellow: #fff59d;
+  --flower-blue: #b3e5fc;
+
   /* 功能色 */
-  --accent-primary: #7CB342;
-  --accent-secondary: #5C6BC0;
-  --accent-warm: #FF8A65;
-  
+  --accent-primary: #7cb342;
+  --accent-secondary: #5c6bc0;
+  --accent-warm: #ff8a65;
+
   /* 文字 */
-  --text-primary: #4E342E;
-  --text-secondary: #6D4C41;
-  --text-muted: #9E8B7D;
-  --text-inverse: #FFF8F0;
-  
+  --text-primary: #4e342e;
+  --text-secondary: #6d4c41;
+  --text-muted: #9e8b7d;
+  --text-inverse: #fff8f0;
+
   /* 表面 */
   --surface-primary: rgba(255, 255, 255, 0.85);
   --surface-secondary: rgba(255, 255, 255, 0.6);
   --surface-tertiary: rgba(255, 255, 255, 0.35);
   --border-subtle: rgba(141, 110, 99, 0.15);
-  
+
   /* 状态 */
-  --status-success: #66BB6A;
-  --status-warning: #FFB74D;
-  --status-error: #E57373;
-  --status-info: #64B5F6;
-  
+  --status-success: #66bb6a;
+  --status-warning: #ffb74d;
+  --status-error: #e57373;
+  --status-info: #64b5f6;
+
   /* 兼容性别名 */
-  --success: #66BB6A;
-  --warning: #FFB74D;
-  --error: #E57373;
-  --info: #64B5F6;
-  
+  --success: #66bb6a;
+  --warning: #ffb74d;
+  --error: #e57373;
+  --info: #64b5f6;
+
   /* 玻璃态效果 */
   --glass-border: rgba(141, 110, 99, 0.15);
   --glass-bg: rgba(255, 255, 255, 0.6);
-  
+
   /* 深海主题兼容性别名 */
   --primary-950: #030712;
   --primary-900: #0a0f1a;
-  --primary-800: #E8F4F8;
-  --accent-cyan: #64B5F6;
-  --gradient-aurora: linear-gradient(135deg, #7CB342 0%, #5C6BC0 100%);
+  --primary-800: #e8f4f8;
+  --accent-cyan: #64b5f6;
+  --gradient-aurora: linear-gradient(135deg, #7cb342 0%, #5c6bc0 100%);
 }
 
 /* ===== 夜间模式（修复版）===== */
@@ -112,61 +112,61 @@
   --sky-top: #0a0e1a;
   --sky-mid: #121829;
   --sky-bottom: #1a2332;
-  
+
   /* 自然色彩 - 深夜中的自然色调 */
   --grass-light: #1e3a1e;
   --grass-mid: #2d5a2d;
   --grass-dark: #3d7a3d;
   --earth: #2d241f;
   --wood: #3d3028;
-  
+
   /* 星星/月亮 - 柔和的黄白色 */
   --star: #fff8e7;
   --moon: #fff5d6;
   --moon-glow: rgba(255, 245, 214, 0.25);
-  
+
   /* 云朵 - 深夜中微亮的云 */
   --cloud: rgba(200, 210, 230, 0.15);
   --cloud-shadow: rgba(0, 0, 0, 0.3);
-  
+
   /* 花朵/点缀 - 降低饱和度 */
   --flower-pink: rgba(244, 143, 177, 0.8);
   --flower-yellow: rgba(255, 241, 118, 0.8);
   --flower-blue: rgba(129, 212, 250, 0.8);
-  
+
   /* 功能色 - 保持可读性 */
   --accent-primary: #8bc34a;
   --accent-secondary: #7986cb;
   --accent-warm: #ffab91;
-  
+
   /* 文字 - 高对比度确保可读性 */
   --text-primary: #ffffff;
   --text-secondary: #c8d0e0;
   --text-muted: #8890a0;
   --text-inverse: #0a0e1a;
-  
+
   /* 表面 - 提高不透明度确保可读性 */
   --surface-primary: rgba(20, 28, 40, 0.95);
   --surface-secondary: rgba(30, 40, 55, 0.85);
   --surface-tertiary: rgba(40, 52, 70, 0.7);
   --border-subtle: rgba(100, 116, 139, 0.25);
-  
+
   /* 状态色 - 夜间模式下提高亮度 */
   --status-success: #81c784;
   --status-warning: #ffb74d;
   --status-error: #ef5350;
   --status-info: #4fc3f7;
-  
+
   /* 兼容性别名 - 用于其他组件 */
   --success: #81c784;
   --warning: #ffb74d;
   --error: #ef5350;
   --info: #4fc3f7;
-  
+
   /* 玻璃态效果别名 */
   --glass-border: rgba(100, 116, 139, 0.25);
   --glass-bg: rgba(20, 28, 40, 0.8);
-  
+
   /* 深海主题兼容性别名 */
   --primary-950: #030712;
   --primary-900: #0a0e1a;
@@ -183,7 +183,12 @@
 }
 
 html {
-  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Nunito",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -192,7 +197,12 @@ html {
 
 body {
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-bottom) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 50%,
+    var(--sky-bottom) 100%
+  );
   background-attachment: fixed;
   color: var(--text-primary);
   transition: background var(--duration-slow) var(--ease-smooth);
@@ -242,10 +252,15 @@ body {
 }
 
 .btn-ghibli::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
   transform: translateX(-100%);
   transition: transform var(--duration-normal);
 }
@@ -351,7 +366,8 @@ body {
 
 /* ===== 动画关键帧 ===== */
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
   50% {
@@ -369,7 +385,8 @@ body {
 }
 
 @keyframes twinkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.3;
     transform: scale(1);
   }
@@ -380,7 +397,8 @@ body {
 }
 
 @keyframes sway {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(-3deg);
   }
   50% {
@@ -389,7 +407,8 @@ body {
 }
 
 @keyframes breathe {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.8;
     transform: scale(1);
   }
@@ -511,7 +530,11 @@ body {
 }
 
 /* ===== GPU 加速优化 ===== */
-.cloud, .star, .grass, .moon, .sun {
+.cloud,
+.star,
+.grass,
+.moon,
+.sun {
   will-change: transform;
   transform: translateZ(0); /* 强制 GPU 加速 */
   backface-visibility: hidden;
@@ -520,20 +543,20 @@ body {
 /* ===== 移动端动画优化 ===== */
 @media (max-width: 768px) {
   /* 减少云朵数量（只保留前3个） */
-  .cloud:nth-child(n+4) {
+  .cloud:nth-child(n + 4) {
     display: none !important;
   }
-  
+
   /* 减少星星数量（只保留前10个） */
-  .star:nth-child(n+11) {
+  .star:nth-child(n + 11) {
     display: none !important;
   }
-  
+
   /* 降低动画复杂度 */
   .cloud {
     animation-duration: 40s !important; /* 减慢动画 */
   }
-  
+
   .star {
     animation-duration: 4s !important;
   }
@@ -542,8 +565,8 @@ body {
 /* 小屏幕手机进一步优化 */
 @media (max-width: 480px) {
   /* 只保留最少的装饰元素 */
-  .cloud:nth-child(n+3),
-  .star:nth-child(n+6),
+  .cloud:nth-child(n + 3),
+  .star:nth-child(n + 6),
   .grass {
     display: none !important;
   }
@@ -558,8 +581,12 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  
-  .cloud, .star, .grass, .moon, .sun {
+
+  .cloud,
+  .star,
+  .grass,
+  .moon,
+  .sun {
     animation: none !important;
   }
 }
@@ -571,7 +598,7 @@ body {
     --space-xl: 2rem;
     --space-2xl: 3rem;
   }
-  
+
   html {
     font-size: 14px;
   }

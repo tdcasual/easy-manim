@@ -1,24 +1,15 @@
-/**
- * AuthModal - Kawaii 风格认证弹窗
- * 特点：
- * - 默认折叠，需要时自动弹出
- * - 可关闭，保持未认证状态
- * - 固定在右下角
- */
 import { useState, useEffect, useCallback, useRef } from "react";
-import { X, LogOut, Sparkles } from "lucide-react";
+import { LogOut, Sparkles } from "lucide-react";
 import { postSession } from "../../lib/api";
 import { writeSessionToken, clearSessionToken } from "../../lib/session";
 import { useSession } from "../../features/auth/useSession";
 import { useAsyncStatus } from "../../hooks/useAsyncStatus";
 import { useI18n } from "../../app/locale";
-import { DialogShell } from "../DialogShell/DialogShell";
-import styles from "./AuthModal.module.css";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { cn } from "../../lib/utils";
 
 export interface AuthModalProps {
-  /** 强制显示（用于需要认证时自动弹出） */
   forceShow?: boolean;
-  /** 当弹窗关闭时的回调 */
   onClose?: () => void;
 }
 
@@ -27,15 +18,11 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
   const { t } = useI18n();
   const { status, error, startLoading, setErrorState, succeed, reset } = useAsyncStatus();
 
-  // 弹窗状态：默认折叠
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
   const [token, setToken] = useState("");
-  const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 自动弹出逻辑
   useEffect(() => {
     if (forceShow && !isAuthenticated) {
       setIsOpen(true);
@@ -43,10 +30,8 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
     }
   }, [forceShow, isAuthenticated]);
 
-  // 认证成功后自动关闭
   useEffect(() => {
     if (isAuthenticated && isOpen) {
-      // 延迟关闭，让用户看到成功状态
       const timer = setTimeout(() => {
         setIsOpen(false);
         onClose?.();
@@ -65,6 +50,9 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
     setIsOpen(false);
     setIsMinimized(true);
     onClose?.();
+    setTimeout(() => {
+      triggerRef.current?.focus();
+    }, 0);
   }, [onClose]);
 
   const handleSubmit = useCallback(
@@ -93,19 +81,18 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
 
   const isLoading = status === "loading";
 
-  // 渲染折叠状态（迷你按钮）
   if (!isOpen && isMinimized) {
     const miniTriggerLabel = isAuthenticated ? t("authModal.signedIn") : t("authModal.openLogin");
 
     return (
-      <div className={styles.collapsed}>
+      <div className="fixed bottom-6 right-6 z-50">
         <button
           ref={triggerRef}
           type="button"
-          className={styles.miniButton}
           onClick={handleOpen}
           aria-label={miniTriggerLabel}
           title={miniTriggerLabel}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-lavender-400 text-lg text-white shadow-lg transition-transform hover:scale-110"
         >
           {isAuthenticated ? "✨" : "🔒"}
         </button>
@@ -113,95 +100,85 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
     );
   }
 
-  // 渲染展开的弹窗
   return (
-    <DialogShell
-      isOpen={isOpen}
-      onClose={handleClose}
-      dialogRef={modalRef}
-      initialFocusRef={inputRef}
-      restoreFocusRef={triggerRef}
-      className={styles.modal}
-      ariaLabelledBy="auth-title"
-      overlayClassName={styles.overlay}
-      overlayAriaLabel="Dismiss auth dialog backdrop"
-    >
-      <div className={styles.content}>
-        {/* 头部 */}
-        <div className={styles.header}>
-          <h2 id="auth-title" className={styles.headerTitle}>
-            <span className={styles.headerEmoji}>{isAuthenticated ? "✨" : "🔐"}</span>
-            <span>{isAuthenticated ? t("login.welcome") : t("authModal.titleLogin")}</span>
-          </h2>
-          <button
-            type="button"
-            className={styles.closeButton}
-            onClick={handleClose}
-            aria-label={t("common.close")}
-          >
-            <X size={18} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="gap-4 rounded-3xl border-[var(--glass-border)] bg-[var(--glass-white)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-md">
+        <DialogHeader className="border-b border-[var(--glass-border)] p-5">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <span>{isAuthenticated ? "✨" : "🔐"}</span>
+              <span>{isAuthenticated ? t("login.welcome") : t("authModal.titleLogin")}</span>
+            </DialogTitle>
+          </div>
+        </DialogHeader>
 
-        {/* 身体 */}
-        <div className={styles.body}>
+        <div className="px-5 pb-6">
           {isAuthenticated ? (
-            /* 已登录状态 */
-            <div className={styles.authenticated}>
-              <div className={styles.successIcon}>🎉</div>
-              <p className={styles.authenticatedText}>{t("authModal.successTitle")}</p>
-              <p className={styles.authenticatedSubtext}>{t("authModal.successSubtitle")}</p>
-              <button type="button" className={styles.logoutButton} onClick={handleLogout}>
+            <div className="flex flex-col items-center gap-4 py-4 text-center">
+              <div className="text-4xl">🎉</div>
+              <p className="text-base font-medium text-foreground">{t("authModal.successTitle")}</p>
+              <p className="text-sm text-muted-foreground">{t("authModal.successSubtitle")}</p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-all hover:bg-destructive/20"
+              >
                 <LogOut size={16} />
                 <span>{t("sidebar.logout")}</span>
               </button>
             </div>
           ) : (
-            /* 登录表单 */
             <>
-              {/* 欢迎区 */}
-              <div className={styles.welcome}>
-                <div className={styles.welcomeIcon}>🌟</div>
-                <h3 className={styles.welcomeTitle}>{t("login.welcome")}</h3>
-                <p className={styles.welcomeText}>{t("login.subtitle")}</p>
+              <div className="flex flex-col items-center gap-2 py-3 text-center">
+                <div className="text-3xl">🌟</div>
+                <h3 className="text-base font-semibold text-foreground">{t("login.welcome")}</h3>
+                <p className="text-sm text-muted-foreground">{t("login.subtitle")}</p>
               </div>
 
-              {/* 错误提示 */}
               {error && (
-                <div className={styles.error} role="alert">
-                  <span className={styles.errorEmoji}>💔</span>
+                <div
+                  className="my-3 flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  role="alert"
+                >
+                  <span>💔</span>
                   <span>{error}</span>
                 </div>
               )}
 
-              {/* 表单 */}
-              <form className={styles.form} onSubmit={handleSubmit}>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="auth-token" className={styles.label}>
-                    <span className={styles.labelEmoji}>🔑</span>
+              <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="auth-token"
+                    className="flex items-center gap-1 text-sm font-medium text-foreground"
+                  >
+                    <span>🔑</span>
                     <span>{t("login.tokenLabel")}</span>
                   </label>
                   <input
-                    ref={inputRef}
                     id="auth-token"
                     type="text"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
                     placeholder={t("login.tokenPlaceholder")}
-                    className={styles.input}
                     disabled={isLoading}
                     autoFocus
+                    className="flex h-10 w-full rounded-xl border border-border bg-card/60 px-3 py-2 text-sm text-foreground shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className={`${styles.submitButton} ${isLoading ? styles.loading : ""}`}
                   disabled={!token.trim() || isLoading}
+                  className={cn(
+                    "flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all",
+                    !token.trim() || isLoading
+                      ? "bg-cloud-300"
+                      : "bg-gradient-to-br from-pink-400 to-lavender-400 hover:-translate-y-0.5 hover:shadow-md"
+                  )}
                 >
                   {isLoading ? (
                     <>
-                      <span className={styles.spinner} />
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                       <span>{t("login.loggingIn")}</span>
                     </>
                   ) : (
@@ -213,8 +190,7 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
                 </button>
               </form>
 
-              {/* 帮助链接 */}
-              <div className={styles.help}>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-1 text-xs text-muted-foreground">
                 <span>💡</span>
                 <span>{t("authModal.noToken")}</span>
                 <span>{t("login.tokenHint")}</span>
@@ -222,8 +198,8 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
             </>
           )}
         </div>
-      </div>
-    </DialogShell>
+      </DialogContent>
+    </Dialog>
   );
 }
 

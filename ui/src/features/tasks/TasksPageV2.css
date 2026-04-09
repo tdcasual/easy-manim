@@ -121,8 +121,15 @@
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(0.95); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
 }
 
 .stat-content {
@@ -183,8 +190,12 @@
 }
 
 @keyframes spin-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 💬 Kawaii 快速输入区 */
@@ -221,8 +232,15 @@
 }
 
 @keyframes sparkle {
-  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-  50% { transform: scale(1.2) rotate(10deg); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+    opacity: 0.8;
+  }
 }
 
 .input-field {
@@ -264,7 +282,9 @@
 
 .kawaii-send:hover:not(:disabled) {
   transform: scale(1.1) rotate(90deg);
-  box-shadow: var(--shadow-glow-pink), 0 8px 24px rgba(255, 107, 138, 0.4);
+  box-shadow:
+    var(--shadow-glow-pink),
+    0 8px 24px rgba(255, 107, 138, 0.4);
 }
 
 .kawaii-send:disabled {
@@ -296,8 +316,14 @@
 }
 
 @keyframes slide-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .kawaii-chip {
@@ -358,9 +384,17 @@
 }
 
 @keyframes pop-in {
-  0% { transform: scale(0.8); opacity: 0; }
-  70% { transform: scale(1.05); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .kawaii-tab:hover {
@@ -405,8 +439,14 @@
 }
 
 @keyframes float-in {
-  0% { transform: translateY(20px) rotate(-1deg); opacity: 0; }
-  100% { transform: translateY(0) rotate(0); opacity: 1; }
+  0% {
+    transform: translateY(20px) rotate(-1deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
 }
 
 .kawaii-task-card:hover {
@@ -542,8 +582,13 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .kawaii-empty p {
@@ -614,8 +659,12 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* 🎬 Kawaii 视频区域 */
@@ -763,40 +812,40 @@
   .kawaii-page {
     padding: 24px;
   }
-  
+
   .kawaii-stats {
     gap: 16px;
   }
-  
+
   .stat-card {
     padding: 16px 20px;
   }
-  
+
   .stat-value {
     font-size: 24px;
   }
-  
+
   .kawaii-input {
     margin-bottom: 24px;
   }
-  
+
   .kawaii-tabs {
     margin-bottom: 24px;
   }
-  
+
   .kawaii-tab {
     padding: 12px 24px;
     font-size: 15px;
   }
-  
+
   .kawaii-task-card {
     padding: 18px 22px;
   }
-  
+
   .task-name {
     font-size: 16px;
   }
-  
+
   .video-grid {
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
@@ -814,17 +863,17 @@
     animation: none;
     transition: none;
   }
-  
+
   .stat-icon-inner.running,
   .sparkle-icon,
   .empty-emoji {
     animation: none;
   }
-  
+
   .kawaii-skeleton .skeleton-item {
     animation: none;
   }
-  
+
   .spin,
   .kawaii-send .spinner {
     animation: none;

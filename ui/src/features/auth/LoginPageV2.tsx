@@ -7,9 +7,8 @@ import { writeSessionToken } from "../../lib/session";
 import { useI18n } from "../../app/locale";
 import { LocaleToggle } from "../../components/LocaleToggle";
 import { KawaiiIcon, EmojiIcon } from "../../components";
-import "./LoginPage.css";
+import { cn } from "../../lib/utils";
 
-// ☁️ 云朵装饰组件
 function CloudDecorations() {
   return (
     <>
@@ -29,7 +28,6 @@ function CloudDecorations() {
   );
 }
 
-// ✨ 星星装饰组件
 function StarDecorations() {
   return (
     <>
@@ -52,7 +50,6 @@ function StarDecorations() {
   );
 }
 
-// 🌸 花瓣飘落组件
 function PetalDecorations() {
   return (
     <>
@@ -86,68 +83,98 @@ export function LoginPageV2() {
   }
 
   return (
-    <div className="login-page">
-      {/* 装饰元素 */}
+    <div className="login-page relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-gradient-to-b from-[#E8F4F8] via-[#F0F7FA] to-[#FFF8F0] px-4 py-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      {/* Background orbs */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 animate-spin"
+        style={{
+          animationDuration: "20s",
+          background:
+            "radial-gradient(circle at 20% 30%, rgba(255,160,181,0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(127,212,182,0.4) 0%, transparent 40%), radial-gradient(circle at 50% 50%, rgba(90,180,209,0.3) 0%, transparent 50%)",
+        }}
+      />
+
       <CloudDecorations />
       <StarDecorations />
       <PetalDecorations />
 
-      {/* 工具栏 */}
-      <div className="login-page-toolbar">
+      <div className="absolute right-5 top-5 z-20">
         <LocaleToggle />
       </div>
 
-      {/* 主内容 */}
-      <div className="login-container">
-        {/* 左侧品牌区 */}
-        <div className="login-brand">
-          <div className="brand-content">
-            <div className="brand-logo-large">
+      <div className="relative z-10 grid w-full max-w-6xl grid-cols-1 gap-8 p-4 lg:grid-cols-[1fr_480px] lg:gap-16 lg:p-8">
+        {/* Left brand */}
+        <div className="relative flex flex-col justify-center lg:p-10">
+          <div className="relative z-10 text-center lg:text-left">
+            <div className="mx-auto mb-6 flex items-center justify-center lg:mx-0 lg:mb-8 animate-float">
               <KawaiiIcon icon={Sparkles} color="gradient" size="xl" pulse />
             </div>
-            <h1 className="brand-title-large">easy-manim</h1>
-            <p className="brand-tagline">{t("login.brand.tagline")}</p>
-            <div className="brand-features">
-              <div className="feature-item">
+            <h1 className="mb-4 text-4xl font-extrabold tracking-tight bg-gradient-to-r from-pink-500 via-lavender-500 to-mint-500 bg-clip-text text-transparent drop-shadow-sm lg:text-6xl">
+              easy-manim
+            </h1>
+            <p className="mb-8 text-lg font-medium text-cloud-700 dark:text-cloud-200 lg:text-xl">
+              {t("login.brand.tagline")}
+            </p>
+            <div className="flex flex-col items-center gap-3 lg:items-start">
+              <div className="flex w-fit items-center gap-3 rounded-xl border border-white/50 bg-white/60 px-3 py-2 text-sm text-cloud-600 backdrop-blur-sm dark:border-white/10 dark:bg-white/10 dark:text-cloud-300">
                 <EmojiIcon emoji="🎨" color="mint" size="sm" />
                 <span>{t("login.brand.workflow")}</span>
               </div>
-              <div className="feature-item">
+              <div className="flex w-fit items-center gap-3 rounded-xl border border-white/50 bg-white/60 px-3 py-2 text-sm text-cloud-600 backdrop-blur-sm dark:border-white/10 dark:bg-white/10 dark:text-cloud-300">
                 <EmojiIcon emoji="🛡️" color="sky" size="sm" />
                 <span>{t("login.brand.localFirst")}</span>
               </div>
             </div>
           </div>
 
-          {/* 装饰性元素 */}
-          <div className="brand-decoration">
-            <div className="decoration-ring" />
-            <div className="decoration-ring" />
-            <div className="decoration-ring" />
+          {/* Decorative rings */}
+          <div className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 lg:block">
+            <div
+              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-b-pink-200 animate-spin"
+              style={{ animationDuration: "6s" }}
+            />
+            <div
+              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-r-mint-200 animate-spin"
+              style={{ animationDuration: "6s", animationDelay: "2s" }}
+            />
+            <div
+              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-t-lavender-200 animate-spin"
+              style={{ animationDuration: "6s", animationDelay: "4s" }}
+            />
           </div>
         </div>
 
-        {/* 右侧登录表单 */}
-        <div className="login-form-wrapper">
-          <div className="login-form-card">
-            <div className="form-header">
-              <div className="form-icon">
+        {/* Right form */}
+        <div className="flex items-center justify-center">
+          <div className="w-full max-w-md animate-pop-in rounded-[32px] border border-white/60 bg-white/70 p-6 shadow-2xl shadow-pink-200/20 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/60 sm:p-8">
+            <div className="mb-8 text-center">
+              <div className="mx-auto mb-4 flex items-center justify-center animate-pop-in">
                 <EmojiIcon emoji="🌟" color="peach" size="lg" bounce />
               </div>
-              <h2 className="form-title">{t("login.welcome")}</h2>
-              <p className="form-subtitle">{t("login.subtitle")}</p>
+              <h2 className="mb-2 text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+                {t("login.welcome")}
+              </h2>
+              <p className="text-sm text-cloud-600 dark:text-cloud-400">{t("login.subtitle")}</p>
             </div>
 
-            <form onSubmit={onSubmit} className="login-form">
-              <div className="form-field">
-                <label className="form-label" htmlFor="token">
+            <form onSubmit={onSubmit} className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <label
+                  className="flex items-center gap-1 text-xs font-semibold text-cloud-700 dark:text-cloud-300"
+                  htmlFor="token"
+                >
+                  <span>🌸</span>
                   {t("login.tokenLabel")}
                 </label>
-                <div className="input-wrapper">
+                <div className="relative">
                   <input
                     id="token"
                     type="text"
-                    className="form-input"
+                    className={cn(
+                      "w-full rounded-2xl border-2 border-transparent bg-cloud-100 px-4 py-3 text-sm text-cloud-800 outline-none transition-all",
+                      "placeholder:text-cloud-500",
+                      "focus:border-pink-300 focus:bg-white focus:shadow-md dark:bg-slate-800 dark:text-cloud-100"
+                    )}
                     value={agentToken}
                     onChange={(e) => setAgentToken(e.target.value)}
                     placeholder={t("login.tokenPlaceholder")}
@@ -155,21 +182,35 @@ export function LoginPageV2() {
                     spellCheck={false}
                     disabled={status === "loading"}
                   />
-                  <div className="input-glow" />
+                  <div className="pointer-events-none absolute -inset-[2px] -z-10 rounded-[18px] bg-gradient-to-br from-pink-300 to-mint-300 opacity-0 blur-[8px] transition-opacity duration-300 peer-focus:opacity-60" />
                 </div>
-                <p className="form-hint">{t("login.tokenHint")}</p>
+                <p className="flex items-center gap-1 text-xs text-cloud-600 dark:text-cloud-400">
+                  <span>💡</span>
+                  {t("login.tokenHint")}
+                </p>
               </div>
 
-              {error && <div className="form-error animate-slide-up">{error}</div>}
+              {error && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+                  <span>⚠️</span>
+                  {error}
+                </div>
+              )}
 
               <button
                 type="submit"
-                className="submit-btn"
+                className={cn(
+                  "group relative mt-2 flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3.5 text-base font-semibold text-white transition-all",
+                  "bg-gradient-to-r from-pink-400 to-peach-400 shadow-lg shadow-pink-200/40",
+                  "hover:-translate-y-0.5 hover:shadow-xl hover:shadow-pink-200/50",
+                  "disabled:cursor-not-allowed disabled:opacity-60 disabled:translate-y-0 disabled:shadow-none"
+                )}
                 disabled={status === "loading" || !agentToken.trim()}
               >
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                 {status === "loading" ? (
                   <>
-                    <span className="spinner" />
+                    <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-white/30 border-t-white" />
                     {t("login.loggingIn")}
                   </>
                 ) : (
@@ -181,8 +222,11 @@ export function LoginPageV2() {
               </button>
             </form>
 
-            <div className="form-footer">
-              <p>{t("login.footer")}</p>
+            <div className="mt-6 text-center">
+              <p className="flex items-center justify-center gap-1 text-xs text-cloud-600 dark:text-cloud-400">
+                <span>🌟</span>
+                {t("login.footer")}
+              </p>
             </div>
           </div>
         </div>

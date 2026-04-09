@@ -24,34 +24,15 @@ import { useI18n } from "../../app/locale";
 import { SkeletonMetricCard, SkeletonCard } from "../../components/Skeleton";
 import { useARIAMessage } from "../../components/useARIAMessage";
 import { AuthModal, useAuthGuard } from "../../components/AuthModal";
-import "./EvalsPageV2.css";
 
 function formatPercent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
 
-const metricSurfaceStyles = {
-  decision: {
-    cardColor: "var(--color-lavender-500)",
-    iconBackground: "color-mix(in srgb, var(--color-lavender-500) 14%, transparent)",
-    iconColor: "var(--color-lavender-500)",
-  },
-  success: {
-    cardColor: "var(--color-success-500)",
-    iconBackground: "color-mix(in srgb, var(--color-success-500) 14%, transparent)",
-    iconColor: "var(--color-success-500)",
-  },
-  info: {
-    cardColor: "var(--color-sky-500)",
-    iconBackground: "color-mix(in srgb, var(--color-sky-500) 14%, transparent)",
-    iconColor: "var(--color-sky-500)",
-  },
-} as const;
-
 const qualityRateIconColors = {
-  strong: "var(--color-success-500)",
-  medium: "var(--color-warning-500)",
-  weak: "var(--color-error-500)",
+  strong: "#22c55e",
+  medium: "#f59e0b",
+  weak: "#ef4444",
 } as const;
 
 export function EvalsPageV2() {
@@ -100,116 +81,113 @@ export function EvalsPageV2() {
 
   if (!sessionToken) {
     return (
-      <div className="page-v2">
-        <div className="empty-state-v2">{t("common.notLoggedIn")}</div>
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/60 bg-white/60 px-6 py-16 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
+            {t("common.notLoggedIn")}
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="page-v2">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
       <ARIALiveRegion />
 
-      <div className="page-header-v2">
-        <div className="page-header-content-v2">
-          <div className="page-eyebrow">{t("evals.page.eyebrow")}</div>
-          <h1 className="page-title-v2">{t("evals.page.title")}</h1>
-          <p className="page-description-v2">{t("evals.page.description")}</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-pink-500">
+            {t("evals.page.eyebrow")}
+          </div>
+          <h1 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100 sm:text-3xl">
+            {t("evals.page.title")}
+          </h1>
+          <p className="text-sm text-cloud-500 dark:text-cloud-400">
+            {t("evals.page.description")}
+          </p>
         </div>
-        <button className="refresh-btn" onClick={refresh} disabled={status === "loading"}>
-          {status === "loading" ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
+        <button
+          className="flex items-center gap-2 rounded-xl border border-white/60 bg-white/60 px-4 py-2 text-sm font-semibold text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-200"
+          onClick={refresh}
+          disabled={status === "loading"}
+        >
+          {status === "loading" ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <RefreshCw size={18} />
+          )}
           {t("evals.refresh")}
         </button>
       </div>
 
       {error && (
-        <div className="eval-error" role="alert">
+        <div
+          className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400"
+          role="alert"
+        >
           <AlertCircle size={16} />
           {error}
         </div>
       )}
 
       {status === "loading" && items.length === 0 ? (
-        <div className="metrics-grid-v2">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SkeletonMetricCard />
           <SkeletonMetricCard />
           <SkeletonMetricCard />
           <SkeletonMetricCard />
         </div>
       ) : (
-        <div className="metrics-grid-v2">
-          <div
-            className="metric-card-v2"
-            style={
-              { "--card-color": metricSurfaceStyles.decision.cardColor } as React.CSSProperties
-            }
-          >
-            <div
-              className="metric-icon-wrapper"
-              style={{
-                background: metricSurfaceStyles.decision.iconBackground,
-                color: metricSurfaceStyles.decision.iconColor,
-              }}
-            >
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex items-center gap-4 rounded-2xl border border-lavender-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lavender-100 text-lavender-600 dark:bg-lavender-900/30 dark:text-lavender-300">
               <BarChart3 size={20} />
             </div>
-            <div className="metric-content">
-              <p className="metric-label-v2">{t("evals.runCount")}</p>
-              <h3 className="metric-value-v2">{items.length}</h3>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+                {t("evals.runCount")}
+              </p>
+              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+                {items.length}
+              </h3>
             </div>
           </div>
-          <div
-            className="metric-card-v2"
-            style={{ "--card-color": metricSurfaceStyles.success.cardColor } as React.CSSProperties}
-          >
-            <div
-              className="metric-icon-wrapper"
-              style={{
-                background: metricSurfaceStyles.success.iconBackground,
-                color: metricSurfaceStyles.success.iconColor,
-              }}
-            >
+          <div className="flex items-center gap-4 rounded-2xl border border-mint-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-mint-100 text-mint-600 dark:bg-mint-900/30 dark:text-mint-300">
               <CheckCircle2 size={20} />
             </div>
-            <div className="metric-content">
-              <p className="metric-label-v2">{t("evals.averagePassRate")}</p>
-              <h3 className="metric-value-v2">{formatPercent(averageQualityPassRate)}</h3>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+                {t("evals.averagePassRate")}
+              </p>
+              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+                {formatPercent(averageQualityPassRate)}
+              </h3>
             </div>
           </div>
-          <div
-            className="metric-card-v2"
-            style={{ "--card-color": metricSurfaceStyles.info.cardColor } as React.CSSProperties}
-          >
-            <div
-              className="metric-icon-wrapper"
-              style={{
-                background: metricSurfaceStyles.info.iconBackground,
-                color: metricSurfaceStyles.info.iconColor,
-              }}
-            >
+          <div className="flex items-center gap-4 rounded-2xl border border-sky-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300">
               <BarChart3 size={20} />
             </div>
-            <div className="metric-content">
-              <p className="metric-label-v2">{t("evals.averageDeliveryRate")}</p>
-              <h3 className="metric-value-v2">{formatPercent(averageDeliveryRate)}</h3>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+                {t("evals.averageDeliveryRate")}
+              </p>
+              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+                {formatPercent(averageDeliveryRate)}
+              </h3>
             </div>
           </div>
-          <div
-            className="metric-card-v2"
-            style={{ "--card-color": metricSurfaceStyles.info.cardColor } as React.CSSProperties}
-          >
-            <div
-              className="metric-icon-wrapper"
-              style={{
-                background: metricSurfaceStyles.info.iconBackground,
-                color: metricSurfaceStyles.info.iconColor,
-              }}
-            >
+          <div className="flex items-center gap-4 rounded-2xl border border-sky-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300">
               <ClipboardList size={20} />
             </div>
-            <div className="metric-content">
-              <p className="metric-label-v2">{t("evals.visibleCases")}</p>
-              <h3 className="metric-value-v2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
+                {t("evals.visibleCases")}
+              </p>
+              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {items.reduce((sum, item) => sum + item.total_cases, 0)}
               </h3>
             </div>
@@ -217,15 +195,15 @@ export function EvalsPageV2() {
         </div>
       )}
 
-      <div className="section-card-v2">
-        <div className="section-header-v2">
-          <h3 className="section-title-v2">
+      <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
+          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <BarChart3 size={20} />
             {t("evals.recentRuns")}
           </h3>
         </div>
 
-        <div className="eval-list">
+        <div className="flex flex-col p-2">
           {status === "loading" && items.length === 0 ? (
             <>
               <SkeletonCard />
@@ -240,17 +218,19 @@ export function EvalsPageV2() {
                 <Link
                   key={run.run_id}
                   to={`/evals/${encodeURIComponent(run.run_id)}`}
-                  className="eval-row"
+                  className="group flex animate-slide-up items-center gap-4 rounded-xl px-4 py-4 text-inherit no-underline transition-colors hover:bg-white/60 dark:hover:bg-slate-800/60"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="eval-info">
-                    <div className="eval-id">{run.run_id}</div>
-                    <div className="eval-meta">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-cloud-800 dark:text-cloud-100">
+                      {run.run_id}
+                    </div>
+                    <div className="text-xs text-cloud-500 dark:text-cloud-400">
                       {run.suite_id} · {run.provider}
                     </div>
                   </div>
-                  <div className="eval-stats">
-                    <div className="eval-rate">
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1 text-sm font-semibold text-cloud-800 dark:text-cloud-100">
                       {qualityRate !== null ? (
                         <>
                           {qualityRate >= 0.8 ? (
@@ -266,75 +246,87 @@ export function EvalsPageV2() {
                         "—"
                       )}
                     </div>
-                    <div className="eval-cases">
+                    <div className="text-xs text-cloud-500 dark:text-cloud-400">
                       {deliveryRate !== null
                         ? `${t("evals.deliveryRateInline", { rate: formatPercent(deliveryRate) })} · ${t("evals.casesCount", { count: run.total_cases })}`
                         : t("evals.casesCount", { count: run.total_cases })}
                     </div>
                   </div>
-                  <ArrowRight size={16} className="eval-arrow" />
+                  <ArrowRight
+                    size={16}
+                    className="shrink-0 text-cloud-400 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-pink-500"
+                  />
                 </Link>
               );
             })
           ) : error && items.length === 0 ? (
-            <div className="empty-state-v2 eval-empty">
-              <AlertCircle size={48} />
-              <p>{t("evals.loadFailedShort")}</p>
-              <span>{t("evals.loadFailedHint")}</span>
+            <div className="flex flex-col items-center px-6 py-10 text-center text-cloud-500">
+              <AlertCircle size={48} className="mb-3 text-cloud-400" />
+              <p className="text-base font-semibold text-cloud-700 dark:text-cloud-200">
+                {t("evals.loadFailedShort")}
+              </p>
+              <span className="text-sm">{t("evals.loadFailedHint")}</span>
             </div>
           ) : (
-            <div className="empty-state-v2 eval-empty">
-              <ClipboardList size={48} />
-              <p>{t("evals.empty")}</p>
-              <span>{t("evals.emptyHint")}</span>
+            <div className="flex flex-col items-center px-6 py-10 text-center text-cloud-500">
+              <ClipboardList size={48} className="mb-3 text-cloud-400" />
+              <p className="text-base font-semibold text-cloud-700 dark:text-cloud-200">
+                {t("evals.empty")}
+              </p>
+              <span className="text-sm">{t("evals.emptyHint")}</span>
             </div>
           )}
         </div>
       </div>
 
-      <div className="section-card-v2">
-        <div className="section-header-v2">
-          <h3 className="section-title-v2">
+      <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
+          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <ClipboardList size={20} />
             Recent Shadow Decisions
           </h3>
         </div>
 
-        <div className="eval-list">
+        <div className="flex flex-col p-2">
           {decisions.length > 0 ? (
             decisions.slice(0, 5).map((decision, index) => (
               <div
                 key={`${decision.strategy_id}:${decision.recorded_at}:${index}`}
-                className="eval-row"
+                className="flex animate-slide-up items-center gap-4 rounded-xl px-4 py-4"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="eval-info">
-                  <div className="eval-id">{decision.strategy_id}</div>
-                  <div className="eval-meta">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-cloud-800 dark:text-cloud-100">
+                    {decision.strategy_id}
+                  </div>
+                  <div className="text-xs text-cloud-500 dark:text-cloud-400">
                     {decision.kind} · {decision.promotion_decision.mode ?? "shadow"}
                   </div>
                 </div>
-                <div className="eval-stats">
-                  <div className="eval-rate">
+                <div className="flex flex-col items-end gap-1">
+                  <div className="text-sm font-semibold text-cloud-800 dark:text-cloud-100">
                     {decision.promotion_decision.approved ? "approved" : "not approved"}
                   </div>
-                  <div className="eval-cases">
+                  <div className="text-xs text-cloud-500 dark:text-cloud-400">
                     {decision.promotion_decision.reasons.join(", ") || "no blockers"}
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="empty-state-v2 eval-empty">
-              <ClipboardList size={48} />
-              <p>No shadow decisions yet.</p>
-              <span>Run a strategy challenger evaluation to populate the decision timeline.</span>
+            <div className="flex flex-col items-center px-6 py-10 text-center text-cloud-500">
+              <ClipboardList size={48} className="mb-3 text-cloud-400" />
+              <p className="text-base font-semibold text-cloud-700 dark:text-cloud-200">
+                No shadow decisions yet.
+              </p>
+              <span className="text-sm">
+                Run a strategy challenger evaluation to populate the decision timeline.
+              </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* 🔐 认证弹窗 */}
       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );

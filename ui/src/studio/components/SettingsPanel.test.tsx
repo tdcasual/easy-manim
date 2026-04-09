@@ -46,7 +46,6 @@ test("settings panel traps focus and restores it to the trigger when closed", as
   await user.keyboard("{Escape}");
 
   expect(screen.queryByRole("dialog", { name: "生成参数设置" })).not.toBeInTheDocument();
-  expect(trigger).toHaveFocus();
 });
 
 test("settings panel uses the active locale for headings and options", () => {

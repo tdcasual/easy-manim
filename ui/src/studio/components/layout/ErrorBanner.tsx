@@ -5,7 +5,6 @@
 import type { TaskError } from "../../store";
 import { useI18n } from "../../../app/locale";
 import { StatusIcon, EmojiIcon } from "../../../components";
-import styles from "../../styles/Studio.module.css";
 
 interface ErrorBannerProps {
   error: TaskError;
@@ -20,10 +19,16 @@ export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
   return (
     <div
       role="alert"
-      className={`${styles.errorBanner} ${isNetwork ? styles.errorBannerNetwork : styles.errorBannerOther}`}
+      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm ${
+        isNetwork
+          ? "border-sky-200 bg-sky-50 text-sky-800"
+          : "border-red-200 bg-red-50 text-red-800"
+      }`}
     >
       <div
-        className={`${styles.errorIcon} ${isNetwork ? styles.errorIconNetwork : styles.errorIconOther}`}
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+          isNetwork ? "bg-sky-100 text-sky-600" : "bg-red-100 text-red-600"
+        }`}
       >
         {isNetwork ? (
           <EmojiIcon emoji="📡" color="sky" size="sm" />
@@ -32,21 +37,23 @@ export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
         )}
       </div>
 
-      <div className={styles.errorContent}>
-        <div
-          className={`${styles.errorTitle} ${isNetwork ? styles.errorTitleNetwork : styles.errorTitleOther}`}
-        >
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm font-semibold ${isNetwork ? "text-sky-800" : "text-red-800"}`}>
           {error.type === "network" && t("studio.error.network")}
           {error.type === "timeout" && t("studio.error.timeout")}
           {error.type === "generation" && t("studio.error.generation")}
           {error.type === "unknown" && t("studio.error.unknown")}
         </div>
-        <div className={styles.errorMessage}>{error.message}</div>
+        <div className="text-xs opacity-90 truncate">{error.message}</div>
       </div>
 
-      <div className={styles.errorActions}>
+      <div className="flex items-center gap-2">
         {error.retryable && onRetry && (
-          <button type="button" onClick={onRetry} className={styles.retryButton}>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="flex items-center gap-1 rounded-xl bg-white/80 px-3 py-1.5 text-xs font-medium shadow-sm transition-all hover:bg-white"
+          >
             <EmojiIcon emoji="🔄" color="white" size="xs" />
             {t("studio.error.retry")}
           </button>
@@ -55,7 +62,7 @@ export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
           type="button"
           onClick={onClose}
           aria-label={t("studio.error.close")}
-          className={styles.closeButton}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-sm shadow-sm transition-all hover:bg-white"
         >
           <EmojiIcon emoji="✖️" color="white" size="xs" />
         </button>

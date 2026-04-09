@@ -1,10 +1,6 @@
-/**
- * ThemeToggle - 主题切换按钮
- * Kawaii 二次元风格 - 使用 emoji
- */
 import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
-import styles from "../styles/ThemeToggle.module.css";
+import { cn } from "../../lib/utils";
 
 interface ThemeToggleProps {
   isNight: boolean;
@@ -18,15 +14,21 @@ export function ThemeToggle({ isNight, onToggle }: ThemeToggleProps) {
     <button
       type="button"
       onClick={onToggle}
-      className={isNight ? styles.toggleNight : styles.toggleDay}
+      className={cn(
+        "relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
+        isNight ? "text-lavender-400" : "text-lemon-500"
+      )}
       aria-label={isNight ? t("studio.theme.toDay") : t("studio.theme.toNight")}
       aria-pressed={isNight}
     >
-      {/* 背景光晕 */}
-      <div className={isNight ? styles.glowNight : styles.glowDay} aria-hidden="true" />
-
-      {/* 图标 */}
-      <div className={styles.icon} aria-hidden="true">
+      <div
+        className={cn(
+          "absolute inset-0 rounded-full opacity-50 blur-md transition-all",
+          isNight ? "bg-lavender-400/30" : "bg-lemon-400/30"
+        )}
+        aria-hidden="true"
+      />
+      <div className="relative z-10" aria-hidden="true">
         {isNight ? (
           <EmojiIcon emoji="🌙" color="lavender" size="xs" />
         ) : (

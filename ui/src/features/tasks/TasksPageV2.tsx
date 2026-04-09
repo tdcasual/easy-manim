@@ -1,7 +1,3 @@
-/**
- * TasksPageV2 - Kawaii 二次元风格任务管理
- * 梦幻、柔和、可爱的设计风格
- */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -29,9 +25,8 @@ import { useToast } from "../../components/useToast";
 import { DreamyBackground } from "../../components/GradientBackground";
 import { KawaiiTag } from "../../components/KawaiiTag";
 import { AnimatedContainer, HoverAnimation } from "../../components/AnimatedContainer";
-import "./TasksPageV2.css";
+import { cn } from "../../lib/utils";
 
-// 🌸 Kawaii 状态指示器 - 带 emoji 和脉动动画
 function StatusBadge({ status, size = "md" }: { status: string; size?: "sm" | "md" }) {
   const { locale } = useI18n();
 
@@ -58,7 +53,7 @@ function StatusBadge({ status, size = "md" }: { status: string; size?: "sm" | "m
     <KawaiiTag
       variant={s.variant}
       size={tagSize}
-      icon={<span className="status-emoji">{s.icon}</span>}
+      icon={<span className="text-xs">{s.icon}</span>}
       pulse={s.pulse}
     >
       {size === "md" && label}
@@ -66,23 +61,27 @@ function StatusBadge({ status, size = "md" }: { status: string; size?: "sm" | "m
   );
 }
 
-// 🎬 Kawaii 视频卡片 - 带玻璃效果和圆角
 function VideoThumb({ video }: { video: RecentVideoItem }) {
   const previewUrl = resolveApiUrl(video.latest_preview_url);
   const videoUrl = resolveApiUrl(video.latest_video_url);
   const displayTitle = video.display_title ?? video.task_id.slice(0, 8);
 
   return (
-    <div className="video-thumb kawaii-card">
-      <div className="thumb-preview">
+    <div className="group overflow-hidden rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/60">
+      <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-pink-50 to-mint-50 dark:from-slate-800 dark:to-slate-800">
         {previewUrl ? (
-          <img src={previewUrl} alt={displayTitle} loading="lazy" />
+          <img
+            src={previewUrl}
+            alt={displayTitle}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         ) : (
-          <div className="thumb-placeholder">
+          <div className="flex h-full w-full items-center justify-center text-pink-400">
             <Play size={18} />
           </div>
         )}
-        <div className="thumb-status">
+        <div className="absolute right-2 top-2">
           <StatusBadge status={video.status} size="sm" />
         </div>
         {videoUrl && (
@@ -90,19 +89,20 @@ function VideoThumb({ video }: { video: RecentVideoItem }) {
             href={videoUrl}
             target="_blank"
             rel="noreferrer"
-            className="thumb-play"
+            className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <Play size={14} fill="currentColor" />
+            <Play size={14} fill="currentColor" className="text-white drop-shadow-md" />
           </a>
         )}
       </div>
-      <p className="thumb-title">{displayTitle}</p>
+      <p className="truncate px-3 py-2 text-sm font-medium text-cloud-700 dark:text-cloud-200">
+        {displayTitle}
+      </p>
     </div>
   );
 }
 
-// 📝 Kawaii 任务项 - 玻璃卡片效果
 function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: string) => void }) {
   const { t } = useI18n();
   const [showMenu, setShowMenu] = useState(false);
@@ -111,7 +111,6 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
   const displayTitle = task.display_title ?? task.task_id.slice(0, 12);
   const canCancel = ["queued", "running"].includes(task.status.toLowerCase());
 
-  // 点击外部关闭菜单
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -123,18 +122,25 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
   }, []);
 
   return (
-    <div className="task-item kawaii-task-card">
-      <Link to={`/tasks/${encodeURIComponent(task.task_id)}`} className="task-main">
+    <div className="group flex animate-float-in items-center gap-3 rounded-2xl border border-white/60 bg-white/60 px-4 py-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/80 hover:shadow-md dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-slate-900/80 sm:gap-4 sm:px-5 sm:py-4">
+      <Link
+        to={`/tasks/${encodeURIComponent(task.task_id)}`}
+        className="flex min-w-0 flex-1 items-center gap-3 text-inherit no-underline sm:gap-4"
+      >
         <StatusBadge status={task.status} />
-        <div className="task-info">
-          <p className="task-name">{displayTitle}</p>
-          <p className="task-id">🆔 {task.task_id.slice(0, 8)}...</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-cloud-800 dark:text-cloud-100 sm:text-base">
+            {displayTitle}
+          </p>
+          <p className="truncate text-xs text-cloud-500 dark:text-cloud-400">
+            🆔 {task.task_id.slice(0, 8)}...
+          </p>
         </div>
       </Link>
 
-      <div className="task-actions" ref={menuRef}>
+      <div className="relative" ref={menuRef}>
         <button
-          className="action-btn kawaii-icon-btn"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-cloud-100 text-cloud-600 transition-all hover:scale-110 hover:rotate-12 hover:bg-pink-100 hover:text-pink-500 dark:bg-slate-800 dark:text-cloud-400 dark:hover:bg-pink-900/30"
           onClick={() => setShowMenu(!showMenu)}
           aria-label={t("tasks.moreActions")}
         >
@@ -142,10 +148,10 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
         </button>
 
         {showMenu && (
-          <div className="action-menu kawaii-menu">
+          <div className="absolute right-0 top-full z-50 mt-2 min-w-[10rem] animate-pop-in rounded-xl border border-white/60 bg-white/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
             <Link
               to={`/tasks/${encodeURIComponent(task.task_id)}`}
-              className="menu-item"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-cloud-700 transition-colors hover:bg-pink-50 hover:text-pink-600 dark:text-cloud-200 dark:hover:bg-pink-900/20"
               onClick={() => setShowMenu(false)}
             >
               <Wand2 size={16} />
@@ -153,7 +159,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
             </Link>
             {canCancel && onCancel && (
               <button
-                className="menu-item danger"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-peach-600 transition-colors hover:bg-peach-50 dark:text-peach-400 dark:hover:bg-peach-900/20"
                 onClick={() => {
                   onCancel(task.task_id);
                   setShowMenu(false);
@@ -170,7 +176,6 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
   );
 }
 
-// 💬 Kawaii 快速输入区
 interface QuickInputProps {
   onSubmit: (prompt: string) => void;
   creating?: boolean;
@@ -211,10 +216,15 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
   }, []);
 
   return (
-    <div className={`quick-input kawaii-input ${isFocused ? "focused" : ""}`}>
+    <div
+      className={cn(
+        "rounded-full border border-white/60 bg-white/70 p-1.5 shadow-md backdrop-blur-sm transition-all dark:border-white/10 dark:bg-slate-900/60",
+        isFocused && "border-pink-200 shadow-lg shadow-pink-100/30"
+      )}
+    >
       <form onSubmit={handleSubmit}>
-        <div className="input-bubble">
-          <Sparkles size={18} className="input-icon sparkle-icon" />
+        <div className="flex items-center gap-3 px-3 py-2">
+          <Sparkles size={18} className="shrink-0 text-pink-400 animate-bounce" />
           <input
             type="text"
             value={prompt}
@@ -236,25 +246,34 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
               }, 200);
             }}
             placeholder={t("tasks.promptPlaceholder")}
-            className="input-field"
+            className="min-w-0 flex-1 bg-transparent text-sm text-cloud-800 outline-none placeholder:text-cloud-500 dark:text-cloud-100"
           />
           <button
             type="submit"
-            className={`send-btn kawaii-send ${creating ? "loading" : ""}`}
+            className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all",
+              "bg-gradient-to-br from-pink-400 to-pink-500 shadow-pink-200/40",
+              "hover:scale-110 hover:rotate-90 hover:shadow-lg",
+              "disabled:cursor-not-allowed disabled:opacity-60 disabled:scale-100 disabled:rotate-0"
+            )}
             disabled={!prompt.trim() || creating}
             aria-label={creating ? t("tasks.creating") : t("tasks.create")}
           >
-            {creating ? <span className="spinner" aria-hidden="true" /> : <Plus size={18} />}
+            {creating ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <Plus size={18} />
+            )}
           </button>
         </div>
 
         {isFocused && (
-          <div className="quick-chips">
+          <div className="flex flex-wrap gap-2 px-3 pb-3 pt-2 animate-slide-down">
             {quickPrompts.map((item) => (
               <button
                 key={item.text}
                 type="button"
-                className="chip kawaii-chip"
+                className="flex items-center gap-1.5 rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-600 transition-all hover:-translate-y-0.5 hover:bg-pink-100 hover:shadow-sm dark:border-pink-900/30 dark:bg-pink-900/20 dark:text-pink-300"
                 onClick={() => submitPrompt(item.text)}
               >
                 <span>{item.emoji}</span>
@@ -268,7 +287,6 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
   );
 }
 
-// 🌸 统计卡片组件
 function StatCard({
   icon,
   value,
@@ -280,12 +298,30 @@ function StatCard({
   label: string;
   color: "pink" | "mint" | "sky" | "lavender";
 }) {
+  const colorClass = {
+    pink: "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300",
+    mint: "bg-mint-100 text-mint-600 dark:bg-mint-900/30 dark:text-mint-300",
+    sky: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300",
+    lavender: "bg-lavender-100 text-lavender-600 dark:bg-lavender-900/30 dark:text-lavender-300",
+  }[color];
+
   return (
-    <div className={`stat-card stat-${color}`}>
-      <div className="stat-icon-wrapper">{icon}</div>
-      <div className="stat-content">
-        <span className="stat-value">{value}</span>
-        <span className="stat-label">{label}</span>
+    <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/60 bg-white/60 px-4 py-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-slate-900/60 sm:gap-4 sm:px-5 sm:py-4">
+      <div
+        className={cn(
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12",
+          colorClass
+        )}
+      >
+        {icon}
+      </div>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-xl font-bold leading-none text-cloud-800 dark:text-cloud-100 sm:text-2xl">
+          {value}
+        </span>
+        <span className="truncate text-xs font-medium text-cloud-500 dark:text-cloud-400">
+          {label}
+        </span>
       </div>
     </div>
   );
@@ -296,7 +332,6 @@ export function TasksPageV2() {
   const { t } = useI18n();
   const { ARIALiveRegion, announcePolite } = useARIAMessage();
 
-  // 使用新的认证守卫
   const { showAuthModal, requireAuth, closeAuthModal } = useAuthGuard();
 
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
@@ -306,7 +341,6 @@ export function TasksPageV2() {
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "running" | "completed">("all");
 
-  // 加载数据
   const loadData = useCallback(async () => {
     if (!sessionToken) {
       setTasks([]);
@@ -339,7 +373,6 @@ export function TasksPageV2() {
 
   const { success: toastSuccess, error: toastError } = useToast();
 
-  // 创建任务
   const handleCreate = async (prompt: string) => {
     if (!sessionToken || creating) return;
     setCreating(true);
@@ -370,7 +403,6 @@ export function TasksPageV2() {
     }
   };
 
-  // 取消任务
   const handleCancel = async (taskId: string) => {
     if (!sessionToken) return;
     try {
@@ -384,7 +416,6 @@ export function TasksPageV2() {
     }
   };
 
-  // 过滤任务
   const filteredTasks = tasks
     .filter((t) => {
       if (activeTab === "running") return ["queued", "running"].includes(t.status.toLowerCase());
@@ -393,7 +424,6 @@ export function TasksPageV2() {
     })
     .slice(0, 20);
 
-  // 统计
   const stats = {
     total: tasks.length,
     running: tasks.filter((t) => ["queued", "running"].includes(t.status.toLowerCase())).length,
@@ -401,67 +431,66 @@ export function TasksPageV2() {
   };
 
   return (
-    <div className="tasks-page kawaii-page">
-      {/* 🌈 梦幻渐变背景 */}
+    <div className="relative mx-auto min-h-screen max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
       <DreamyBackground />
 
       <ARIALiveRegion />
 
-      {/* 页面标题 - 供测试使用 */}
-      <h1 className="visually-hidden">{t("tasks.page.title")}</h1>
+      <h1 className="sr-only">{t("tasks.page.title")}</h1>
 
-      {/* 🌸 头部统计 - Kawaii 卡片风格 */}
       <AnimatedContainer animation="slide-down" delay={0}>
-        <div className="stats-bar kawaii-stats">
+        <div className="mb-5 flex flex-wrap items-stretch gap-3 sm:mb-6 sm:gap-4">
           <StatCard
-            icon={<Clock size={18} className="stat-icon-inner running" />}
+            icon={<Clock size={18} className="animate-pulse" />}
             value={stats.running}
             label={t("tasks.metric.active")}
             color="sky"
           />
           <StatCard
-            icon={<CheckCircle2 size={18} className="stat-icon-inner completed" />}
+            icon={<CheckCircle2 size={18} />}
             value={stats.completed}
             label={t("tasks.metric.completed")}
             color="mint"
           />
           <StatCard
-            icon={<Film size={18} className="stat-icon-inner" />}
+            icon={<Film size={18} />}
             value={stats.total}
             label={t("tasks.metric.total")}
             color="pink"
           />
           <button
-            className="refresh-btn kawaii-refresh"
+            className="flex h-auto w-12 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white/60 text-cloud-500 shadow-sm backdrop-blur-sm transition-all hover:rotate-180 hover:scale-110 hover:bg-pink-100 hover:text-pink-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:rotate-0 disabled:hover:scale-100 dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-400 sm:w-14"
             onClick={loadData}
             disabled={loading}
             aria-label={t("tasks.refreshList")}
           >
-            <RefreshCw size={18} className={loading ? "spin" : ""} />
+            <RefreshCw size={18} className={cn(loading && "animate-spin")} />
           </button>
         </div>
       </AnimatedContainer>
 
-      {/* 💬 快速输入 */}
       <AnimatedContainer animation="slide-up" delay={100}>
         <QuickInput onSubmit={handleCreate} creating={creating} requireAuth={requireAuth} />
       </AnimatedContainer>
 
-      {/* 🏷️ 标签切换 - Kawaii 风格 */}
       <AnimatedContainer animation="slide-up" delay={150}>
-        <div className="tabs kawaii-tabs">
+        <div className="mb-5 flex gap-2 overflow-x-auto pb-1 sm:mb-6 sm:gap-3">
           {[
             { key: "all" as const, label: t("tasks.tabs.all"), emoji: "🌸" },
             { key: "running" as const, label: t("tasks.tabs.running"), emoji: "🎬" },
             { key: "completed" as const, label: t("tasks.tabs.completed"), emoji: "✨" },
-          ].map((tab, index) => (
+          ].map((tab) => (
             <button
               key={tab.key}
-              className={`tab kawaii-tab ${activeTab === tab.key ? "active" : ""}`}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all sm:px-5 sm:py-2.5",
+                activeTab === tab.key
+                  ? "border-transparent bg-gradient-to-r from-pink-400 to-peach-400 text-white shadow-md shadow-pink-200/40"
+                  : "border-white/60 bg-white/60 text-cloud-600 hover:-translate-y-0.5 hover:border-pink-200 hover:bg-pink-50 hover:text-pink-500 hover:shadow-sm dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-400 dark:hover:bg-pink-900/20"
+              )}
               onClick={() => setActiveTab(tab.key)}
-              style={{ animationDelay: `${index * 50}ms` }}
             >
-              <span className="tab-emoji">{tab.emoji}</span>
+              <span>{tab.emoji}</span>
               <span className="tab-label">{tab.label}</span>
             </button>
           ))}
@@ -469,21 +498,29 @@ export function TasksPageV2() {
       </AnimatedContainer>
 
       {loadError && (
-        <div className="task-load-error" role="alert">
-          <AlertCircle size={18} />
-          <div className="task-load-error-copy">
+        <div
+          className="mb-5 flex items-start gap-3 rounded-2xl border border-pink-200 bg-white/70 px-4 py-3 text-sm text-pink-700 shadow-sm backdrop-blur-sm dark:border-pink-900/30 dark:bg-slate-900/60 dark:text-pink-300"
+          role="alert"
+        >
+          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+          <div className="flex flex-col gap-1">
             <p>{loadError}</p>
-            <span>{t("tasks.loadFailedHint")}</span>
+            <span className="text-xs text-cloud-500 dark:text-cloud-400">
+              {t("tasks.loadFailedHint")}
+            </span>
           </div>
         </div>
       )}
 
-      {/* 📝 任务列表 */}
-      <div className="task-list kawaii-list">
+      <div className="flex flex-col gap-3">
         {loading && tasks.length === 0 ? (
-          <div className="skeleton-list kawaii-skeleton">
+          <div className="flex flex-col gap-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="skeleton-item" style={{ animationDelay: `${i * 100}ms` }} />
+              <div
+                key={i}
+                className="h-[72px] animate-shimmer rounded-2xl bg-gradient-to-r from-cloud-100 via-cloud-200 to-cloud-100"
+                style={{ backgroundSize: "200% 100%", animationDelay: `${i * 100}ms` }}
+              />
             ))}
           </div>
         ) : filteredTasks.length > 0 ? (
@@ -494,38 +531,49 @@ export function TasksPageV2() {
               delay={index * 50}
               trigger="in-view"
             >
-              <HoverAnimation scale={1.01} lift={true}>
+              <HoverAnimation scale={1.01} lift>
                 <TaskItem task={task} onCancel={handleCancel} />
               </HoverAnimation>
             </AnimatedContainer>
           ))
         ) : loadError && tasks.length === 0 ? (
-          <div className="task-load-fallback kawaii-empty" aria-hidden="true">
-            <span className="empty-emoji">💔</span>
-            <p>{loadError}</p>
-            <span>{t("tasks.loadFailedHint")}</span>
+          <div
+            className="flex flex-col items-center rounded-2xl border border-white/60 bg-white/60 px-6 py-12 text-center text-cloud-500 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60"
+            role="alert"
+          >
+            <span className="mb-4 text-6xl animate-float">💔</span>
+            <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">{loadError}</p>
+            <span className="text-sm text-cloud-500 dark:text-cloud-400">
+              {t("tasks.loadFailedHint")}
+            </span>
           </div>
         ) : (
-          <div className="empty-tip kawaii-empty">
-            <span className="empty-emoji">🌸</span>
-            <p>{t("tasks.noTasks")}</p>
-            <span>{t("tasks.noTasksHint")}</span>
+          <div className="flex flex-col items-center rounded-2xl border border-white/60 bg-white/60 px-6 py-12 text-center text-cloud-500 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+            <span className="mb-4 text-6xl animate-float">🌸</span>
+            <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
+              {t("tasks.noTasks")}
+            </p>
+            <span className="text-sm text-cloud-500 dark:text-cloud-400">
+              {t("tasks.noTasksHint")}
+            </span>
           </div>
         )}
       </div>
 
-      {/* 🎬 最近视频 */}
       {videos.length > 0 && (
         <AnimatedContainer animation="fade" delay={200}>
-          <div className="video-section kawaii-section">
-            <h3 className="section-title kawaii-title">
-              <span className="title-emoji">🎬</span>
+          <div className="mt-8">
+            <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-cloud-700 dark:text-cloud-200">
+              <span className="text-xl">🎬</span>
               <span>{t("tasks.recentVideos")}</span>
-              <Link to="/videos" className="view-all kawaii-link">
+              <Link
+                to="/videos"
+                className="ml-auto rounded-full bg-pink-50 px-3 py-1 text-xs font-medium text-pink-500 transition-all hover:translate-x-1 hover:bg-pink-100 dark:bg-pink-900/20 dark:hover:bg-pink-900/30"
+              >
                 {t("tasks.viewAll")} →
               </Link>
             </h3>
-            <div className="video-grid">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {videos.slice(0, 4).map((video, index) => (
                 <AnimatedContainer
                   key={video.task_id}
@@ -533,7 +581,7 @@ export function TasksPageV2() {
                   delay={index * 100}
                   trigger="in-view"
                 >
-                  <HoverAnimation scale={1.03} lift={true}>
+                  <HoverAnimation scale={1.03} lift>
                     <VideoThumb video={video} />
                   </HoverAnimation>
                 </AnimatedContainer>
@@ -543,7 +591,6 @@ export function TasksPageV2() {
         </AnimatedContainer>
       )}
 
-      {/* 🔐 认证弹窗 - 默认折叠，需要时自动弹出 */}
       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );

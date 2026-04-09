@@ -11,50 +11,52 @@
   --primary-700: #1a2332;
   --primary-600: #243447;
   --primary-500: #334155;
-  
+
   /* 强调色 - 极光 */
   --accent-cyan: #00d4ff;
   --accent-purple: #8b5cf6;
   --accent-pink: #ec4899;
   --accent-blue: #3b82f6;
   --accent-indigo: #6366f1;
-  
+
   /* 渐变色 */
-  --gradient-aurora: linear-gradient(135deg, 
-    var(--accent-cyan) 0%, 
-    var(--accent-blue) 50%, 
-    var(--accent-purple) 100%);
-  --gradient-warm: linear-gradient(135deg,
-    var(--accent-pink) 0%,
-    var(--accent-purple) 100%);
-  --gradient-glass: linear-gradient(180deg,
-    rgba(255,255,255,0.05) 0%,
-    rgba(255,255,255,0.01) 100%);
-  
+  --gradient-aurora: linear-gradient(
+    135deg,
+    var(--accent-cyan) 0%,
+    var(--accent-blue) 50%,
+    var(--accent-purple) 100%
+  );
+  --gradient-warm: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-purple) 100%);
+  --gradient-glass: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+
   /* 功能色 */
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --info: #00d4ff;
-  
+
   /* 文字色 */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --text-inverse: #0f1729;
-  
+
   /* 玻璃态 */
   --glass-bg: rgba(15, 23, 41, 0.6);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.05);
-  
+
   /* 阴影 */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
   --shadow-glow-cyan: 0 0 30px rgba(0, 212, 255, 0.3);
   --shadow-glow-purple: 0 0 30px rgba(139, 92, 246, 0.3);
-  
+
   /* 间距 */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -64,23 +66,23 @@
   --space-6: 2rem;
   --space-8: 3rem;
   --space-10: 4rem;
-  
+
   /* 圆角 */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-full: 9999px;
-  
+
   /* 字体 */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
   /* 动画 */
   --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  
+
   color-scheme: dark;
 }
 
@@ -108,10 +110,10 @@ body {
 
 /* Aurora 背景动画 */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
-  background: 
+  background:
     radial-gradient(ellipse 80% 50% at 20% 40%, rgba(0, 212, 255, 0.15), transparent),
     radial-gradient(ellipse 60% 40% at 80% 60%, rgba(139, 92, 246, 0.1), transparent),
     radial-gradient(ellipse 50% 30% at 50% 100%, rgba(236, 72, 153, 0.08), transparent);
@@ -121,7 +123,8 @@ body::before {
 }
 
 @keyframes aurora {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: translateX(0) scale(1);
   }
@@ -137,14 +140,14 @@ body::before {
 
 /* 粒子网格背景 */
 body::after {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
-  mask: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 50%, transparent 100%);
+  mask: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.5) 50%, transparent 100%);
   pointer-events: none;
   z-index: -1;
 }
@@ -169,9 +172,7 @@ body::after {
 }
 
 .glass-card {
-  background: linear-gradient(180deg, 
-    rgba(255,255,255,0.05) 0%, 
-    rgba(255,255,255,0.01) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
@@ -182,7 +183,9 @@ body::after {
 
 .glass-card:hover {
   border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 212, 255, 0.1);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 40px rgba(0, 212, 255, 0.1);
   transform: translateY(-2px);
 }
 
@@ -194,17 +197,17 @@ body::after {
 }
 
 .gradient-border::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: var(--radius-lg);
   padding: 1px;
   background: var(--gradient-aurora);
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
-  mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -277,7 +280,7 @@ body::after {
 }
 
 .btn-glow::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -2px;
   background: var(--gradient-aurora);
@@ -318,8 +321,9 @@ body::after {
 .input:focus,
 .textarea:focus {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1), 
-              inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 0 3px rgba(0, 212, 255, 0.1),
+    inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .textarea {
@@ -345,31 +349,65 @@ body::after {
 }
 
 .status-badge::before {
-  content: '';
+  content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
 }
 
-.status-queued { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
-.status-queued::before { background: var(--warning); }
+.status-queued {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+}
+.status-queued::before {
+  background: var(--warning);
+}
 
-.status-running { background: rgba(0, 212, 255, 0.15); color: var(--accent-cyan); }
-.status-running::before { background: var(--accent-cyan); }
+.status-running {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent-cyan);
+}
+.status-running::before {
+  background: var(--accent-cyan);
+}
 
-.status-rendering { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
-.status-rendering::before { background: var(--accent-blue); }
+.status-rendering {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+.status-rendering::before {
+  background: var(--accent-blue);
+}
 
-.status-completed { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-.status-completed::before { background: var(--success); animation: none; }
+.status-completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+.status-completed::before {
+  background: var(--success);
+  animation: none;
+}
 
-.status-failed { background: rgba(239, 68, 68, 0.15); color: var(--error); }
-.status-failed::before { background: var(--error); animation: none; }
+.status-failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+}
+.status-failed::before {
+  background: var(--error);
+  animation: none;
+}
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
 }
 
 /* ========================================
@@ -389,16 +427,20 @@ body::after {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(20px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateY(0);
   }
@@ -420,12 +462,24 @@ body::after {
   animation: slideUp 0.4s var(--ease-out) backwards;
 }
 
-.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger-children > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.stagger-children > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.stagger-children > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.stagger-children > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.stagger-children > *:nth-child(6) {
+  animation-delay: 250ms;
+}
 
 /* ========================================
    布局组件
@@ -443,34 +497,54 @@ body::after {
   gap: var(--space-5);
 }
 
-.grid-2 { grid-template-columns: repeat(2, 1fr); }
-.grid-3 { grid-template-columns: repeat(3, 1fr); }
-.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
 
 .flex {
   display: flex;
 }
 
-.flex-col { flex-direction: column; }
+.flex-col {
+  flex-direction: column;
+}
 
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-4 { gap: var(--space-4); }
+.items-center {
+  align-items: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-4 {
+  gap: var(--space-4);
+}
 
 /* ========================================
    响应式
    ======================================== */
 
 @media (max-width: 1024px) {
-  .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
   .grid-4,
   .grid-3,
-  .grid-2 { grid-template-columns: 1fr; }
-  
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
   :root {
     --space-5: 1rem;
     --space-6: 1.5rem;
@@ -617,7 +691,10 @@ a:focus-visible {
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  transition:
+    background 0.2s var(--ease-out),
+    color 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
 }
 
 .locale-toggle-btn:hover {
@@ -657,12 +734,12 @@ a:focus-visible {
   *:focus-visible {
     transition: none;
   }
-  
+
   /* 禁用 Aurora 背景动画 */
   body::before {
     animation: none;
   }
-  
+
   /* 禁用所有 CSS 动画类 */
   .animate-fade-in,
   .animate-slide-up,
@@ -670,7 +747,7 @@ a:focus-visible {
   .stagger-children > * {
     animation: none;
   }
-  
+
   /* 禁用状态脉冲动画 */
   .status-badge::before,
   .status-dot.online {

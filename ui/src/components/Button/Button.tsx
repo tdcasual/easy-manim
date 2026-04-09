@@ -1,14 +1,12 @@
-/**
- * Button - 统一按钮组件
- * 设计系统基础组件，支持多种变体和尺寸
- */
 import {
   forwardRef,
   type ReactNode,
   type ButtonHTMLAttributes,
   type AnchorHTMLAttributes,
 } from "react";
-import styles from "./Button.module.css";
+import { Button as UIButton, buttonVariants } from "../ui/button";
+import { cn } from "../../lib/utils";
+import type { VariantProps } from "class-variance-authority";
 
 export type ButtonVariant =
   | "primary"
@@ -23,9 +21,33 @@ export type ButtonVariant =
   | "mint"
   | "sky"
   | "lavender"
-  | "peach"; // 🌸 Kawaii 粉彩变体
+  | "peach";
 
 export type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
+
+const variantMap: Record<ButtonVariant, VariantProps<typeof buttonVariants>["variant"]> = {
+  primary: "default",
+  secondary: "secondary",
+  outline: "outline",
+  ghost: "ghost",
+  danger: "destructive",
+  success: "mint",
+  warning: "peach",
+  info: "sky",
+  pink: "pink",
+  mint: "mint",
+  sky: "sky",
+  lavender: "lavender",
+  peach: "peach",
+};
+
+const sizeMap: Record<ButtonSize, VariantProps<typeof buttonVariants>["size"]> = {
+  xs: "sm",
+  sm: "sm",
+  md: "default",
+  lg: "lg",
+  xl: "lg",
+};
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -57,55 +79,31 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const isDisabled = disabled ?? loading;
-
     return (
-      <button
+      <UIButton
         ref={ref}
-        className={`
-          ${styles.button}
-          ${styles[variant]}
-          ${styles[size]}
-          ${loading ? styles.loading : ""}
-          ${fullWidth ? styles.fullWidth : ""}
-          ${rounded ? styles.rounded : ""}
-          ${elevation ? styles.elevation : ""}
-          ${className}
-        `}
-        disabled={isDisabled}
+        variant={variantMap[variant]}
+        size={sizeMap[size]}
+        loading={loading}
+        disabled={disabled ?? loading}
+        className={cn(
+          fullWidth && "w-full",
+          rounded && "rounded-full",
+          !elevation && "shadow-none hover:shadow-none",
+          className
+        )}
         {...props}
       >
-        {loading && (
-          <span className={styles.spinner} aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray="60"
-                strokeDashoffset="20"
-              />
-            </svg>
-          </span>
-        )}
-        {!loading && icon && iconPosition === "left" && (
-          <span className={styles.iconLeft}>{icon}</span>
-        )}
-        <span className={styles.content}>{children}</span>
-        {!loading && icon && iconPosition === "right" && (
-          <span className={styles.iconRight}>{icon}</span>
-        )}
-      </button>
+        {!loading && icon && iconPosition === "left" && <span className="mr-1">{icon}</span>}
+        {children}
+        {!loading && icon && iconPosition === "right" && <span className="ml-1">{icon}</span>}
+      </UIButton>
     );
   }
 );
 
 Button.displayName = "Button";
 
-// 图标按钮变体
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon: ReactNode;
   variant?: ButtonVariant;
@@ -119,23 +117,27 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     { icon, variant = "ghost", size = "md", loading = false, ariaLabel, className = "", ...props },
     ref
   ) => {
+    const uiSize = sizeMap[size];
+    const isIconSize = uiSize === "sm" ? "icon-sm" : uiSize === "lg" ? "icon-lg" : "icon";
     return (
-      <button
+      <UIButton
         ref={ref}
-        className={`${styles.iconButton} ${styles[variant]} ${styles[size]} ${loading ? styles.loading : ""} ${className}`}
+        variant={variantMap[variant]}
+        size={isIconSize}
+        loading={loading}
         aria-label={ariaLabel}
+        className={className}
         disabled={props.disabled ?? loading}
         {...props}
       >
-        {loading ? <span className={styles.spinnerSmall} aria-hidden="true" /> : icon}
-      </button>
+        {icon}
+      </UIButton>
     );
   }
 );
 
 IconButton.displayName = "IconButton";
 
-// 按钮组
 interface ButtonGroupProps {
   children: ReactNode;
   attached?: boolean;
@@ -144,13 +146,19 @@ interface ButtonGroupProps {
 
 export function ButtonGroup({ children, attached = false, className = "" }: ButtonGroupProps) {
   return (
-    <div className={`${styles.buttonGroup} ${attached ? styles.attached : ""} ${className}`}>
+    <div
+      className={cn(
+        "flex items-center gap-2",
+        attached &&
+          "gap-0 [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none",
+        className
+      )}
+    >
       {children}
     </div>
   );
 }
 
-// 链接按钮（样式像按钮但实际是链接）
 export interface LinkButtonProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -180,12 +188,15 @@ export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
         href={href}
         target={target}
         rel={isExternal ? "noopener noreferrer" : rel}
-        className={`${styles.button} ${styles[variant]} ${styles[size]} ${styles.link}`}
+        className={cn(
+          buttonVariants({ variant: variantMap[variant], size: sizeMap[size] }),
+          "inline-flex"
+        )}
         {...props}
       >
-        {icon && iconPosition === "left" && <span className={styles.iconLeft}>{icon}</span>}
-        <span className={styles.content}>{children}</span>
-        {icon && iconPosition === "right" && <span className={styles.iconRight}>{icon}</span>}
+        {icon && iconPosition === "left" && <span className="mr-1">{icon}</span>}
+        {children}
+        {icon && iconPosition === "right" && <span className="ml-1">{icon}</span>}
       </a>
     );
   }
@@ -193,7 +204,6 @@ export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
 
 LinkButton.displayName = "LinkButton";
 
-// 预设按钮快捷方式
 export const PrimaryButton = forwardRef<HTMLButtonElement, Omit<ButtonProps, "variant">>(
   (props, ref) => <Button ref={ref} variant="primary" {...props} />
 );

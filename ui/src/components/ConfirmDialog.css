@@ -2,10 +2,19 @@
 
 .confirm-dialog-overlay {
   --confirm-overlay-surface: color-mix(in srgb, var(--primary-950) 70%, transparent);
-  --confirm-dialog-surface-start: color-mix(in srgb, var(--surface-secondary) 88%, var(--primary-900) 12%);
-  --confirm-dialog-surface-end: color-mix(in srgb, var(--surface-secondary) 92%, var(--primary-950) 8%);
+  --confirm-dialog-surface-start: color-mix(
+    in srgb,
+    var(--surface-secondary) 88%,
+    var(--primary-900) 12%
+  );
+  --confirm-dialog-surface-end: color-mix(
+    in srgb,
+    var(--surface-secondary) 92%,
+    var(--primary-950) 8%
+  );
   --confirm-dialog-shadow: 0 25px 50px color-mix(in srgb, var(--primary-950) 50%, transparent);
-  --confirm-dialog-inner-border: inset 0 0 0 1px color-mix(in srgb, var(--surface-primary) 10%, transparent);
+  --confirm-dialog-inner-border: inset 0 0 0 1px
+    color-mix(in srgb, var(--surface-primary) 10%, transparent);
   --confirm-dialog-muted-surface: color-mix(in srgb, var(--surface-primary) 28%, transparent);
   --confirm-dialog-muted-surface-hover: color-mix(in srgb, var(--surface-primary) 40%, transparent);
   --confirm-dialog-warning-surface: color-mix(in srgb, var(--warning) 15%, transparent);
@@ -36,16 +45,16 @@
   position: relative;
   width: 90%;
   max-width: 420px;
-  background: linear-gradient(180deg,
+  background: linear-gradient(
+    180deg,
     var(--confirm-dialog-surface-start) 0%,
-    var(--confirm-dialog-surface-end) 100%);
+    var(--confirm-dialog-surface-end) 100%
+  );
   backdrop-filter: blur(40px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  box-shadow: 
-    var(--confirm-dialog-shadow),
-    var(--confirm-dialog-inner-border);
+  box-shadow: var(--confirm-dialog-shadow), var(--confirm-dialog-inner-border);
   animation: confirm-dialog-scale-in 0.3s var(--ease-spring);
 }
 
@@ -176,7 +185,7 @@
     margin: var(--space-4);
     width: calc(100% - var(--space-8));
   }
-  
+
   .confirm-dialog-actions {
     flex-direction: column-reverse;
   }
@@ -188,7 +197,7 @@
   .confirm-dialog {
     animation: none;
   }
-  
+
   .confirm-dialog-btn:hover {
     transform: none;
   }

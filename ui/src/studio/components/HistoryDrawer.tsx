@@ -1,15 +1,16 @@
-/**
- * HistoryDrawer - 历史记录抽屉
- * Kawaii 二次元风格
- */
-import { useRef } from "react";
 import { useI18n } from "../../app/locale";
 import { getStatusLabel } from "../../app/ui";
 import { Play } from "lucide-react";
 import { resolveApiUrl } from "../../lib/api";
 import { EmojiIcon, KawaiiIcon } from "../../components";
-import { DialogShell } from "../../components/DialogShell/DialogShell";
-import styles from "../styles/HistoryDrawer.module.css";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "../../components/ui/sheet";
+import { cn } from "../../lib/utils";
 
 interface HistoryItem {
   id: string;
@@ -27,7 +28,6 @@ interface HistoryDrawerProps {
   activeId?: string;
 }
 
-// 状态配置
 const statusConfig = {
   completed: { emoji: "✨", color: "mint" as const },
   rendering: { emoji: "🎨", color: "sky" as const },
@@ -57,103 +57,107 @@ export function HistoryDrawer({
   activeId,
 }: HistoryDrawerProps) {
   const { locale, t } = useI18n();
-  const drawerRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <DialogShell
-      isOpen={isOpen}
-      onClose={onClose}
-      dialogRef={drawerRef}
-      initialFocusRef={closeButtonRef}
-      className={styles.drawerOpen}
-      ariaLabelledBy="drawer-title"
-      overlayClassName={styles.overlay}
-      overlayAriaLabel="Dismiss history drawer backdrop"
-    >
-      {/* 头部 */}
-      <div className={styles.header}>
-        <div className={styles.headerTitle}>
-          <div className={styles.headerIcon} aria-hidden="true">
-            <EmojiIcon emoji="📚" color="pink" size="sm" />
-          </div>
-          <div className={styles.headerText}>
-            <h2 id="drawer-title">{t("studio.history.title")}</h2>
-            <p>🎨 {t("studio.history.count", { count: items.length })}</p>
-          </div>
-        </div>
-
-        <button
-          ref={closeButtonRef}
-          type="button"
-          onClick={onClose}
-          aria-label={t("studio.history.close")}
-          className={styles.closeButton}
-        >
-          <EmojiIcon emoji="✖️" color="white" size="xs" />
-        </button>
-      </div>
-
-      {/* 列表 */}
-      <div className={styles.list} role="list" aria-label={t("studio.history.list")}>
-        {items.length === 0 ? (
-          <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>
-              <EmojiIcon emoji="📖" color="lavender" size="xl" bounce />
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent
+        side="right"
+        closeLabel={t("studio.history.close")}
+        closeAutoFocus
+        className="w-full max-w-sm border-l border-[var(--glass-border)] bg-[var(--glass-white)] p-0"
+      >
+        <SheetHeader className="border-b border-[var(--glass-border)] p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-100">
+              <EmojiIcon emoji="📚" color="pink" size="sm" />
             </div>
-            <p className={styles.emptyTitle}>{t("studio.history.emptyTitle")}</p>
-            <p className={styles.emptySubtitle}>{t("studio.history.emptySubtitle")}</p>
+            <div className="flex flex-col">
+              <SheetTitle className="text-base font-semibold text-foreground">
+                {t("studio.history.title")}
+              </SheetTitle>
+              <SheetDescription className="text-xs text-muted-foreground">
+                🎨 {t("studio.history.count", { count: items.length })}
+              </SheetDescription>
+            </div>
           </div>
-        ) : (
-          <div className={styles.items}>
-            {items.map((item, index) => {
-              const status = statusConfig[item.status] ?? {
-                emoji: "📹",
-                color: "lavender" as const,
-              };
-              const statusLabel = getStatusLabel(item.status, locale);
-              const isActive = item.id === activeId;
-              const thumbnailUrl = resolveThumbnailUrl(item.thumbnailUrl);
+        </SheetHeader>
 
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onItemClick(item.id)}
-                  role="listitem"
-                  aria-current={isActive ? "true" : undefined}
-                  aria-label={`${item.title}, ${statusLabel}, ${item.timestamp}`}
-                  className={isActive ? styles.itemActive : styles.item}
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  {/* 缩略图 */}
-                  {thumbnailUrl ? (
-                    <div className={styles.thumbnail} aria-hidden="true">
-                      <img className={styles.thumbnailImage} src={thumbnailUrl} alt="" />
-                    </div>
-                  ) : (
-                    <div className={styles.thumbnailPlaceholder} aria-hidden="true">
-                      <KawaiiIcon icon={Play} color="white" size="xs" />
-                    </div>
-                  )}
+        <div
+          className="flex-1 overflow-y-auto p-4"
+          role="list"
+          aria-label={t("studio.history.list")}
+        >
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-lavender-100">
+                <EmojiIcon emoji="📖" color="lavender" size="xl" bounce />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                {t("studio.history.emptyTitle")}
+              </p>
+              <p className="text-xs text-muted-foreground">{t("studio.history.emptySubtitle")}</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {items.map((item, index) => {
+                const status = statusConfig[item.status] ?? {
+                  emoji: "📹",
+                  color: "lavender" as const,
+                };
+                const statusLabel = getStatusLabel(item.status, locale);
+                const isActive = item.id === activeId;
+                const thumbnailUrl = resolveThumbnailUrl(item.thumbnailUrl);
 
-                  {/* 信息 */}
-                  <div className={styles.itemInfo}>
-                    <p className={styles.itemTitle}>{item.title}</p>
-                    <div className={styles.itemMeta}>
-                      <span className={styles.status}>
-                        <EmojiIcon emoji={status.emoji} color={status.color} size="xs" />
-                        {statusLabel}
-                      </span>
-                      <span className={styles.timestamp}>{item.timestamp}</span>
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onItemClick(item.id)}
+                    role="listitem"
+                    aria-current={isActive ? "true" : undefined}
+                    aria-label={`${item.title}, ${statusLabel}, ${item.timestamp}`}
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl border p-3 text-left transition-all animate-slide-up",
+                      isActive
+                        ? "border-pink-300 bg-pink-50/60 shadow-sm"
+                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                    )}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    {thumbnailUrl ? (
+                      <div
+                        className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl"
+                        aria-hidden="true"
+                      >
+                        <img className="h-full w-full object-cover" src={thumbnailUrl} alt="" />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-300 to-lavender-300"
+                        aria-hidden="true"
+                      >
+                        <KawaiiIcon icon={Play} color="white" size="xs" />
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <EmojiIcon emoji={status.emoji} color={status.color} size="xs" />
+                          {statusLabel}
+                        </span>
+                        <span>·</span>
+                        <span>{item.timestamp}</span>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </DialogShell>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

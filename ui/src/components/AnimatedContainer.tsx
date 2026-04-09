@@ -1,9 +1,5 @@
-/**
- * AnimatedContainer - 动画容器组件
- * 为子元素提供进入/退出动画效果
- */
 import { useState, useEffect, useRef, type ReactNode } from "react";
-import "./AnimatedContainer.css";
+import { cn } from "../lib/utils";
 
 export type AnimationType =
   | "fade"
@@ -25,6 +21,18 @@ interface AnimatedContainerProps {
   trigger?: "mount" | "in-view" | "manual";
   onAnimationEnd?: () => void;
 }
+
+const animationClassMap: Record<AnimationType, string> = {
+  fade: "animate-fade-in",
+  "slide-up": "animate-slide-up",
+  "slide-down": "animate-slide-down",
+  "slide-left": "animate-slide-left",
+  "slide-right": "animate-slide-right",
+  scale: "animate-scale-in",
+  bounce: "animate-bounce-in",
+  flip: "animate-flip-in",
+  rotate: "animate-rotate-in",
+};
 
 export function AnimatedContainer({
   children,
@@ -67,26 +75,25 @@ export function AnimatedContainer({
     }
   }, [trigger, delay, hasAnimated]);
 
-  const handleAnimationEnd = () => {
-    onAnimationEnd?.();
-  };
-
   return (
     <div
       ref={ref}
-      className={`animated-container ${animation} ${isVisible ? "visible" : ""} ${className}`}
+      className={cn(
+        "will-change-transform opacity-0",
+        isVisible && ["visible", animationClassMap[animation]],
+        className
+      )}
       style={{
         animationDuration: `${duration}ms`,
         animationDelay: `${delay}ms`,
       }}
-      onAnimationEnd={handleAnimationEnd}
+      onAnimationEnd={onAnimationEnd}
     >
       {children}
     </div>
   );
 }
 
-// 交错动画列表
 interface StaggeredListProps<T> {
   items: T[];
   renderItem: (item: T, index: number) => ReactNode;
@@ -105,7 +112,7 @@ export function StaggeredList<T>({
   className = "",
 }: StaggeredListProps<T>) {
   return (
-    <div className={`staggered-list ${className}`}>
+    <div className={cn("flex flex-col gap-3", className)}>
       {items.map((item, index) => (
         <AnimatedContainer
           key={keyExtractor(item, index)}
@@ -120,7 +127,6 @@ export function StaggeredList<T>({
   );
 }
 
-// 页面过渡包装器
 interface PageTransitionProps {
   children: ReactNode;
   className?: string;
@@ -128,7 +134,7 @@ interface PageTransitionProps {
 
 export function PageTransition({ children, className = "" }: PageTransitionProps) {
   return (
-    <div className={`page-transition ${className}`}>
+    <div className={cn("relative", className)}>
       <AnimatedContainer animation="fade" duration={300}>
         {children}
       </AnimatedContainer>
@@ -136,7 +142,6 @@ export function PageTransition({ children, className = "" }: PageTransitionProps
   );
 }
 
-// 悬停动画包装器
 interface HoverAnimationProps {
   children: ReactNode;
   scale?: number;
@@ -159,13 +164,12 @@ export function HoverAnimation({
   } as React.CSSProperties;
 
   return (
-    <div className={`hover-animation ${className}`} style={style}>
+    <div className={cn("hover-animate", className)} style={style}>
       {children}
     </div>
   );
 }
 
-// 浮动动画装饰
 interface FloatingElementProps {
   children: ReactNode;
   amplitude?: number;
@@ -183,7 +187,7 @@ export function FloatingElement({
 }: FloatingElementProps) {
   return (
     <div
-      className={`floating-element ${className}`}
+      className={cn("floating-element", className)}
       style={
         {
           "--float-amplitude": `${amplitude}px`,
@@ -197,7 +201,6 @@ export function FloatingElement({
   );
 }
 
-// 发光效果装饰
 interface GlowEffectProps {
   children: ReactNode;
   color?: string;
@@ -221,7 +224,7 @@ export function GlowEffect({
 
   return (
     <div
-      className={`glow-effect ${pulse ? "pulse" : ""} ${className}`}
+      className={cn("relative", pulse && "animate-pulse-glow", className)}
       style={
         {
           "--glow-color": color,
@@ -229,12 +232,19 @@ export function GlowEffect({
         } as React.CSSProperties
       }
     >
+      <span
+        className="pointer-events-none absolute -inset-1 -z-10 rounded-[inherit] opacity-0 transition-opacity duration-300"
+        style={{
+          background: `var(--glow-color, currentColor)`,
+          filter: "blur(12px)",
+        }}
+        aria-hidden="true"
+      />
       {children}
     </div>
   );
 }
 
-// 闪光效果
 interface SparkleProps {
   children: ReactNode;
   active?: boolean;
@@ -245,9 +255,17 @@ export function Sparkle({ children, active = true, className = "" }: SparkleProp
   if (!active) return <>{children}</>;
 
   return (
-    <div className={`sparkle-container ${className}`}>
+    <div className={cn("relative inline-block", className)}>
       {children}
-      <div className="sparkle-effect" aria-hidden="true" />
+      <span className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <span className="absolute -right-2 -top-2 animate-twinkle text-lg">✨</span>
+        <span
+          className="absolute -bottom-1 -left-1 animate-twinkle text-base"
+          style={{ animationDelay: "1s" }}
+        >
+          ✨
+        </span>
+      </span>
     </div>
   );
 }

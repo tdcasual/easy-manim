@@ -543,7 +543,7 @@ test("task detail renders owner review panel and submits the recommended workflo
     },
     pin_workflow_memory_ids: ["mem-a"],
   });
-  expect(await screen.findByRole("alert")).toHaveTextContent(/工作流动作已执行/i);
+  expect(await screen.findByText(/工作流动作已执行/i, {}, { timeout: 3000 })).toBeInTheDocument();
   expect(
     await screen.findByRole("heading", { name: "工作流评审面板测试 - 子任务" })
   ).toBeInTheDocument();
@@ -725,7 +725,7 @@ test("task detail refreshes review panel feedback after a panel-only workflow ac
 
   await user.click(screen.getByRole("button", { name: /keep reviewing/i }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent(/工作流动作已执行/i);
+  expect(await screen.findByText(/工作流动作已执行/i, {}, { timeout: 3000 })).toBeInTheDocument();
   expect(await screen.findByText(/review kept open/i)).toBeInTheDocument();
   expect(
     screen.getByText(/the panel refreshed in place after the workflow action completed/i)
@@ -898,7 +898,7 @@ test("task detail reloads task state after a task-and-panel workflow action", as
   expect(await screen.findByRole("heading", { name: "工作流整页刷新测试" })).toBeInTheDocument();
   await user.click(await screen.findByRole("button", { name: /accept best version/i }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent(/工作流动作已执行/i);
+  expect(await screen.findByText(/工作流动作已执行/i, {}, { timeout: 3000 })).toBeInTheDocument();
   expect(
     await screen.findByText(/accepted result is now reflected in the task shell/i)
   ).toBeInTheDocument();

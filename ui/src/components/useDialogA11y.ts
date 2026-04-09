@@ -97,17 +97,16 @@ export function useDialogA11y<T extends HTMLElement>({
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflowRef.current;
 
-      const restoreTarget = restoreFocusRef?.current ?? previousFocusedRef.current;
-      if (restoreTarget?.isConnected) {
-        restoreTarget.focus();
+      const primaryTarget = restoreFocusRef?.current ?? previousFocusedRef.current;
+      if (primaryTarget?.isConnected) {
+        primaryTarget.focus();
         return;
       }
 
-      if (restoreFocusRef?.current?.isConnected) {
+      const fallbackTarget = restoreFocusRef?.current;
+      if (fallbackTarget?.isConnected) {
         queueMicrotask(() => {
-          if (restoreFocusRef.current?.isConnected) {
-            restoreFocusRef.current.focus();
-          }
+          fallbackTarget.focus();
         });
       }
     };

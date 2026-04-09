@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Kawaii Pastel Colors */
+  --color-pink-50: #fff5f7;
+  --color-pink-100: #ffe4e9;
+  --color-pink-200: #ffc9d4;
+  --color-pink-300: #ffa0b5;
+  --color-pink-400: #ff7a9a;
+  --color-pink-500: #ff6b8a;
+  --color-pink-600: #ff4d73;
+  --color-pink-700: #e63950;
+  --color-pink-800: #c92a40;
+  --color-pink-900: #a61e32;
+
+  --color-mint-50: #f0fdf7;
+  --color-mint-100: #d4f5e9;
+  --color-mint-200: #a8e6cf;
+  --color-mint-300: #7fd4b6;
+  --color-mint-400: #5fc9a3;
+  --color-mint-500: #4db390;
+  --color-mint-600: #3d997a;
+  --color-mint-700: #2e7d64;
+  --color-mint-800: #20634d;
+  --color-mint-900: #154a38;
+
+  --color-sky-50: #f0f9ff;
+  --color-sky-100: #d4f1f9;
+  --color-sky-200: #a8d8ea;
+  --color-sky-300: #7fc4db;
+  --color-sky-400: #5ab4d1;
+  --color-sky-500: #4aa3c1;
+  --color-sky-600: #3a8ba6;
+  --color-sky-700: #2e7088;
+  --color-sky-800: #205669;
+  --color-sky-900: #153f4d;
+
+  --color-lavender-50: #faf5ff;
+  --color-lavender-100: #f0d4f0;
+  --color-lavender-200: #e6c2e6;
+  --color-lavender-300: #dda0dd;
+  --color-lavender-400: #c77ec7;
+  --color-lavender-500: #a855a8;
+  --color-lavender-600: #933e93;
+  --color-lavender-700: #7d287d;
+  --color-lavender-800: #681e68;
+  --color-lavender-900: #521452;
+
+  --color-peach-50: #fff8f5;
+  --color-peach-100: #ffe8e0;
+  --color-peach-200: #ffd4c4;
+  --color-peach-300: #ffc2a8;
+  --color-peach-400: #ffb08c;
+  --color-peach-500: #f48c4b;
+  --color-peach-600: #e07a3a;
+  --color-peach-700: #c4682e;
+  --color-peach-800: #a35424;
+  --color-peach-900: #82401a;
+
+  --color-lemon-50: #fffef5;
+  --color-lemon-100: #fffdd6;
+  --color-lemon-200: #fffab3;
+  --color-lemon-300: #fff78a;
+  --color-lemon-400: #ffef5c;
+  --color-lemon-500: #f2d640;
+  --color-lemon-600: #d4b830;
+  --color-lemon-700: #b59a24;
+  --color-lemon-800: #967c1a;
+  --color-lemon-900: #785e12;
+
+  --color-cloud-50: #ffffff;
+  --color-cloud-100: #fafafa;
+  --color-cloud-200: #f5f5f5;
+  --color-cloud-300: #e8e8e8;
+  --color-cloud-400: #d4d4d4;
+  --color-cloud-500: #a8a8a8;
+  --color-cloud-600: #7a7a7a;
+  --color-cloud-700: #525252;
+  --color-cloud-800: #333333;
+  --color-cloud-900: #1a1a1a;
+
+  /* Radius */
+  --radius-kawaii: 1.5rem;
+  --radius-blob: 60% 40% 30% 70% / 60% 30% 70% 40%;
+
+  /* Animation easings */
+  --ease-kawaii: cubic-bezier(0.34, 1.8, 0.64, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Dark mode is driven by data-theme attribute */
+@custom-variant dark (&:where([data-theme="night"], [data-theme="night"] *));

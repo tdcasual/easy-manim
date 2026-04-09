@@ -1,0 +1,198 @@
+/* ========================================
+   Kawaii Theme Variables for shadcn/ui
+   Day / Night modes via data-theme
+   ======================================== */
+
+:root {
+  /* Core pastel palette as raw HSL values for shadcn */
+  --pink-50: 350 100% 98%;
+  --pink-100: 350 100% 93%;
+  --pink-200: 350 100% 86%;
+  --pink-300: 350 100% 77%;
+  --pink-400: 350 100% 71%;
+  --pink-500: 350 100% 71%;
+  --pink-600: 350 100% 65%;
+  --pink-700: 350 80% 56%;
+  --pink-800: 350 78% 47%;
+  --pink-900: 350 75% 38%;
+
+  --mint-50: 152 80% 97%;
+  --mint-100: 152 67% 90%;
+  --mint-200: 152 62% 78%;
+  --mint-300: 152 55% 66%;
+  --mint-400: 152 50% 58%;
+  --mint-500: 152 47% 50%;
+  --mint-600: 152 45% 42%;
+  --mint-700: 152 43% 34%;
+  --mint-800: 152 41% 26%;
+  --mint-900: 152 38% 18%;
+
+  --sky-50: 197 100% 97%;
+  --sky-100: 197 80% 90%;
+  --sky-200: 197 70% 79%;
+  --sky-300: 197 60% 67%;
+  --sky-400: 197 55% 58%;
+  --sky-500: 197 50% 52%;
+  --sky-600: 197 48% 44%;
+  --sky-700: 197 46% 35%;
+  --sky-800: 197 44% 27%;
+  --sky-900: 197 42% 19%;
+
+  --lavender-50: 300 100% 98%;
+  --lavender-100: 300 50% 88%;
+  --lavender-200: 300 45% 83%;
+  --lavender-300: 300 40% 75%;
+  --lavender-400: 300 38% 64%;
+  --lavender-500: 300 33% 50%;
+  --lavender-600: 300 41% 41%;
+  --lavender-700: 300 50% 32%;
+  --lavender-800: 300 55% 26%;
+  --lavender-900: 300 60% 20%;
+
+  --peach-50: 20 100% 98%;
+  --peach-100: 20 100% 94%;
+  --peach-200: 20 100% 88%;
+  --peach-300: 25 100% 83%;
+  --peach-400: 25 100% 77%;
+  --peach-500: 24 88% 62%;
+  --peach-600: 22 72% 55%;
+  --peach-700: 20 65% 47%;
+  --peach-800: 18 58% 39%;
+  --peach-900: 16 52% 31%;
+
+  --lemon-50: 55 100% 98%;
+  --lemon-100: 55 100% 92%;
+  --lemon-200: 55 100% 85%;
+  --lemon-300: 55 100% 77%;
+  --lemon-400: 55 100% 67%;
+  --lemon-500: 50 86% 60%;
+  --lemon-600: 48 72% 51%;
+  --lemon-700: 46 65% 42%;
+  --lemon-800: 44 58% 35%;
+  --lemon-900: 42 52% 27%;
+
+  --cloud-50: 0 0% 100%;
+  --cloud-100: 0 0% 98%;
+  --cloud-200: 0 0% 96%;
+  --cloud-300: 0 0% 91%;
+  --cloud-400: 0 0% 83%;
+  --cloud-500: 0 0% 66%;
+  --cloud-600: 0 0% 48%;
+  --cloud-700: 0 0% 32%;
+  --cloud-800: 0 0% 20%;
+  --cloud-900: 0 0% 10%;
+
+  /* Glassmorphism */
+  --glass-backdrop: blur(20px) saturate(180%);
+  --glass-border-day: rgba(255, 255, 255, 0.5);
+  --glass-border-night: rgba(255, 255, 255, 0.1);
+
+  /* Day theme (default) */
+  --background: 197 60% 96%;
+  --foreground: 15 30% 24%;
+  --card: 0 0% 100%;
+  --card-foreground: 15 30% 24%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 15 30% 24%;
+  --primary: 350 100% 71%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 152 47% 50%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 197 40% 94%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 197 50% 52%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 197 30% 88%;
+  --input: 197 30% 88%;
+  --ring: 350 100% 71%;
+  --radius: 1rem;
+
+  /* Ghibli sky gradients */
+  --sky-top: #e8f4f8;
+  --sky-mid: #f0f7fa;
+  --sky-bottom: #fff8f0;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 2px 4px rgb(255 107 138 / 0.06);
+  --shadow-md: 0 4px 12px rgb(255 107 138 / 0.08);
+  --shadow-lg: 0 8px 24px rgb(77 179 144 / 0.1);
+  --shadow-xl: 0 16px 40px rgb(77 179 144 / 0.12);
+  --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.3);
+}
+
+/* Night theme overrides */
+[data-theme="night"] {
+  --background: 220 30% 8%;
+  --foreground: 30 20% 96%;
+  --card: 220 25% 12%;
+  --card-foreground: 30 20% 96%;
+  --popover: 220 25% 12%;
+  --popover-foreground: 30 20% 96%;
+  --primary: 350 100% 78%;
+  --primary-foreground: 220 30% 8%;
+  --secondary: 152 45% 60%;
+  --secondary-foreground: 220 30% 8%;
+  --muted: 220 20% 16%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 197 50% 65%;
+  --accent-foreground: 220 30% 8%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 20% 20%;
+  --input: 220 20% 20%;
+  --ring: 350 100% 78%;
+
+  --sky-top: #0a0e1a;
+  --sky-mid: #121829;
+  --sky-bottom: #1a2332;
+
+  --shadow-sm: 0 2px 4px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 16px 40px rgb(0 0 0 / 0.6);
+  --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.08);
+}
+
+/* Body background gradient */
+html {
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 50%,
+    var(--sky-bottom) 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Scrollbar kawaii styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.5);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.4);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.6);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

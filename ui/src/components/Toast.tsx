@@ -1,36 +1,27 @@
-/**
- * Toast Notification System
- * 全局通知系统
- */
-import { useState, useCallback, useEffect } from "react";
-import { X, CheckCircle, AlertCircle, Info } from "lucide-react";
-import { useI18n } from "../app/locale";
+import { useCallback } from "react";
+import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
+import { useTheme } from "../studio/hooks/useTheme";
 import { ToastContext, ToastType } from "./ToastContext";
-import "./Toast.css";
-
-interface ToastItem {
-  id: string;
-  message: string;
-  type: ToastType;
-  duration?: number;
-}
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const { t } = useI18n();
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const { isNight } = useTheme();
 
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  const toast = useCallback((message: string, type: ToastType = "info", duration = 3000) => {
+    const options = { duration };
+    switch (type) {
+      case "success":
+        sonnerToast.success(message, options);
+        break;
+      case "error":
+        sonnerToast.error(message, options);
+        break;
+      case "warning":
+        sonnerToast.warning(message, options);
+        break;
+      default:
+        sonnerToast(message, options);
+    }
   }, []);
-
-  const toast = useCallback(
-    (message: string, type: ToastType = "info", duration = 3000) => {
-      const id = Math.random().toString(36).slice(2);
-      setToasts((prev) => [...prev, { id, message, type, duration }]);
-      setTimeout(() => removeToast(id), duration);
-    },
-    [removeToast]
-  );
 
   const success = useCallback(
     (message: string, duration?: number) => {
@@ -63,50 +54,31 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast, success, error, warning, info }}>
       {children}
-      <div className="toast-container" role="region" aria-label={t("toast.region")}>
-        {toasts.map((t) => (
-          <Toast key={t.id} item={t} onClose={() => removeToast(t.id)} />
-        ))}
-      </div>
+      <SonnerToaster
+        position="top-center"
+        richColors
+        closeButton
+        toastOptions={{
+          classNames: {
+            toast:
+              "group toast flex w-full items-center gap-3 rounded-2xl border border-border bg-card/90 p-4 shadow-lg backdrop-blur-md",
+            title: "text-sm font-medium text-foreground",
+            description: "text-xs text-muted-foreground",
+            actionButton:
+              "inline-flex h-8 items-center justify-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground",
+            cancelButton:
+              "inline-flex h-8 items-center justify-center rounded-lg bg-muted px-3 text-xs font-medium text-muted-foreground",
+            error: "border-destructive/30 text-destructive",
+            success: "border-mint-500/30 text-mint-600",
+            warning: "border-peach-500/30 text-peach-600",
+            info: "border-sky-500/30 text-sky-600",
+          },
+        }}
+        theme={isNight ? "dark" : "light"}
+      />
     </ToastContext.Provider>
   );
 }
 
-function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
-  const { t } = useI18n();
-
-  useEffect(() => {
-    const timer = setTimeout(onClose, item.duration);
-    return () => clearTimeout(timer);
-  }, [item.duration, onClose]);
-
-  const icons = {
-    success: <CheckCircle size={18} />,
-    error: <AlertCircle size={18} />,
-    warning: <AlertCircle size={18} />,
-    info: <Info size={18} />,
-  };
-
-  const labels = {
-    success: t("toast.type.success"),
-    error: t("toast.type.error"),
-    warning: t("toast.type.warning"),
-    info: t("toast.type.info"),
-  };
-
-  return (
-    <div className={`toast toast-${item.type}`} role="alert" aria-live="polite">
-      <span className="toast-icon" aria-label={labels[item.type]}>
-        {icons[item.type]}
-      </span>
-      <span className="toast-message">{item.message}</span>
-      <button className="toast-close" onClick={onClose} aria-label={t("toast.close")} type="button">
-        <X size={14} />
-      </button>
-    </div>
-  );
-}
-
-export default ToastProvider;
 export { ToastContext } from "./ToastContext";
 export type { ToastType } from "./ToastContext";
