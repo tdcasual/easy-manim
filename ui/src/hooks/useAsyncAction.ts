@@ -1,46 +1,46 @@
 /**
- * 异步动作执行 Hook
- * 自动处理状态管理和错误边界
+ * Async action execution hook
+ * Auto-manages state and error boundaries.
  */
 import { useState, useCallback, useRef } from "react";
 import { AsyncStatus } from "./useAsyncStatus";
 
 export interface UseAsyncActionOptions<TData, TError> {
-  /** 成功回调 */
+  /** Success callback */
   onSuccess?: (data: TData) => void;
-  /** 错误回调 */
+  /** Error callback */
   onError?: (error: TError) => void;
-  /** 是否自动重置状态 */
+  /** Whether to auto-reset state */
   autoReset?: boolean;
-  /** 自动重置延迟（毫秒） */
+  /** Auto-reset delay in milliseconds */
   autoResetDelay?: number;
 }
 
 export interface UseAsyncActionReturn<TData, TError> {
-  /** 当前状态 */
+  /** Current status */
   status: AsyncStatus;
-  /** 返回数据 */
+  /** Returned data */
   data: TData | null;
-  /** 错误信息 */
+  /** Error message */
   error: TError | null;
-  /** 是否正在执行 */
+  /** Whether the action is running */
   isLoading: boolean;
-  /** 是否成功 */
+  /** Whether the action succeeded */
   isSuccess: boolean;
-  /** 是否失败 */
+  /** Whether the action failed */
   isError: boolean;
-  /** 执行异步动作 */
+  /** Execute the async action */
   execute: (...args: unknown[]) => Promise<TData | null>;
-  /** 重置状态 */
+  /** Reset state */
   reset: () => void;
 }
 
 /**
- * 用于执行异步动作的 Hook，自动管理完整生命周期
+ * Hook for executing async actions with full lifecycle management.
  *
- * @param action 异步动作函数
- * @param options 配置选项
- * @returns 状态和控制器
+ * @param action Async action function.
+ * @param options Configuration options.
+ * @returns State and controller.
  *
  * @example
  * ```tsx
@@ -52,7 +52,7 @@ export interface UseAsyncActionReturn<TData, TError> {
  *   }
  * );
  *
- * // 执行
+ * // Execute
  * await fetchUser.execute('user-123');
  * ```
  */
@@ -79,7 +79,7 @@ export function useAsyncAction<TData = unknown, TError = Error>(
 
   const execute = useCallback(
     async (...args: unknown[]): Promise<TData | null> => {
-      // 取消之前的请求
+      // Cancel previous request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

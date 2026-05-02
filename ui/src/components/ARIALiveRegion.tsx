@@ -1,6 +1,6 @@
 /**
- * ARIA Live Region Component
- * 无障碍实时消息宣布组件
+ * ARIA live region component
+ * Accessibility live-message announcement component.
  */
 import { useEffect, useRef } from "react";
 
@@ -10,7 +10,7 @@ interface ARIALiveRegionProps {
   clearAfter?: number;
 }
 
-// 全局的 ARIA Live 区域，用于宣布状态变化
+// Global ARIA live region for announcing state changes.
 export function ARIALiveRegion({
   message,
   level = "polite",
@@ -20,7 +20,7 @@ export function ARIALiveRegion({
 
   useEffect(() => {
     if (message && ref.current) {
-      // 清除消息以避免重复读取
+      // Clear message to avoid repeated reading
       const timer = setTimeout(() => {
         if (ref.current) {
           ref.current.textContent = "";

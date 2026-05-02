@@ -63,24 +63,32 @@ export function KawaiiIcon({
   size = "md",
   className = "",
   pulse = false,
-  bounce = false,
-  rotate = false,
+  bounce: _bounce = false,
+  rotate: _rotate = false,
   onClick,
 }: KawaiiIconProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-full transition-all duration-300",
+        "inline-flex items-center justify-center rounded-full transition-colors transition-transform duration-300",
         colorClassMap[color],
         sizeClassMap[size],
-        pulse && "animate-pulse-glow",
-        bounce && "animate-bounce-kawaii",
-        rotate && "animate-spin-slow",
+        pulse && "ring-2 ring-current ring-offset-1",
         onClick && "cursor-pointer min-h-11 min-w-11 hover:scale-120 active:scale-95",
         !onClick && "hover:scale-115 hover:rotate-[5deg]",
         className
       )}
       onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
@@ -104,16 +112,15 @@ export function EmojiIcon({
   size = "md",
   className = "",
   pulse = false,
-  bounce = false,
+  bounce: _bounce = false,
 }: EmojiIconProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-full leading-none transition-all duration-300",
+        "inline-flex items-center justify-center rounded-full leading-none transition-colors transition-transform duration-300",
         colorClassMap[color],
         sizeClassMap[size],
-        pulse && "animate-pulse-glow",
-        bounce && "animate-bounce-kawaii",
+        pulse && "ring-2 ring-current ring-offset-1",
         "hover:scale-115 hover:rotate-[5deg]",
         className
       )}
@@ -143,7 +150,7 @@ export function KawaiiIconButton({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-full border-none text-white transition-all duration-300 hover:scale-115 hover:rotate-[10deg] active:scale-95",
+        "inline-flex items-center justify-center rounded-full border-none text-white transition-colors transition-transform duration-300 hover:scale-115 hover:rotate-[10deg] active:scale-95",
         colorClassMap[color],
         size === "xs" || size === "sm" || size === "md"
           ? "h-11 w-11"
@@ -211,18 +218,15 @@ export function FloatingIcon({
   emoji,
   color = "pink",
   size = "md",
-  delay = 0,
+  delay: _delay = 0,
   className = "",
 }: FloatingIconProps) {
   return (
-    <span
-      className={cn("inline-block animate-float", className)}
-      style={{ animationDelay: `${delay}s` }}
-    >
+    <span className={cn("inline-block", className)}>
       {emoji ? (
-        <EmojiIcon emoji={emoji} color={color} size={size} bounce />
+        <EmojiIcon emoji={emoji} color={color} size={size} />
       ) : icon ? (
-        <KawaiiIcon icon={icon} color={color} size={size} bounce />
+        <KawaiiIcon icon={icon} color={color} size={size} />
       ) : null}
     </span>
   );

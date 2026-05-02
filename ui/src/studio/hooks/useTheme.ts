@@ -1,6 +1,6 @@
 /**
- * useTheme - 主题管理 Hook
- * 管理白天/夜间模式切换
+ * useTheme - theme management hook.
+ * Manages day/night mode switching.
  */
 import { useEffect, useState, useCallback } from "react";
 
@@ -18,7 +18,7 @@ function getStoredTheme(): Theme {
       return stored;
     }
 
-    // 检测系统偏好
+    // Detect system preference
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     return prefersDark ? "night" : "day";
   } catch {
@@ -32,7 +32,7 @@ function setStoredTheme(theme: Theme): void {
   try {
     localStorage.setItem(THEME_KEY, theme);
   } catch {
-    // 忽略存储错误
+    // Ignore storage errors
   }
 }
 
@@ -40,14 +40,14 @@ export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
   const [isReady, setIsReady] = useState(false);
 
-  // 初始化时从存储读取
+  // Read from storage on initialization
   useEffect(() => {
     const stored = getStoredTheme();
     setThemeState(stored);
     setIsReady(true);
   }, []);
 
-  // 应用主题到 document
+  // Apply theme to document
   useEffect(() => {
     if (!isReady) return;
 
@@ -55,12 +55,12 @@ export function useTheme() {
     setStoredTheme(theme);
   }, [theme, isReady]);
 
-  // 切换主题
+  // Toggle theme
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => (prev === "day" ? "night" : "day"));
   }, []);
 
-  // 设置指定主题
+  // Set specific theme
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
   }, []);

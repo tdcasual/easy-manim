@@ -11,7 +11,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-xl border border-border bg-card/60 px-3 py-2 text-sm text-foreground shadow-sm transition-all",
+          "flex h-10 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors",
           "placeholder:text-muted-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-primary",
           "disabled:cursor-not-allowed disabled:opacity-50",
@@ -32,7 +32,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <textarea
         className={cn(
-          "flex min-h-[80px] w-full rounded-xl border border-border bg-card/60 px-3 py-2 text-sm text-foreground shadow-sm transition-all",
+          "flex min-h-[80px] w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors",
           "placeholder:text-muted-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-primary",
           "disabled:cursor-not-allowed disabled:opacity-50",
@@ -54,7 +54,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <select
         className={cn(
-          "flex h-10 w-full rounded-xl border border-border bg-card/60 px-3 py-2 text-sm text-foreground shadow-sm transition-all",
+          "flex h-10 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-primary",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className
@@ -77,7 +77,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       <input
         type="checkbox"
         className={cn(
-          "h-5 w-5 rounded-md border-2 border-border bg-card/60 text-primary accent-primary transition-all",
+          "h-5 w-5 rounded-md border-2 border-border bg-card text-primary accent-primary transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className
@@ -97,7 +97,7 @@ const Radio = React.forwardRef<HTMLInputElement, RadioProps>(({ className, ...pr
     <input
       type="radio"
       className={cn(
-        "h-5 w-5 border-2 border-border bg-card/60 text-primary accent-primary transition-all",
+        "h-5 w-5 border-2 border-border bg-card text-primary accent-primary transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className

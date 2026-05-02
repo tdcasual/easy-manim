@@ -1,20 +1,20 @@
 /**
- * LocalStorage Hook
- * 安全地使用 localStorage，支持 SSR 环境
+ * LocalStorage hook
+ * Safely uses localStorage with SSR support.
  */
 import { useState, useEffect, useCallback } from "react";
 
 export interface UseLocalStorageOptions<T> {
-  /** 序列化函数 */
+  /** Serialize function */
   serialize?: (value: T) => string;
-  /** 反序列化函数 */
+  /** Deserialize function */
   deserialize?: (value: string) => T;
-  /** 默认值 */
+  /** Default value */
   defaultValue?: T;
 }
 
 /**
- * 安全地获取 localStorage 值
+ * Safely retrieve a localStorage value.
  */
 function getStoredValue<T>(key: string, options: UseLocalStorageOptions<T>): T | null {
   const { deserialize = JSON.parse } = options;
@@ -36,12 +36,12 @@ function getStoredValue<T>(key: string, options: UseLocalStorageOptions<T>): T |
 }
 
 /**
- * LocalStorage Hook
- * 自动同步 localStorage 和 React 状态
+ * LocalStorage hook
+ * Automatically syncs localStorage and React state.
  *
- * @param key localStorage 键名
- * @param options 配置选项
- * @returns [值, 设置函数, 删除函数]
+ * @param key localStorage key.
+ * @param options Configuration options.
+ * @returns [value, setValue, removeValue]
  *
  * @example
  * ```tsx
@@ -49,7 +49,7 @@ function getStoredValue<T>(key: string, options: UseLocalStorageOptions<T>): T |
  *   defaultValue: 'light'
  * });
  *
- * // 使用
+ * // Usage
  * setTheme('dark');
  * removeTheme();
  * ```
@@ -62,7 +62,7 @@ export function useLocalStorage<T>(
 
   const [storedValue, setStoredValue] = useState<T | null>(() => getStoredValue(key, options));
 
-  // 监听其他标签页的变化
+  // Listen for changes from other tabs
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === key && event.newValue !== null) {

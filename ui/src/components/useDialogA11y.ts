@@ -40,6 +40,7 @@ export function useDialogA11y<T extends HTMLElement>({
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     previousOverflowRef.current = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const restoreFocusTarget = restoreFocusRef?.current ?? null;
 
     const dialog = dialogRef.current;
     if (!dialog) {
@@ -97,13 +98,13 @@ export function useDialogA11y<T extends HTMLElement>({
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflowRef.current;
 
-      const primaryTarget = restoreFocusRef?.current ?? previousFocusedRef.current;
+      const primaryTarget = restoreFocusTarget ?? previousFocusedRef.current;
       if (primaryTarget?.isConnected) {
         primaryTarget.focus();
         return;
       }
 
-      const fallbackTarget = restoreFocusRef?.current;
+      const fallbackTarget = restoreFocusTarget;
       if (fallbackTarget?.isConnected) {
         queueMicrotask(() => {
           fallbackTarget.focus();

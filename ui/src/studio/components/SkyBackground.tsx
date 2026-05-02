@@ -1,10 +1,10 @@
 /**
- * SkyBackground - 天空背景组件
- * 包含飘动的云、星星、月亮/太阳等装饰元素
+ * SkyBackground - sky background component.
+ * Includes drifting clouds, stars, moon/sun decorations.
  */
 import { useMemo } from "react";
 
-// 云朵 SVG 组件
+// Cloud SVG component
 function CloudSVG({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg
@@ -19,7 +19,7 @@ function CloudSVG({ className, style }: { className?: string; style?: React.CSSP
   );
 }
 
-// 单朵云组件
+// Single cloud component
 interface CloudProps {
   size: number;
   top: string;
@@ -47,7 +47,7 @@ function Cloud({ size, top, duration, delay, opacity, layer }: CloudProps) {
   return <CloudSVG style={style} />;
 }
 
-// 星星组件
+// Star component
 interface StarProps {
   size: number;
   left: string;
@@ -75,7 +75,7 @@ function Star({ size, left, top, delay, duration }: StarProps) {
   );
 }
 
-// 月亮组件
+// Moon component
 function Moon() {
   return (
     <div
@@ -96,7 +96,7 @@ function Moon() {
         animation: "breathe 8s ease-in-out infinite",
       }}
     >
-      {/* 月亮上的纹理 */}
+      {/* Moon surface texture */}
       <div
         style={{
           position: "absolute",
@@ -123,7 +123,7 @@ function Moon() {
   );
 }
 
-// 太阳组件
+// Sun component
 function Sun() {
   return (
     <div
@@ -135,29 +135,29 @@ function Sun() {
         width: "70px",
         height: "70px",
         borderRadius: "50%",
-        background: "linear-gradient(135deg, #FFF9C4 0%, #FFECB3 100%)",
+        background:
+          "linear-gradient(135deg, var(--color-lemon-100) 0%, var(--color-lemon-200) 100%)",
         boxShadow: `
           0 0 40px rgba(255, 236, 179, 0.6),
           0 0 80px rgba(255, 236, 179, 0.3)
         `,
-        animation: "breathe 6s ease-in-out infinite",
+        opacity: 0.9,
       }}
     >
-      {/* 太阳光晕 */}
+      {/* Sun glow */}
       <div
         style={{
           position: "absolute",
           inset: "-20px",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255,236,179,0.3) 0%, transparent 70%)",
-          animation: "spin 20s linear infinite",
+          background: "radial-gradient(circle, rgba(255,247,168,0.25) 0%, transparent 70%)",
         }}
       />
     </div>
   );
 }
 
-// 草丛组件
+// Grass tuft component
 function GrassTuft({
   left,
   scale = 1,
@@ -199,7 +199,7 @@ function GrassTuft({
   );
 }
 
-// 飘落的 petals
+// Falling petals
 function FallingPetal({
   left,
   delay,
@@ -229,18 +229,18 @@ function FallingPetal({
   );
 }
 
-// 主组件
+// Main component
 interface SkyBackgroundProps {
   isNight?: boolean;
 }
 
-// 使用固定种子生成伪随机数，避免 SSR hydration 不匹配
+// Use a fixed seed for pseudo-random numbers to avoid SSR hydration mismatch
 function seededRandom(seed: number): number {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
 }
 
-// 预生成的配置，避免每次渲染都重新计算
+// Pre-generated configs to avoid recomputing on every render
 const CLOUD_CONFIGS = Array.from({ length: 6 }, (_, i) => ({
   size: 120 + seededRandom(i * 100) * 100,
   top: `${5 + seededRandom(i * 100 + 1) * 35}%`,
@@ -273,7 +273,7 @@ const PETAL_CONFIGS = Array.from({ length: 5 }, (_, i) => ({
 }));
 
 export function SkyBackground({ isNight = false }: SkyBackgroundProps) {
-  // 使用预生成的配置
+  // Use pre-generated configs
   const clouds = useMemo(() => CLOUD_CONFIGS, []);
   const stars = useMemo(() => (isNight ? STAR_CONFIGS : []), [isNight]);
   const grassTufts = useMemo(() => GRASS_CONFIGS, []);
@@ -290,23 +290,23 @@ export function SkyBackground({ isNight = false }: SkyBackgroundProps) {
         zIndex: 0,
       }}
     >
-      {/* 星星（仅夜间） */}
+      {/* Stars (night only) */}
       {isNight && stars.map((star, i) => <Star key={`star-${i}`} {...star} />)}
 
-      {/* 月亮或太阳 */}
+      {/* Moon or sun */}
       {isNight ? <Moon /> : <Sun />}
 
-      {/* 云朵 */}
+      {/* Clouds */}
       {clouds.map((cloud, i) => (
         <Cloud key={`cloud-${i}`} {...cloud} />
       ))}
 
-      {/* 飘落的 petals */}
+      {/* Falling petals */}
       {petals.map((petal, i) => (
         <FallingPetal key={`petal-${i}`} {...petal} />
       ))}
 
-      {/* 底部草丛 */}
+      {/* Bottom grass */}
       <div
         style={{
           position: "absolute",

@@ -1,5 +1,5 @@
 /**
- * useResponsive - 响应式断点检测 Hook
+ * useResponsive - responsive breakpoint detection hook.
  */
 import { useState, useEffect, useCallback } from "react";
 
@@ -34,10 +34,10 @@ export function useResponsive() {
       setBreakpoint(getBreakpoint(w));
     };
 
-    // 初始化
+    // Initialize
     handleResize();
 
-    // 使用 requestAnimationFrame 节流
+    // Throttle with requestAnimationFrame
     let ticking = false;
     const throttledResize = () => {
       if (!ticking) {

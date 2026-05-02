@@ -37,7 +37,7 @@ export function Skeleton({
 
 export function SkeletonCard() {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card/60 p-4">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted p-4">
       <Skeleton height={160} className="w-full rounded-xl" />
       <div className="flex flex-col gap-2">
         <Skeleton width="80%" height={20} />
@@ -50,7 +50,7 @@ export function SkeletonCard() {
 
 export function SkeletonListItem() {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-border bg-card/60 p-4">
+    <div className="flex items-center gap-4 rounded-2xl border border-border bg-muted p-4">
       <Skeleton width={40} height={40} circle />
       <div className="flex flex-1 flex-col gap-2">
         <Skeleton width="60%" height={18} />
@@ -63,7 +63,7 @@ export function SkeletonListItem() {
 
 export function SkeletonMetricCard() {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-border bg-card/60 p-5">
+    <div className="flex items-center gap-4 rounded-2xl border border-border bg-muted p-5">
       <Skeleton width={48} height={48} circle />
       <div className="flex flex-col gap-2">
         <Skeleton width={80} height={14} />

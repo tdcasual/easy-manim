@@ -4,12 +4,13 @@ import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { LoginPageV2 as LoginPage } from "../features/auth/LoginPageV2";
 import { useSession } from "../features/auth/useSession";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { SkipLink } from "../components/SkipLink";
 import { PageSkeleton } from "../components/Skeleton";
 import { ToastProvider } from "../components/Toast";
 import { useLocaleDocument } from "./locale";
 import { Studio } from "../studio/Studio";
 
-// 懒加载原有页面（作为折叠功能保留）
+// Lazy-load legacy pages (kept as folded features)
 const TasksPageLazy = lazy(() =>
   import("../features/tasks/TasksPageV2").then((m) => ({ default: m.TasksPageV2 }))
 );
@@ -35,7 +36,7 @@ const EvalDetailPageLazy = lazy(() =>
   import("../features/evals/EvalDetailPageV2").then((m) => ({ default: m.EvalDetailPageV2 }))
 );
 
-// 认证守卫
+// Auth guard
 function RequireAuth() {
   const { isAuthenticated } = useSession();
   const location = useLocation();
@@ -46,7 +47,7 @@ function RequireAuth() {
   return <Outlet />;
 }
 
-// 路由加载状态
+// Route loading state
 function RouteLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -55,37 +56,40 @@ function RouteLoading() {
   );
 }
 
-// 主应用组件
+// Main app component
 export function App() {
   useLocaleDocument();
 
   return (
     <ToastProvider>
+      <SkipLink />
       <ErrorBoundary>
-        <Suspense fallback={<RouteLoading />}>
-          <Routes>
-            {/* 登录页 */}
-            <Route path="/login" element={<LoginPage />} />
+        <div id="main-content" className="contents">
+          <Suspense fallback={<RouteLoading />}>
+            <Routes>
+              {/* Login page */}
+              <Route path="/login" element={<LoginPage />} />
 
-            {/* 认证后路由 */}
-            <Route element={<RequireAuth />}>
-              {/* 新的 Studio 创作界面（默认） */}
-              <Route path="/" element={<Studio />} />
-              <Route path="/studio" element={<Studio />} />
+              {/* Authenticated routes */}
+              <Route element={<RequireAuth />}>
+                {/* New Studio creative interface (default) */}
+                <Route path="/" element={<Studio />} />
+                <Route path="/studio" element={<Studio />} />
 
-              {/* 原有功能页面（折叠，通过链接访问） */}
-              <Route path="/tasks" element={<TasksPageLazy />} />
-              <Route path="/tasks/:taskId" element={<TaskDetailPageLazy />} />
-              <Route path="/videos" element={<VideosPageLazy />} />
-              <Route path="/threads/:threadId" element={<VideoThreadPageLazy />} />
-              <Route path="/videos/:threadId" element={<VideoThreadPageLazy />} />
-              <Route path="/memory" element={<MemoryPageLazy />} />
-              <Route path="/profile" element={<ProfilePageLazy />} />
-              <Route path="/evals" element={<EvalsPageLazy />} />
-              <Route path="/evals/:runId" element={<EvalDetailPageLazy />} />
-            </Route>
-          </Routes>
-        </Suspense>
+                {/* Legacy feature pages (folded, accessible via links) */}
+                <Route path="/tasks" element={<TasksPageLazy />} />
+                <Route path="/tasks/:taskId" element={<TaskDetailPageLazy />} />
+                <Route path="/videos" element={<VideosPageLazy />} />
+                <Route path="/threads/:threadId" element={<VideoThreadPageLazy />} />
+                <Route path="/videos/:threadId" element={<VideoThreadPageLazy />} />
+                <Route path="/memory" element={<MemoryPageLazy />} />
+                <Route path="/profile" element={<ProfilePageLazy />} />
+                <Route path="/evals" element={<EvalsPageLazy />} />
+                <Route path="/evals/:runId" element={<EvalDetailPageLazy />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </div>
       </ErrorBoundary>
     </ToastProvider>
   );

@@ -3,14 +3,14 @@ import { createRoot } from "react-dom/client";
 import { AppRouter } from "./app/router";
 import { readLocale, syncDocumentLocale } from "./app/locale";
 
-// 导入运行时设计系统样式（顺序很重要）。
-// `theme-v2.css` 保留为遗留参考样式，当前运行时不直接挂载它。
+// Import runtime design-system styles (order matters).
+// `theme-v2.css` is kept as a legacy reference and is not mounted at runtime.
 import "./styles/runtime.css";
 
-// 同步语言和主题
+// Sync locale and theme
 syncDocumentLocale(readLocale());
 
-// 初始化主题
+// Initialize theme
 try {
   const theme = localStorage.getItem("easy_manim_theme") ?? "day";
   document.documentElement.setAttribute("data-theme", theme);

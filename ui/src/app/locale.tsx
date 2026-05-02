@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import { getMessages, getPluralOverride, type Messages } from "../locales";
+import {
+  getMessages,
+  getPluralOverride,
+  type Locale,
+  type MessageParams,
+  type Messages,
+} from "../locales";
 
-export type Locale = "zh-CN" | "en-US";
-
-export type MessageParams = Record<string, number | string | null | undefined>;
+export type { Locale, MessageParams } from "../locales";
 type MessageValue = string | string[] | ((params: MessageParams) => string);
 
 const DEFAULT_LOCALE: Locale = "zh-CN";

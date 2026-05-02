@@ -32,16 +32,16 @@ async function readJson(response: Response): Promise<JsonObject> {
   }
 }
 
-// ===== 通用 API 请求工具 =====
+// ===== Generic API request utilities =====
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 export interface RequestOptions extends Omit<RequestInit, "method" | "body"> {
-  /** HTTP 方法 */
+  /** HTTP method */
   method?: HttpMethod;
-  /** 请求体（对象或字符串） */
+  /** Request body (object or string) */
   body?: unknown;
-  /** 自定义 headers */
+  /** Custom headers */
   headers?: Record<string, string>;
 }
 
@@ -57,13 +57,13 @@ export class ApiError extends Error {
 }
 
 /**
- * 通用 JSON 请求函数
- * 统一处理认证、错误和 JSON 解析
+ * Generic JSON request function
+ * Handles auth, errors, and JSON parsing uniformly.
  *
- * @param path API 路径（以 / 开头）
- * @param token 认证令牌
- * @param options 请求选项
- * @returns 解析后的 JSON 数据
+ * @param path API path (must start with /)
+ * @param token Auth token
+ * @param options Request options
+ * @returns Parsed JSON data
  */
 export async function requestJson<T>(
   path: string,
@@ -103,7 +103,7 @@ export async function requestJson<T>(
     try {
       payload = JSON.parse(text);
     } catch {
-      // 忽略解析错误
+      // ignore parse error
     }
     const detail =
       typeof payload.detail === "string" ? payload.detail : text || response.statusText;
@@ -120,9 +120,9 @@ export async function requestJson<T>(
 }
 
 /**
- * 创建带认证的 API 客户端
- * @param getToken 获取 token 的函数
- * @returns API 方法集合
+ * Creates an authenticated API client.
+ * @param getToken Function that returns the auth token.
+ * @returns API method set
  */
 export function createApiClient(getToken: () => string | null) {
   const token = () => getToken();

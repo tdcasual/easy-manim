@@ -14,15 +14,15 @@ interface VideoStageProps {
   onCancel?: () => void;
 }
 
-// 进度条组件
+// Progress bar component
 function ProgressBar({ progress }: { progress: number }) {
   const clamped = Math.min(100, Math.max(0, progress));
   return (
     <div className="flex w-full max-w-xs items-center gap-3">
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-cloud-200">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-pink-400 to-mint-400 transition-all"
-          style={{ width: `${clamped}%` }}
+          className="h-full origin-left rounded-full bg-gradient-to-r from-pink-400 to-mint-400 transition-transform duration-300 ease-out"
+          style={{ transform: `scaleX(${clamped / 100})` }}
         />
       </div>
       <div className="w-10 text-right text-sm font-medium text-cloud-600">
@@ -32,7 +32,7 @@ function ProgressBar({ progress }: { progress: number }) {
   );
 }
 
-// 生成中动画
+// Generating animation
 function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
   const { t } = useI18n();
   const [progress, setProgress] = useState(0);
@@ -59,13 +59,7 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
   return (
     <div className="flex flex-col items-center gap-5 text-center">
       <div className="relative">
-        <svg
-          width="80"
-          height="80"
-          viewBox="0 0 80 80"
-          fill="none"
-          className="animate-bounce-kawaii"
-        >
+        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
           <path d="M20 60L30 30L50 25L55 45L30 55L20 60Z" fill="var(--color-pink-300)" />
           <path d="M50 25L55 45L65 35L55 15L50 25Z" fill="var(--color-peach-300)" />
           <circle cx="25" cy="57" r="3" fill="var(--color-mint-300)" />
@@ -83,25 +77,16 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
       <ProgressBar progress={progress} />
 
       <div className="flex gap-2">
-        <div
-          className="h-2 w-2 animate-bounce rounded-full bg-pink-400"
-          style={{ animationDelay: "0s" }}
-        />
-        <div
-          className="h-2 w-2 animate-bounce rounded-full bg-mint-400"
-          style={{ animationDelay: "0.2s" }}
-        />
-        <div
-          className="h-2 w-2 animate-bounce rounded-full bg-sky-400"
-          style={{ animationDelay: "0.4s" }}
-        />
+        <div className="h-2 w-2 rounded-full bg-pink-400" />
+        <div className="h-2 w-2 rounded-full bg-mint-400" />
+        <div className="h-2 w-2 rounded-full bg-sky-400" />
       </div>
 
       {onCancel && (
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-all hover:bg-destructive/20"
+          className="flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
         >
           <svg
             width="16"
@@ -121,7 +106,7 @@ function GeneratingAnimation({ onCancel }: { onCancel?: () => void }) {
   );
 }
 
-// 空状态
+// Empty state
 function EmptyState({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
 
@@ -156,7 +141,7 @@ function EmptyState({ compact = false }: { compact?: boolean }) {
   );
 }
 
-// 角落装饰
+// Corner decoration
 function CornerDecoration({ position }: { position: "tl" | "tr" | "bl" | "br" }) {
   const posClass = {
     tl: "left-3 top-3 rounded-br-xl",
@@ -253,7 +238,7 @@ export function VideoStage({
     <div
       ref={stageRef}
       className={cn(
-        "relative flex w-full items-center justify-center overflow-hidden border-2 border-[var(--glass-border)] bg-[var(--glass-white)] p-1 shadow-lg backdrop-blur-xl",
+        "relative flex w-full items-center justify-center overflow-hidden border-2 border-cloud-200 bg-white p-1 shadow-lg dark:border-cloud-800 dark:bg-cloud-900",
         compact ? "max-w-full rounded-2xl" : "max-w-4xl rounded-3xl"
       )}
       role="region"
@@ -281,7 +266,7 @@ export function VideoStage({
         className={cn(
           "relative z-10 flex w-full items-center justify-center rounded-2xl",
           compact ? "min-h-56 p-4 sm:min-h-72 sm:p-6" : "min-h-72 p-6",
-          resolvedVideoUrl ? "bg-black/5" : "bg-gradient-to-br from-pink-50/40 to-lavender-50/40"
+          resolvedVideoUrl ? "bg-cloud-100" : "bg-gradient-to-br from-pink-50 to-lavender-50"
         )}
       >
         {isGenerating ? (
@@ -292,6 +277,7 @@ export function VideoStage({
               ref={videoRef}
               src={resolvedVideoUrl}
               poster={resolvedPosterUrl ?? undefined}
+              controls
               className="max-h-[min(30rem,50vh)] w-full rounded-xl object-contain"
               onEnded={() => setIsPlaying(false)}
               aria-label={title ?? t("studio.video.generatedLabel")}
@@ -301,7 +287,7 @@ export function VideoStage({
               type="button"
               onClick={togglePlay}
               aria-label={isPlaying ? t("studio.video.pause") : t("studio.video.play")}
-              className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-pink-600 shadow-lg backdrop-blur-md transition-all hover:scale-110"
+              className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-pink-600 shadow-lg transition-transform hover:scale-110 dark:bg-cloud-900"
             >
               {isPlaying ? (
                 <svg
@@ -333,7 +319,7 @@ export function VideoStage({
               type="button"
               onClick={toggleFullscreen}
               aria-label={t("studio.video.fullscreen")}
-              className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-pink-600"
+              className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-cloud-700 shadow-sm transition-colors hover:bg-cloud-50 hover:text-pink-600 dark:bg-cloud-900"
             >
               <svg
                 width="18"
@@ -349,7 +335,7 @@ export function VideoStage({
 
             {title && (
               <div
-                className="absolute bottom-4 left-4 max-w-[80%] truncate rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-foreground shadow-sm backdrop-blur-sm"
+                className="absolute bottom-4 left-4 max-w-[80%] truncate rounded-full bg-white px-3 py-1 text-sm font-medium text-foreground shadow-sm dark:bg-cloud-900"
                 title={title}
               >
                 {title}

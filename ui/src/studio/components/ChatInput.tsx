@@ -23,9 +23,26 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-// 种子飞行动画
+// Seed flying animation
 function SeedFlying({ isAnimating, onComplete }: { isAnimating: boolean; onComplete: () => void }) {
-  if (!isAnimating) return null;
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (isAnimating && prefersReducedMotion) {
+      const timer = setTimeout(onComplete, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isAnimating, prefersReducedMotion, onComplete]);
+
+  if (!isAnimating || prefersReducedMotion) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
@@ -38,6 +55,9 @@ function SeedFlying({ isAnimating, onComplete }: { isAnimating: boolean; onCompl
         @keyframes seedFly {
           0% { transform: translate(0, 0) scale(1); opacity: 1; }
           100% { transform: translate(120px, -80px) scale(0.5); opacity: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="animation: seedFly"] { animation: none !important; }
         }
       `}</style>
     </div>
@@ -89,7 +109,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     }, []);
 
     useEffect(() => {
-      adjustHeight();
+      const rafId = requestAnimationFrame(adjustHeight);
+      return () => cancelAnimationFrame(rafId);
     }, [value, adjustHeight]);
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -119,14 +140,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
     return (
       <div className="flex flex-col gap-3">
-        {/* 快捷提示 */}
+        {/* Quick prompts */}
         <div className="flex flex-wrap gap-2">
           {quickPrompts.map((prompt, index) => (
             <button
               key={prompt.text}
               type="button"
               onClick={() => handleQuickPrompt(prompt.text)}
-              className="animate-float-in flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] px-4 py-2.5 text-sm text-cloud-700 shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-sm"
+              className="flex items-center gap-2 rounded-full border border-cloud-200 bg-white px-4 py-2.5 text-sm text-cloud-700 shadow-xs transition-colors transition-transform transition-shadow hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-sm dark:border-cloud-800 dark:bg-cloud-900"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <span>{prompt.icon}</span>
@@ -135,21 +156,21 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           ))}
         </div>
 
-        {/* 输入框 */}
+        {/* Input */}
         <div className="relative">
           <div
             className="absolute left-0 right-0 top-0 h-1 rounded-t-3xl bg-gradient-to-r from-pink-300 via-lavender-300 to-sky-300"
             aria-hidden="true"
           />
 
-          <div className="flex items-center gap-3 rounded-3xl border-2 border-[var(--glass-border)] bg-[var(--glass-white)] p-3 shadow-md backdrop-blur-xl transition-all focus-within:border-pink-300 focus-within:shadow-lg">
-            {/* 左侧图标 */}
+          <div className="flex items-center gap-3 rounded-3xl border-2 border-cloud-200 bg-white p-3 shadow-md transition-colors transition-shadow focus-within:border-pink-300 focus-within:shadow-lg dark:border-cloud-800 dark:bg-cloud-900">
+            {/* Left icon */}
             <div
               className={cn(
-                "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-all",
+                "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors transition-transform",
                 isLoading
                   ? "bg-cloud-100 text-cloud-500"
-                  : "bg-gradient-to-br from-pink-300 to-peach-300 text-white shadow-md animate-pulse-glow"
+                  : "bg-gradient-to-br from-pink-300 to-peach-300 text-white shadow-md"
               )}
             >
               {isLoading ? (
@@ -168,7 +189,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               )}
             </div>
 
-            {/* 文本域 */}
+            {/* Textarea */}
             <textarea
               ref={textareaRef}
               value={value}
@@ -182,14 +203,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               aria-busy={isLoading}
             />
 
-            {/* 发送按钮 */}
+            {/* Send button */}
             <button
               type="button"
               onClick={handleSubmit}
               disabled={!value.trim() || isLoading}
               aria-label={isLoading ? t("studio.chat.sending") : t("studio.chat.send")}
               className={cn(
-                "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-all",
+                "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors transition-transform",
                 value.trim() && !isLoading
                   ? "bg-gradient-to-br from-mint-400 to-sky-400 text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg"
                   : "bg-cloud-100 text-cloud-400"
@@ -212,7 +233,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           <SeedFlying isAnimating={isSeedFlying} onComplete={() => setIsSeedFlying(false)} />
         </div>
 
-        {/* 提示 */}
+        {/* Hint */}
         <p className="text-center text-xs text-cloud-600">{t("studio.chat.hint")}</p>
       </div>
     );

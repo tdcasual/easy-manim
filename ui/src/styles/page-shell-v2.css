@@ -58,10 +58,10 @@
   gap: var(--space-4);
   min-height: 112px;
   padding: var(--space-5);
-  background: var(--glass-white, rgba(255, 255, 255, 0.85));
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.16));
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .metric-icon-wrapper {
@@ -98,10 +98,10 @@
 
 .section-card-v2 {
   overflow: hidden;
-  background: var(--glass-white, rgba(255, 255, 255, 0.85));
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.16));
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-header-v2 {
@@ -110,7 +110,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-5);
-  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.16));
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
 }
 
 .section-title-v2 {
@@ -203,19 +203,7 @@
   cursor: not-allowed;
 }
 
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* 旋转动画已迁移至 Tailwind animate-spin */
 
 @media (max-width: 768px) {
   .page-header-v2 {

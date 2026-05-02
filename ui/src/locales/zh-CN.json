@@ -372,6 +372,7 @@
   "common.removeTag": "移除标签",
   "common.loadingFailed": "加载失败",
   "common.applying": "应用中...",
+  "a11y.skipToContent": "跳转到主内容",
   "profile.color.sky.label": "天空蓝",
   "profile.color.mint.label": "薄荷绿",
   "profile.color.lavender.label": "薰衣草",
@@ -568,5 +569,6 @@
   "thread.workbench.noExecutionAttached": "尚未附加任何执行。",
   "thread.workbench.participantRuntimeTitle": "参与者运行时",
   "memory.matchedTermsLabel": "匹配词",
-  "memory.matchReasonsLabel": "原因"
+  "memory.matchReasonsLabel": "原因",
+  "videos.searchLabel": "搜索视频"
 }

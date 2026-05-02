@@ -1,6 +1,6 @@
 /**
- * ARIA Message Hook
- * 管理 ARIA 实时区域消息宣布
+ * ARIA message hook
+ * Manages ARIA live-region announcements.
  */
 import React, { useState, useCallback } from "react";
 import { ARIALiveRegion } from "./ARIALiveRegion";
@@ -14,7 +14,7 @@ export function useARIAMessage() {
       setLevel(options?.level ?? "polite");
       setMessage(msg);
 
-      // 自动清除
+      // Auto-clear
       setTimeout(() => {
         setMessage(null);
       }, options?.duration ?? 3000);

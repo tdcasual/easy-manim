@@ -216,35 +216,9 @@
 
 .status-icon-symbol {
   font-size: 0.9em;
-  animation: status-pulse 2s ease-in-out infinite;
 }
 
-@keyframes status-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-/* 脉动动画 */
-.kawaii-tag.pulse {
-  animation: tag-pulse 2s ease-in-out infinite;
-}
-
-@keyframes tag-pulse {
-  0%,
-  100% {
-    box-shadow: var(--kawaii-tag-shadow-rest);
-  }
-  50% {
-    box-shadow:
-      var(--kawaii-tag-shadow-rest),
-      0 0 20px currentColor;
-  }
-}
+/* 脉动动画已移除以避免 vestibular hazards */
 
 /* 可关闭标签 */
 .kawaii-tag.closable {
@@ -348,11 +322,5 @@
     transform: none;
   }
 
-  .kawaii-tag.pulse {
-    animation: none;
-  }
 
-  .status-icon-symbol {
-    animation: none;
-  }
 }

@@ -1,6 +1,6 @@
 /**
- * 记忆相关 API
- * 使用通用 requestJson 函数
+ * Memory-related API
+ * Uses the generic requestJson helper.
  */
 import { requestJson } from "./api";
 

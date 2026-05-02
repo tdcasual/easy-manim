@@ -1,6 +1,6 @@
 /**
- * ErrorBanner - 错误提示横幅
- * Kawaii 二次元风格
+ * ErrorBanner - error banner component.
+ * Kawaii anime style.
  */
 import type { TaskError } from "../../store";
 import { useI18n } from "../../../app/locale";
@@ -52,7 +52,7 @@ export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
           <button
             type="button"
             onClick={onRetry}
-            className="flex items-center gap-1 rounded-xl bg-white/80 px-3 py-1.5 text-xs font-medium shadow-sm transition-all hover:bg-white"
+            className="flex items-center gap-1 rounded-xl border border-cloud-200 bg-white px-3 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-cloud-50"
           >
             <EmojiIcon emoji="🔄" color="white" size="xs" />
             {t("studio.error.retry")}
@@ -62,7 +62,7 @@ export function ErrorBanner({ error, onRetry, onClose }: ErrorBannerProps) {
           type="button"
           onClick={onClose}
           aria-label={t("studio.error.close")}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-sm shadow-sm transition-all hover:bg-white"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-cloud-200 bg-white text-sm shadow-sm transition-colors hover:bg-cloud-50"
         >
           <EmojiIcon emoji="✖️" color="white" size="xs" />
         </button>

@@ -62,8 +62,7 @@
   gap: var(--space-4);
   padding: var(--space-5);
   background: linear-gradient(180deg, var(--task-surface-soft) 0%, var(--task-surface-softer) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-6);
   position: relative;

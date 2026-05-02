@@ -50,7 +50,7 @@ export function EvalDetailPageV2() {
   if (!runId) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="rounded-2xl border border-white/60 bg-white/60 px-6 py-10 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="rounded-2xl border border-cloud-200 bg-white px-6 py-10 text-center shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
             {t("evalDetail.missingRunId")}
           </p>
@@ -62,7 +62,7 @@ export function EvalDetailPageV2() {
   if (error) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="rounded-2xl border border-white/60 bg-white/60 px-6 py-10 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="rounded-2xl border border-cloud-200 bg-white px-6 py-10 text-center shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
             {t("evalDetail.loadFailed", { error })}
           </p>
@@ -74,13 +74,13 @@ export function EvalDetailPageV2() {
   if (!run) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="mb-5 rounded-2xl border border-cloud-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <SkeletonCard />
         </div>
-        <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="mb-5 rounded-2xl border border-cloud-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <SkeletonCard />
         </div>
-        <div className="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="rounded-2xl border border-cloud-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <SkeletonCard />
         </div>
       </div>
@@ -99,6 +99,7 @@ export function EvalDetailPageV2() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <button
+            type="button"
             onClick={() => navigate(-1)}
             className="mb-2 flex items-center gap-1 text-sm text-cloud-500 hover:text-pink-500 dark:text-cloud-400"
           >
@@ -113,7 +114,7 @@ export function EvalDetailPageV2() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex flex-col gap-1 rounded-2xl border border-cloud-200 bg-white p-5 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
             {t("evalDetail.suite")}
           </span>
@@ -121,7 +122,7 @@ export function EvalDetailPageV2() {
             {run.suite_id}
           </span>
         </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex flex-col gap-1 rounded-2xl border border-cloud-200 bg-white p-5 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
             {t("evalDetail.cases")}
           </span>
@@ -129,7 +130,7 @@ export function EvalDetailPageV2() {
             {run.total_cases}
           </span>
         </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex flex-col gap-1 rounded-2xl border border-cloud-200 bg-white p-5 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
             {t("evalDetail.passRate")}
           </span>
@@ -145,7 +146,7 @@ export function EvalDetailPageV2() {
             {formatPercent(qualityPassRate)}
           </span>
         </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex flex-col gap-1 rounded-2xl border border-cloud-200 bg-white p-5 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <span className="text-xs uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
             {t("evalDetail.deliveryRate")}
           </span>
@@ -163,12 +164,12 @@ export function EvalDetailPageV2() {
         </div>
       </div>
 
-      <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
-          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
+      <div className="mb-5 rounded-2xl border border-cloud-200 bg-white shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+        <div className="border-b border-cloud-200 px-5 py-4 dark:border-cloud-800">
+          <h2 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <BarChart3 size={20} />
             {t("evalDetail.caseResults")}
-          </h3>
+          </h2>
         </div>
 
         <div className="flex flex-col p-2">
@@ -191,7 +192,7 @@ export function EvalDetailPageV2() {
               return (
                 <div
                   key={`${item.task_id}:${item.root_task_id}`}
-                  className="rounded-xl border-b border-white/60 p-4 last:border-b-0 dark:border-white/10"
+                  className="rounded-xl border-b border-cloud-200 p-4 last:border-b-0 dark:border-cloud-800"
                 >
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <span className="font-mono text-sm font-medium text-cloud-800 dark:text-cloud-100">
@@ -250,12 +251,12 @@ export function EvalDetailPageV2() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
-          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
+      <div className="rounded-2xl border border-cloud-200 bg-white shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+        <div className="border-b border-cloud-200 px-5 py-4 dark:border-cloud-800">
+          <h2 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <ClipboardList size={20} />
             Decision Timeline
-          </h3>
+          </h2>
         </div>
 
         <div className="flex flex-col p-2">
@@ -263,14 +264,14 @@ export function EvalDetailPageV2() {
             matchingDecisions.map((item) => (
               <div
                 key={`${item.strategy_id}:${item.recorded_at}`}
-                className="rounded-xl border-b border-white/60 p-4 last:border-b-0 dark:border-white/10"
+                className="rounded-xl border-b border-cloud-200 p-4 last:border-b-0 dark:border-cloud-800"
               >
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-sm font-medium text-cloud-800 dark:text-cloud-100">
                     {item.strategy_id}
                   </span>
                   <div className="flex gap-2">
-                    <span className="rounded-full bg-cloud-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-cloud-700 dark:bg-slate-700 dark:text-cloud-300">
+                    <span className="rounded-full bg-cloud-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-cloud-700 dark:bg-cloud-800 dark:text-cloud-300">
                       {item.promotion_decision.mode ?? "shadow"}
                     </span>
                     <span

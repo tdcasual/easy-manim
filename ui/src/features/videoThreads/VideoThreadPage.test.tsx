@@ -3702,12 +3702,14 @@ test("video thread page shows version cards with select and task actions", async
   expect(
     (await within(versions).findAllByText("Earlier cut with a sharper title entrance.")).length
   ).toBeGreaterThan(0);
-  expect(
-    within(versions).getByRole("link", { name: "Open task detail result-1" })
-  ).toHaveAttribute("href", "/tasks/task-1");
-  expect(
-    within(versions).getByRole("link", { name: "Download video result-1" })
-  ).toHaveAttribute("href", "/api/tasks/task-1/artifacts/final_video.mp4");
+  expect(within(versions).getByRole("link", { name: "Open task detail result-1" })).toHaveAttribute(
+    "href",
+    "/tasks/task-1"
+  );
+  expect(within(versions).getByRole("link", { name: "Download video result-1" })).toHaveAttribute(
+    "href",
+    "/api/tasks/task-1/artifacts/final_video.mp4"
+  );
   expect(
     within(versions).getByRole("button", { name: "Set as current version result-1" })
   ).toBeInTheDocument();

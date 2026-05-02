@@ -15,7 +15,7 @@ export function ThemeToggle({ isNight, onToggle }: ThemeToggleProps) {
       type="button"
       onClick={onToggle}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
+        "relative flex h-10 w-10 items-center justify-center rounded-full border border-cloud-200 bg-white shadow-xs transition-transform transition-shadow duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-cloud-800 dark:bg-cloud-900",
         isNight ? "text-lavender-400" : "text-lemon-500"
       )}
       aria-label={isNight ? t("studio.theme.toDay") : t("studio.theme.toNight")}
@@ -23,7 +23,7 @@ export function ThemeToggle({ isNight, onToggle }: ThemeToggleProps) {
     >
       <div
         className={cn(
-          "absolute inset-0 rounded-full opacity-50 blur-md transition-all",
+          "absolute inset-0 rounded-full opacity-50 blur-md transition-colors",
           isNight ? "bg-lavender-400/30" : "bg-lemon-400/30"
         )}
         aria-hidden="true"

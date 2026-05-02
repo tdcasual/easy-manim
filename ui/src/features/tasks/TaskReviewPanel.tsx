@@ -138,9 +138,9 @@ export function TaskReviewPanel({ controls, activeActionId, onRunAction }: TaskR
             <HeaderIcon size={18} />
           </div>
           <div className="task-review-panel__header-copy">
-            <h3 className="section-title-v2 task-review-panel__title">
+            <h2 className="section-title-v2 task-review-panel__title">
               {header.title ?? "Workflow review controls"}
-            </h3>
+            </h2>
             {header.summary ? <p className="task-review-panel__summary">{header.summary}</p> : null}
           </div>
         </div>

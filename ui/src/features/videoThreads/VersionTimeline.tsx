@@ -61,15 +61,20 @@ export function VersionTimeline({
                 {result.result_summary ? <p>{result.result_summary}</p> : null}
                 <div className="video-thread-workbench__intent-meta">
                   {taskId ? (
-                    <span className="video-thread-workbench__meta">{t("common.task")}: {taskId}</span>
+                    <span className="video-thread-workbench__meta">
+                      {t("common.task")}: {taskId}
+                    </span>
                   ) : null}
                   <span className="video-thread-workbench__meta">
-                    {t("common.status")}: {isSelected ? t("thread.timeline.currentVersion") : result.status}
+                    {t("common.status")}:{" "}
+                    {isSelected ? t("thread.timeline.currentVersion") : result.status}
                   </span>
                 </div>
                 <div className="version-timeline__actions">
                   {isSelected ? (
-                    <span className="video-thread-workbench__chip">{t("thread.timeline.currentVersionBadge")}</span>
+                    <span className="video-thread-workbench__chip">
+                      {t("thread.timeline.currentVersionBadge")}
+                    </span>
                   ) : (
                     <button
                       type="button"
@@ -110,9 +115,7 @@ export function VersionTimeline({
             );
           })
         ) : (
-          <p className="video-thread-workbench__meta">
-            {t("thread.timeline.empty")}
-          </p>
+          <p className="video-thread-workbench__meta">{t("thread.timeline.empty")}</p>
         )}
       </div>
     </section>

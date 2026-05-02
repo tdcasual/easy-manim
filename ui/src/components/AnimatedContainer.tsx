@@ -1,16 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { cn } from "../lib/utils";
 
-export type AnimationType =
-  | "fade"
-  | "slide-up"
-  | "slide-down"
-  | "slide-left"
-  | "slide-right"
-  | "scale"
-  | "bounce"
-  | "flip"
-  | "rotate";
+export type AnimationType = "fade" | "slide-up" | "slide-down" | "slide-left" | "slide-right";
 
 interface AnimatedContainerProps {
   children: ReactNode;
@@ -28,10 +19,6 @@ const animationClassMap: Record<AnimationType, string> = {
   "slide-down": "animate-slide-down",
   "slide-left": "animate-slide-left",
   "slide-right": "animate-slide-right",
-  scale: "animate-scale-in",
-  bounce: "animate-bounce-in",
-  flip: "animate-flip-in",
-  rotate: "animate-rotate-in",
 };
 
 export function AnimatedContainer({
@@ -48,11 +35,15 @@ export function AnimatedContainer({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     if (trigger === "mount") {
-      const timer = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         setIsVisible(true);
       }, delay);
-      return () => clearTimeout(timer);
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+      };
     }
 
     if (trigger === "in-view" && ref.current) {
@@ -60,7 +51,7 @@ export function AnimatedContainer({
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting && !hasAnimated) {
-              setTimeout(() => {
+              timeoutId = setTimeout(() => {
                 setIsVisible(true);
                 setHasAnimated(true);
               }, delay);
@@ -71,7 +62,10 @@ export function AnimatedContainer({
       );
 
       observer.observe(ref.current);
-      return () => observer.disconnect();
+      return () => {
+        observer.disconnect();
+        if (timeoutId) clearTimeout(timeoutId);
+      };
     }
   }, [trigger, delay, hasAnimated]);
 
@@ -170,37 +164,6 @@ export function HoverAnimation({
   );
 }
 
-interface FloatingElementProps {
-  children: ReactNode;
-  amplitude?: number;
-  duration?: number;
-  delay?: number;
-  className?: string;
-}
-
-export function FloatingElement({
-  children,
-  amplitude = 10,
-  duration = 3,
-  delay = 0,
-  className = "",
-}: FloatingElementProps) {
-  return (
-    <div
-      className={cn("floating-element", className)}
-      style={
-        {
-          "--float-amplitude": `${amplitude}px`,
-          "--float-duration": `${duration}s`,
-          "--float-delay": `${delay}s`,
-        } as React.CSSProperties
-      }
-    >
-      {children}
-    </div>
-  );
-}
-
 interface GlowEffectProps {
   children: ReactNode;
   color?: string;
@@ -224,7 +187,7 @@ export function GlowEffect({
 
   return (
     <div
-      className={cn("relative", pulse && "animate-pulse-glow", className)}
+      className={cn("relative", pulse && "", className)}
       style={
         {
           "--glow-color": color,
@@ -258,13 +221,8 @@ export function Sparkle({ children, active = true, className = "" }: SparkleProp
     <div className={cn("relative inline-block", className)}>
       {children}
       <span className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <span className="absolute -right-2 -top-2 animate-twinkle text-lg">✨</span>
-        <span
-          className="absolute -bottom-1 -left-1 animate-twinkle text-base"
-          style={{ animationDelay: "1s" }}
-        >
-          ✨
-        </span>
+        <span className="absolute -right-2 -top-2 text-lg">✨</span>
+        <span className="absolute -bottom-1 -left-1 text-base">✨</span>
       </span>
     </div>
   );

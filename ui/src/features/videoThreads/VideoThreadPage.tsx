@@ -151,7 +151,7 @@ export function VideoThreadPage() {
     return () => {
       cancelled = true;
     };
-  }, [sessionToken, threadId]);
+  }, [sessionToken, t, threadId]);
 
   useEffect(() => {
     if (!threadId || !sessionToken || !selectedIterationId) {
@@ -181,7 +181,7 @@ export function VideoThreadPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedIterationId, sessionToken, threadId]);
+  }, [selectedIterationId, sessionToken, t, threadId]);
 
   async function refreshIterationDetail(iterationId: string) {
     if (!threadId || !sessionToken) {

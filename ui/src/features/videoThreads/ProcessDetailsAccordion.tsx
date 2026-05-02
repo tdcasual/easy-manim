@@ -42,9 +42,15 @@ export function ProcessDetailsAccordion({
       </div>
 
       <div className="video-thread-workbench__chip-list">
-        <span className="video-thread-workbench__chip">{t("thread.process.iterationsLabel")}: {iterationCount}</span>
-        <span className="video-thread-workbench__chip">{t("thread.process.participantsLabel")}: {participantCount}</span>
-        <span className="video-thread-workbench__chip">{t("thread.process.runsLabel")}: {runCount}</span>
+        <span className="video-thread-workbench__chip">
+          {t("thread.process.iterationsLabel")}: {iterationCount}
+        </span>
+        <span className="video-thread-workbench__chip">
+          {t("thread.process.participantsLabel")}: {participantCount}
+        </span>
+        <span className="video-thread-workbench__chip">
+          {t("thread.process.runsLabel")}: {runCount}
+        </span>
       </div>
 
       {open ? (

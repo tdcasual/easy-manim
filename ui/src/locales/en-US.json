@@ -372,6 +372,7 @@
   "common.removeTag": "Remove tag",
   "common.loadingFailed": "Load failed",
   "common.applying": "Applying...",
+  "a11y.skipToContent": "Skip to main content",
   "profile.color.sky.label": "Sky Blue",
   "profile.color.mint.label": "Mint Green",
   "profile.color.lavender.label": "Lavender",
@@ -568,5 +569,6 @@
   "thread.workbench.noExecutionAttached": "No execution is attached yet.",
   "thread.workbench.participantRuntimeTitle": "Participant runtime",
   "memory.matchedTermsLabel": "matched terms",
-  "memory.matchReasonsLabel": "reasons"
+  "memory.matchReasonsLabel": "reasons",
+  "videos.searchLabel": "Search videos"
 }

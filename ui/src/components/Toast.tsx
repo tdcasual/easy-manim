@@ -61,7 +61,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         toastOptions={{
           classNames: {
             toast:
-              "group toast flex w-full items-center gap-3 rounded-2xl border border-border bg-card/90 p-4 shadow-lg backdrop-blur-md",
+              "group toast flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-lg",
             title: "text-sm font-medium text-foreground",
             description: "text-xs text-muted-foreground",
             actionButton:

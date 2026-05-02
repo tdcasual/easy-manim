@@ -117,19 +117,7 @@
 }
 
 .stat-icon-inner.running {
-  animation: pulse-soft 2s ease-in-out infinite;
-}
-
-@keyframes pulse-soft {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(0.95);
-  }
+  /* pulse-soft animation removed */
 }
 
 .stat-content {
@@ -186,16 +174,7 @@
 }
 
 .spin {
-  animation: spin-rotate 1s linear infinite;
-}
-
-@keyframes spin-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  /* spin-rotate animation removed, use Tailwind animate-spin instead */
 }
 
 /* 💬 Kawaii 快速输入区 */
@@ -228,19 +207,7 @@
 }
 
 .sparkle-icon {
-  animation: sparkle 2s ease-in-out infinite;
-}
-
-@keyframes sparkle {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2) rotate(10deg);
-    opacity: 0.8;
-  }
+  /* sparkle animation removed */
 }
 
 .input-field {
@@ -578,17 +545,6 @@
   display: block;
   font-size: 64px;
   margin-bottom: 16px;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
 }
 
 .kawaii-empty p {
@@ -655,16 +611,7 @@
   );
   background-size: 200% 100%;
   border-radius: var(--radius-xl);
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  /* shimmer animation removed */
 }
 
 /* 🎬 Kawaii 视频区域 */

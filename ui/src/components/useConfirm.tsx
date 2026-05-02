@@ -1,6 +1,6 @@
 /**
- * Confirm Dialog Hook
- * 提供确认对话框功能
+ * Confirm dialog hook
+ * Provides confirmation dialog functionality.
  */
 import React, { useState, useCallback } from "react";
 import { ConfirmDialog, ConfirmOptions } from "./ConfirmDialog";

@@ -43,19 +43,31 @@ export function SelectedVersionHero({
       <p>{summary}</p>
       <p>
         {t("thread.hero.selectedResultLabel")}:{" "}
-        {selectedResult?.result_id ?? surface.current_focus.current_result_id ?? t("thread.workbench.none")}
+        {selectedResult?.result_id ??
+          surface.current_focus.current_result_id ??
+          t("thread.workbench.none")}
       </p>
       <p>
         {t("thread.hero.selectedIterationLabel")}:{" "}
-        {selectedIterationId ?? surface.current_focus.current_iteration_id ?? t("thread.workbench.none")}
+        {selectedIterationId ??
+          surface.current_focus.current_iteration_id ??
+          t("thread.workbench.none")}
       </p>
-      {selectedTaskId ? <p>{t("thread.hero.sourceTaskLabel")}: {selectedTaskId}</p> : null}
+      {selectedTaskId ? (
+        <p>
+          {t("thread.hero.sourceTaskLabel")}: {selectedTaskId}
+        </p>
+      ) : null}
       <div>
         {videoDownloadHref ? (
-          <a href={resolveApiUrl(videoDownloadHref) ?? undefined}>{t("thread.hero.downloadVideo")}</a>
+          <a href={resolveApiUrl(videoDownloadHref) ?? undefined}>
+            {t("thread.hero.downloadVideo")}
+          </a>
         ) : null}
         {scriptDownloadHref ? (
-          <a href={resolveApiUrl(scriptDownloadHref) ?? undefined}>{t("thread.hero.downloadScript")}</a>
+          <a href={resolveApiUrl(scriptDownloadHref) ?? undefined}>
+            {t("thread.hero.downloadScript")}
+          </a>
         ) : null}
         {validationReportDownloadHref ? (
           <a href={resolveApiUrl(validationReportDownloadHref) ?? undefined}>

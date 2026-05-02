@@ -166,49 +166,7 @@
   transform: scale(0.95);
 }
 
-/* 动画效果 */
-.pulse {
-  animation: icon-pulse 2s ease-in-out infinite;
-}
-
-@keyframes icon-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
-}
-
-.bounce {
-  animation: icon-bounce 2s ease-in-out infinite;
-}
-
-@keyframes icon-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.rotate {
-  animation: icon-rotate 4s linear infinite;
-}
-
-@keyframes icon-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* 动画效果已移除以避免 vestibular hazards */
 
 /* 图标按钮 */
 .iconButton {
@@ -265,20 +223,6 @@
 /* 浮动图标 */
 .floatingIcon {
   display: inline-block;
-  animation: floating 3s ease-in-out infinite;
-}
-
-@keyframes floating {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  33% {
-    transform: translateY(-10px) rotate(5deg);
-  }
-  66% {
-    transform: translateY(-5px) rotate(-3deg);
-  }
 }
 
 /* 🌙 深色主题 */
@@ -300,12 +244,7 @@
     transition: none;
   }
 
-  .pulse,
-  .bounce,
-  .rotate,
-  .floatingIcon {
-    animation: none;
-  }
+
 }
 
 /* 移动端触摸优化 */

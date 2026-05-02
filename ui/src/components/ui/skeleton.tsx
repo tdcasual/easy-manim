@@ -21,7 +21,7 @@ function PageSkeleton() {
 
 function SkeletonCard() {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card/60 p-4">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted p-4">
       <Skeleton className="h-4 w-1/2" />
       <Skeleton className="h-24 w-full" />
       <Skeleton className="h-3 w-3/4" />
@@ -31,7 +31,7 @@ function SkeletonCard() {
 
 function SkeletonMetricCard() {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card/60 p-5">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted p-5">
       <Skeleton className="h-3 w-20" />
       <Skeleton className="h-10 w-24" />
       <Skeleton className="h-3 w-16" />

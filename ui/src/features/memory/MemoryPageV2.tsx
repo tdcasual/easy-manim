@@ -169,7 +169,7 @@ export function MemoryPageV2() {
   if (!sessionToken) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/60 bg-white/60 px-6 py-16 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-cloud-200 bg-white px-6 py-16 text-center shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
             {t("common.notLoggedIn")}
           </p>
@@ -196,7 +196,8 @@ export function MemoryPageV2() {
           </p>
         </div>
         <button
-          className="flex items-center gap-2 rounded-xl border border-white/60 bg-white/60 px-4 py-2 text-sm font-semibold text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-200"
+          type="button"
+          className="flex items-center gap-2 rounded-xl border border-cloud-200 bg-white px-4 py-2 text-sm font-semibold text-cloud-700 shadow-sm transition-colors transition-transform transition-shadow hover:-translate-y-0.5 hover:bg-cloud-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-cloud-800 dark:bg-cloud-900 dark:text-cloud-200"
           onClick={refresh}
           disabled={status === "loading"}
           aria-busy={status === "loading"}
@@ -231,7 +232,7 @@ export function MemoryPageV2() {
         </div>
       ) : (
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex items-center gap-4 rounded-2xl border border-pink-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center gap-4 rounded-2xl border border-pink-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300">
               <Brain size={20} />
             </div>
@@ -239,12 +240,12 @@ export function MemoryPageV2() {
               <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
                 {t("memory.sessionEntries")}
               </p>
-              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+              <h2 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {summary?.entry_count ?? 0}
-              </h3>
+              </h2>
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-mint-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center gap-4 rounded-2xl border border-mint-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-mint-100 text-mint-600 dark:bg-mint-900/30 dark:text-mint-300">
               <Brain size={20} />
             </div>
@@ -252,21 +253,21 @@ export function MemoryPageV2() {
               <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
                 {t("memory.activeMemories")}
               </p>
-              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+              <h2 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {activeCount}
-              </h3>
+              </h2>
             </div>
           </div>
         </div>
       )}
 
       <div className="flex flex-col gap-5">
-        <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/60 px-5 py-4 dark:border-white/10">
-            <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
+        <div className="rounded-2xl border border-cloud-200 bg-white shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cloud-200 px-5 py-4 dark:border-cloud-800">
+            <h2 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
               <Brain size={20} />
               {t("memory.sessionMemory")}
-            </h3>
+            </h2>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -319,17 +320,17 @@ export function MemoryPageV2() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-          <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
-            <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
+        <div className="rounded-2xl border border-cloud-200 bg-white shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+          <div className="border-b border-cloud-200 px-5 py-4 dark:border-cloud-800">
+            <h2 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
               <Search size={20} />
               Memory Retrieval Diagnostics
-            </h3>
+            </h2>
           </div>
           <div className="p-5">
             <div className="flex flex-wrap gap-2">
               <input
-                className="min-w-[200px] flex-1 rounded-xl border-2 border-transparent bg-cloud-100 px-4 py-2 text-sm text-cloud-800 outline-none transition-all focus:border-pink-300 focus:bg-white dark:bg-slate-800 dark:text-cloud-100"
+                className="min-w-0 flex-1 rounded-xl border-2 border-transparent bg-cloud-100 px-4 py-2 text-sm text-cloud-800 outline-none transition-colors focus:border-pink-300 focus:bg-white dark:bg-cloud-800 dark:text-cloud-100"
                 aria-label="Memory retrieval query"
                 placeholder="Search ranking signals"
                 value={retrievalQuery}
@@ -337,7 +338,7 @@ export function MemoryPageV2() {
               />
               <button
                 type="button"
-                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-400 to-peach-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-400 to-peach-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform transition-shadow hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={handleRetrieve}
                 disabled={retrievalState !== "idle" || !retrievalQuery.trim()}
                 aria-busy={retrievalState === "searching"}
@@ -351,7 +352,7 @@ export function MemoryPageV2() {
                 {retrievalHits.map((hit) => (
                   <div
                     key={hit.memory_id}
-                    className="rounded-xl border border-white/60 bg-white/40 p-4 dark:border-white/10 dark:bg-slate-800/40"
+                    className="rounded-xl border border-cloud-200 bg-cloud-50 p-4 dark:border-cloud-800 dark:bg-cloud-800"
                   >
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <span className="font-mono text-xs text-cloud-500 dark:text-cloud-400">
@@ -365,8 +366,14 @@ export function MemoryPageV2() {
                       {hit.summary_text}
                     </p>
                     <div className="flex flex-wrap gap-3 break-words text-xs text-cloud-500 dark:text-cloud-400">
-                      <span>{t("memory.matchedTermsLabel")}: {hit.matched_terms.join(", ") || t("profile.none")}</span>
-                      <span>{t("memory.matchReasonsLabel")}: {hit.match_reasons.join(", ") || t("profile.none")}</span>
+                      <span>
+                        {t("memory.matchedTermsLabel")}:{" "}
+                        {hit.matched_terms.join(", ") || t("profile.none")}
+                      </span>
+                      <span>
+                        {t("memory.matchReasonsLabel")}:{" "}
+                        {hit.match_reasons.join(", ") || t("profile.none")}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -382,18 +389,18 @@ export function MemoryPageV2() {
         </div>
 
         {memories.length > 0 && (
-          <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-            <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
-              <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
+          <div className="rounded-2xl border border-cloud-200 bg-white shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+            <div className="border-b border-cloud-200 px-5 py-4 dark:border-cloud-800">
+              <h2 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
                 <Brain size={20} />
                 {t("memory.longTermMemory")}
-              </h3>
+              </h2>
             </div>
             <div className="flex flex-col">
               {memories.map((memory) => (
                 <div
                   key={memory.memory_id}
-                  className="border-b border-white/60 p-4 last:border-b-0 dark:border-white/10"
+                  className="border-b border-cloud-200 p-4 last:border-b-0 dark:border-cloud-800"
                 >
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <span className="font-mono text-xs text-cloud-500 dark:text-cloud-400">
@@ -404,7 +411,7 @@ export function MemoryPageV2() {
                         "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
                         memory.status.toLowerCase() === "active"
                           ? "bg-mint-100 text-mint-700 dark:bg-mint-900/30 dark:text-mint-300"
-                          : "bg-cloud-100 text-cloud-600 dark:bg-slate-700 dark:text-cloud-300"
+                          : "bg-cloud-100 text-cloud-600 dark:bg-cloud-800 dark:text-cloud-300"
                       )}
                     >
                       {getStatusLabel(memory.status, locale)}

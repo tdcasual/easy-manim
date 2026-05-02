@@ -38,10 +38,10 @@ import { cn } from "../../lib/utils";
 import "../../styles/page-shell-v2.css";
 import "./ProfilePageV2.css";
 
-// 编辑器模式
+// Editor mode
 type EditorMode = "visual" | "json";
 
-// 可视化表单数据类型
+// Visual form data type
 interface VisualFormData {
   preferred_color: string;
   animation_speed: "slow" | "normal" | "fast";
@@ -52,7 +52,7 @@ interface VisualFormData {
   style_notes: string;
 }
 
-// 默认表单数据
+// Default form data
 const defaultFormData: VisualFormData = {
   preferred_color: "blue",
   animation_speed: "normal",
@@ -63,7 +63,7 @@ const defaultFormData: VisualFormData = {
   style_notes: "",
 };
 
-// Kawaii 颜色选项 - 使用粉彩色系
+// Kawaii color options - pastel palette
 const colorOptions = [
   { value: "blue", key: "sky", className: "bg-sky-300", emoji: "☁️" },
   { value: "green", key: "mint", className: "bg-mint-300", emoji: "🌿" },
@@ -85,7 +85,7 @@ const complexityOptions = [
   { value: "complex", key: "complex", emoji: "🌈" },
 ];
 
-// 趋势指示器组件
+// Trend indicator component
 function TrendIndicator({ current, previous }: { current: number; previous?: number }) {
   if (!previous || current === previous) {
     return <Minus size={14} className="trend-neutral" />;
@@ -100,7 +100,7 @@ function TrendIndicator({ current, previous }: { current: number; previous?: num
   );
 }
 
-// 可视化编辑器组件
+// Visual editor component
 function VisualEditor({
   data,
   onChange,
@@ -116,25 +116,24 @@ function VisualEditor({
 
   return (
     <div className="visual-editor">
-      {/* 颜色偏好 */}
+      {/* Color preference */}
       <div className="form-group">
-        <label className="form-label">
+        <label id="profile-color-label" className="form-label">
           <span className="label-emoji">🎨</span>
           {t("profile.preferredColor")}
         </label>
-        <div className="color-picker">
+        <div className="color-picker" role="radiogroup" aria-labelledby="profile-color-label">
           {colorOptions.map((color) => {
             const label = t(`profile.color.${color.key}.label`);
+            const selected = data.preferred_color === color.value;
             return (
               <button
                 key={color.value}
                 type="button"
+                role="radio"
+                aria-checked={selected}
                 onClick={() => updateField("preferred_color", color.value)}
-                className={cn(
-                  "color-option",
-                  data.preferred_color === color.value && "active",
-                  color.className
-                )}
+                className={cn("color-option", selected && "active", color.className)}
                 title={label}
                 aria-label={label}
               >
@@ -148,31 +147,36 @@ function VisualEditor({
         </div>
       </div>
 
-      {/* 动画速度 */}
+      {/* Animation speed */}
       <div className="form-group">
-        <label className="form-label">
+        <label id="profile-speed-label" className="form-label">
           <span className="label-emoji">⚡</span>
           {t("profile.animationSpeed")}
         </label>
-        <div className="option-cards">
-          {speedOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`option-card ${data.animation_speed === option.value ? "active" : ""}`}
-              onClick={() =>
-                updateField("animation_speed", option.value as VisualFormData["animation_speed"])
-              }
-            >
-              <span className="option-emoji">{option.emoji}</span>
-              <span className="option-title">{t(`profile.speed.${option.key}.label`)}</span>
-              <span className="option-desc">{t(`profile.speed.${option.key}.desc`)}</span>
-            </button>
-          ))}
+        <div className="option-cards" role="radiogroup" aria-labelledby="profile-speed-label">
+          {speedOptions.map((option) => {
+            const selected = data.animation_speed === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={`option-card ${selected ? "active" : ""}`}
+                onClick={() =>
+                  updateField("animation_speed", option.value as VisualFormData["animation_speed"])
+                }
+              >
+                <span className="option-emoji">{option.emoji}</span>
+                <span className="option-title">{t(`profile.speed.${option.key}.label`)}</span>
+                <span className="option-desc">{t(`profile.speed.${option.key}.desc`)}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 复杂度 */}
+      {/* Complexity */}
       <div className="form-group">
         <label className="form-label">
           <span className="label-emoji">🌟</span>
@@ -196,7 +200,7 @@ function VisualEditor({
         </div>
       </div>
 
-      {/* 文本语言 */}
+      {/* Text language */}
       <div className="form-group">
         <label className="form-label">
           <span className="label-emoji">🌐</span>
@@ -217,7 +221,7 @@ function VisualEditor({
         </div>
       </div>
 
-      {/* 行为设置 */}
+      {/* Behavior settings */}
       <div className="form-group">
         <label className="form-label">
           <span className="label-emoji">⚙️</span>
@@ -255,13 +259,14 @@ function VisualEditor({
         </div>
       </div>
 
-      {/* 风格备注 */}
+      {/* Style notes */}
       <div className="form-group">
-        <label className="form-label">
+        <label htmlFor="style-notes" className="form-label">
           <span className="label-emoji">💭</span>
           {t("profile.styleNotes")}
         </label>
         <textarea
+          id="style-notes"
           className="form-textarea"
           value={data.style_notes}
           onChange={(e) => updateField("style_notes", e.target.value)}
@@ -273,7 +278,7 @@ function VisualEditor({
   );
 }
 
-// 装饰云朵组件
+// Decorative floating clouds
 function FloatingClouds() {
   return (
     <div className="floating-clouds" aria-hidden="true">
@@ -285,7 +290,7 @@ function FloatingClouds() {
   );
 }
 
-// 主组件
+// Main component
 export function ProfilePageV2() {
   const { sessionToken } = useSession();
   const { locale, t } = useI18n();
@@ -335,7 +340,7 @@ export function ProfilePageV2() {
   const [formData, setFormData] = useState<VisualFormData>(defaultFormData);
   const { ARIALiveRegion, announcePolite } = useARIAMessage();
 
-  // JSON 示例
+  // JSON example
   const jsonExample = JSON.stringify(
     {
       style_hints: {
@@ -353,7 +358,7 @@ export function ProfilePageV2() {
     2
   );
 
-  // 从 profile_json 解析表单数据
+  // Parse form data from profile_json
   const parseProfileToForm = useCallback((profileJson: Record<string, unknown>): VisualFormData => {
     const styleHints = (profileJson.style_hints as Record<string, unknown>) ?? {};
     const behavior = (profileJson.behavior as Record<string, unknown>) ?? {};
@@ -371,7 +376,7 @@ export function ProfilePageV2() {
     };
   }, []);
 
-  // 将表单数据转换为 JSON
+  // Convert form data to JSON
   const formToPatch = useCallback((data: VisualFormData): Record<string, unknown> => {
     return {
       style_hints: {
@@ -407,11 +412,11 @@ export function ProfilePageV2() {
       setStrategies(Array.isArray(nextStrategies.items) ? nextStrategies.items : []);
       setScorecardHistory((prev) => [...prev.slice(-4), nextScorecard]);
 
-      // 同步表单数据
+      // Sync form data
       const parsedForm = parseProfileToForm(nextProfile.profile_json ?? {});
       setFormData(parsedForm);
 
-      // 同步 JSON
+      // Sync JSON
       setPatchText(JSON.stringify(formToPatch(parsedForm), null, 2));
       succeed();
     } catch {
@@ -433,7 +438,7 @@ export function ProfilePageV2() {
     refresh();
   }, [refresh]);
 
-  // 实时 JSON 验证（仅在 JSON 模式下）
+  // Real-time JSON validation (JSON mode only)
   useEffect(() => {
     if (editorMode !== "json") return;
     try {
@@ -444,7 +449,7 @@ export function ProfilePageV2() {
     }
   }, [patchText, t, editorMode]);
 
-  // 同步表单和 JSON
+  // Sync form and JSON
   useEffect(() => {
     if (editorMode === "visual") {
       setPatchText(JSON.stringify(formToPatch(formData), null, 2));
@@ -454,7 +459,7 @@ export function ProfilePageV2() {
   async function onApply() {
     if (!sessionToken) return;
 
-    // 根据编辑器模式获取 patch
+    // Get patch based on editor mode
     let patch: Record<string, unknown>;
     if (editorMode === "visual") {
       patch = formToPatch(formData);
@@ -484,7 +489,7 @@ export function ProfilePageV2() {
     }
   }
 
-  // 获取上一期的分数用于趋势对比
+  // Get previous score for trend comparison
   const previousScorecard = useMemo(() => {
     if (scorecardHistory.length < 2) return undefined;
     return scorecardHistory[scorecardHistory.length - 2];
@@ -523,16 +528,21 @@ export function ProfilePageV2() {
           <p className="page-description-v2">{t("profile.page.description")}</p>
         </div>
         <button
+          type="button"
           className="refresh-btn kawaii-btn kawaii-btn-mint"
           onClick={refresh}
           disabled={status === "loading"}
         >
-          {status === "loading" ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
+          {status === "loading" ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <RefreshCw size={18} />
+          )}
           {t("profile.refresh")}
         </button>
       </div>
 
-      {/* 指标卡片 */}
+      {/* Metric cards */}
       {!scorecard && status === "loading" ? (
         <div className="metrics-grid-v2">
           <SkeletonMetricCard />
@@ -548,7 +558,7 @@ export function ProfilePageV2() {
             </div>
             <div className="metric-content">
               <p className="metric-label-v2">{t("profile.completed")}</p>
-              <h3 className="metric-value-v2">{qualityPassedCount}</h3>
+              <h2 className="metric-value-v2">{qualityPassedCount}</h2>
               <TrendIndicator current={qualityPassedCount} previous={previousQualityPassedCount} />
             </div>
           </div>
@@ -559,7 +569,7 @@ export function ProfilePageV2() {
             </div>
             <div className="metric-content">
               <p className="metric-label-v2">{t("profile.failed")}</p>
-              <h3 className="metric-value-v2">{scorecard.failed_count}</h3>
+              <h2 className="metric-value-v2">{scorecard.failed_count}</h2>
             </div>
           </div>
           <div className="metric-card-v2 metric-card-lavender">
@@ -569,9 +579,9 @@ export function ProfilePageV2() {
             </div>
             <div className="metric-content">
               <p className="metric-label-v2">{t("profile.medianQuality")}</p>
-              <h3 className="metric-value-v2">
+              <h2 className="metric-value-v2">
                 {scorecard.median_quality_score?.toFixed(1) ?? "—"}
-              </h3>
+              </h2>
               {scorecard.median_quality_score && (
                 <span
                   className={`quality-badge ${
@@ -595,14 +605,14 @@ export function ProfilePageV2() {
       ) : null}
 
       <div className="content-grid-v2">
-        {/* 左侧：当前画像 */}
+        {/* Left: current profile */}
         <div className="main-column">
           <div className="section-card-v2 section-card-glass">
             <div className="section-header-v2">
-              <h3 className="section-title-v2">
+              <h2 className="section-title-v2">
                 <span className="title-icon">👤</span>
                 {t("profile.currentProfile")}
-              </h3>
+              </h2>
               <div className="section-decoration">✨</div>
             </div>
 
@@ -839,15 +849,15 @@ export function ProfilePageV2() {
           </div>
         </div>
 
-        {/* 右侧：编辑区 */}
+        {/* Right: editor */}
         <div className="side-column">
           <div className="section-card-v2 section-card-glass">
             <div className="section-header-v2">
-              <h3 className="section-title-v2">
+              <h2 className="section-title-v2">
                 <span className="title-icon">⚙️</span>
                 {t("profile.applyPatch")}
-              </h3>
-              {/* 编辑器模式切换 */}
+              </h2>
+              {/* Editor mode toggle */}
               <div className="editor-mode-toggle">
                 <button
                   type="button"
@@ -873,7 +883,7 @@ export function ProfilePageV2() {
                 <VisualEditor data={formData} onChange={setFormData} />
               ) : (
                 <>
-                  {/* JSON 示例折叠面板 */}
+                  {/* JSON example collapsible panel */}
                   <details
                     className="json-example-panel"
                     open={showExample}
@@ -899,6 +909,7 @@ export function ProfilePageV2() {
                       spellCheck={false}
                       aria-invalid={!!jsonError}
                       aria-describedby={jsonError ? "json-error" : undefined}
+                      aria-label={t("profile.jsonLabel")}
                     />
                     <div className="textarea-decoration">✨</div>
                   </div>
@@ -913,6 +924,7 @@ export function ProfilePageV2() {
               )}
 
               <button
+                type="button"
                 className="submit-btn-v2 kawaii-btn kawaii-btn-pink"
                 onClick={onApply}
                 disabled={applyState !== "idle" || (editorMode === "json" && !!jsonError)}
@@ -920,7 +932,7 @@ export function ProfilePageV2() {
               >
                 {applyState === "applying" ? (
                   <>
-                    <Loader2 size={18} className="spin" /> {t("profile.applying")}
+                    <Loader2 size={18} className="animate-spin" /> {t("profile.applying")}
                   </>
                 ) : (
                   <>
@@ -933,7 +945,7 @@ export function ProfilePageV2() {
         </div>
       </div>
 
-      {/* 🔐 认证弹窗 */}
+      {/* 🔐 Auth modal */}
       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );

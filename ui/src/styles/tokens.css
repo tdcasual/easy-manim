@@ -179,6 +179,8 @@
     var(--color-mint-50) 50%,
     var(--color-sky-50) 100%
   );
+  --gradient-page-login: linear-gradient(to bottom, #e8f4f8, #f0f7fa, #fff8f0);
+  --gradient-page-videos: linear-gradient(to bottom, #e8f4f8, #f0f7fa, #fff8f0);
   --gradient-button: linear-gradient(135deg, var(--color-pink-400) 0%, var(--color-peach-400) 100%);
 
   /* 🪟 玻璃态效果 */
@@ -454,6 +456,8 @@
   --accent-warm: #ffab91;
   --accent-cyan: #4fc3f7;
   --gradient-aurora: linear-gradient(135deg, #8bc34a 0%, #7986cb 100%);
+  --gradient-page-login: linear-gradient(to bottom, var(--color-cloud-950), var(--color-cloud-900), var(--color-cloud-950));
+  --gradient-page-videos: linear-gradient(to bottom, var(--color-cloud-950), var(--color-cloud-900), var(--color-cloud-950));
   --primary-950: #030712;
   --primary-900: #0a0e1a;
   --primary-800: #121829;

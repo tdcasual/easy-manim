@@ -1,6 +1,6 @@
 /**
- * Shared Hooks Library
- * 可复用的 React Hooks 集合
+ * Shared hooks library
+ * Collection of reusable React hooks.
  */
 
 // Async state management

@@ -1,20 +1,20 @@
-// 组件导出 - 设计系统统一入口
+// Component exports - design system unified entry
 
 // ================================
-// 基础组件
+// Base components
 // ================================
 
-// Toast 通知
+// Toast notifications
 export { ToastProvider } from "./Toast";
 export { useToast } from "./useToast";
 export type { ToastType } from "./ToastContext";
 export { useARIAMessage } from "./useARIAMessage";
 export { useConfirm } from "./useConfirm";
 
-// Auth 认证
+// Auth
 export { AuthModal, useAuthGuard } from "./AuthModal";
 
-// Button 按钮
+// Buttons
 export {
   Button,
   IconButton,
@@ -27,11 +27,11 @@ export {
 } from "./Button/Button";
 export type { ButtonVariant, ButtonSize, ButtonProps, LinkButtonProps } from "./Button/Button";
 
-// Input 输入
+// Inputs
 export { Input, Textarea, Select, Checkbox, Radio } from "./Input/Input";
 export type { InputSize, InputVariant } from "./Input/Input";
 
-// KawaiiIcon 二次元图标
+// KawaiiIcon
 export {
   KawaiiIcon,
   EmojiIcon,
@@ -43,10 +43,10 @@ export {
 export type { IconColor, IconSize } from "./KawaiiIcon/KawaiiIcon";
 
 // ================================
-// 视觉组件
+// Visual components
 // ================================
 
-// 渐变背景
+// Gradient backgrounds
 export {
   GradientBackground,
   DreamyBackground,
@@ -55,11 +55,11 @@ export {
   MinimalBackground,
 } from "./GradientBackground";
 
-// Kawaii 标签
+// Kawaii tags
 export { KawaiiTag, StatusTag, DecorativeTag, CountTag, TagGroup } from "./KawaiiTag";
 export type { TagVariant, TagSize } from "./KawaiiTag";
 
-// Kawaii 装饰元素
+// Kawaii decorations
 export {
   FloatingClouds,
   TwinklingStars,
@@ -70,20 +70,19 @@ export {
   KawaiiPageWrapper,
 } from "./KawaiiDecorations";
 
-// 动画容器
+// Animation containers
 export {
   AnimatedContainer,
   StaggeredList,
   PageTransition,
   HoverAnimation,
-  FloatingElement,
   GlowEffect,
   Sparkle,
 } from "./AnimatedContainer";
 export type { AnimationType } from "./AnimatedContainer";
 
 // ================================
-// 现有组件
+// Existing components
 // ================================
 
 export { ErrorBoundary, ErrorFallback } from "./ErrorBoundary";

@@ -1,7 +1,13 @@
 import { type CSSProperties } from "react";
 import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 import { cn } from "../../lib/utils";
 import type { GenerationParams as StoreGenerationParams } from "../store";
 
@@ -97,15 +103,16 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
       <DialogContent
         closeLabel={t("studio.settings.close")}
         closeAutoFocus
-        className="max-h-[80vh] overflow-y-auto rounded-3xl border-[var(--glass-border)] bg-[var(--glass-white)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg"
+        className="max-h-[80vh] overflow-y-auto rounded-3xl border-cloud-200 bg-white p-0 shadow-xl dark:border-cloud-800 dark:bg-cloud-900 sm:max-w-lg"
       >
-        <DialogHeader className="border-b border-[var(--glass-border)] p-5">
+        <DialogHeader className="border-b border-cloud-200 p-5 dark:border-cloud-800">
           <div className="flex items-center gap-2">
             <EmojiIcon emoji="⚙️" color="mint" size="sm" />
             <DialogTitle className="text-lg font-semibold text-foreground">
               {t("studio.settings.title")}
             </DialogTitle>
           </div>
+          <DialogDescription className="sr-only">{t("studio.settings.dialog")}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5 p-5">
@@ -115,7 +122,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
               <EmojiIcon emoji="🖥️" color="sky" size="xs" />
               <h3>{t("studio.settings.resolution")}</h3>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {resolutionOptions.map((opt) => {
                 const active = params.resolution === opt.value;
                 return (
@@ -124,10 +131,10 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
                     type="button"
                     onClick={() => onParamsChange({ ...params, resolution: opt.value })}
                     className={cn(
-                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-all",
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-colors transition-transform transition-shadow",
                       active
                         ? "border-pink-300 bg-pink-50/60 shadow-sm"
-                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                        : "border-cloud-200 bg-cloud-50 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm dark:border-cloud-800 dark:bg-cloud-800 dark:hover:bg-cloud-700"
                     )}
                   >
                     <div
@@ -153,7 +160,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
               <EmojiIcon emoji="⏱️" color="peach" size="xs" />
               <h3>{t("studio.settings.duration")}</h3>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {durationOptions.map((opt) => {
                 const active = params.duration === opt.value;
                 return (
@@ -162,10 +169,10 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
                     type="button"
                     onClick={() => onParamsChange({ ...params, duration: opt.value })}
                     className={cn(
-                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-all",
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-colors transition-transform transition-shadow",
                       active
                         ? "border-pink-300 bg-pink-50/60 shadow-sm"
-                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                        : "border-cloud-200 bg-cloud-50 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm dark:border-cloud-800 dark:bg-cloud-800 dark:hover:bg-cloud-700"
                     )}
                   >
                     <div
@@ -189,7 +196,7 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
               <EmojiIcon emoji="🎨" color="pink" size="xs" />
               <h3>{t("studio.settings.style")}</h3>
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {styleOptions.map((opt) => {
                 const active = params.style === opt.value;
                 return (
@@ -198,10 +205,10 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
                     type="button"
                     onClick={() => onParamsChange({ ...params, style: opt.value })}
                     className={cn(
-                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-all",
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition-colors transition-transform transition-shadow",
                       active
                         ? "border-pink-300 bg-pink-50/60 shadow-sm"
-                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                        : "border-cloud-200 bg-cloud-50 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm dark:border-cloud-800 dark:bg-cloud-800 dark:hover:bg-cloud-700"
                     )}
                     style={{ "--style-accent": opt.color } as CSSProperties}
                   >
@@ -235,10 +242,10 @@ export function SettingsPanel({ isOpen, onClose, params, onParamsChange }: Setti
                     type="button"
                     onClick={() => onParamsChange({ ...params, quality: opt.value })}
                     className={cn(
-                      "flex items-center justify-between rounded-2xl border p-3 text-left transition-all",
+                      "flex items-center justify-between rounded-2xl border p-3 text-left transition-colors transition-transform transition-shadow",
                       active
                         ? "border-pink-300 bg-pink-50/60 shadow-sm"
-                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                        : "border-cloud-200 bg-cloud-50 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm dark:border-cloud-800 dark:bg-cloud-800 dark:hover:bg-cloud-700"
                     )}
                   >
                     <div className="flex flex-col gap-0.5">

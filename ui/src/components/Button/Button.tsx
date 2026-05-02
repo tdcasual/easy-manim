@@ -4,7 +4,8 @@ import {
   type ButtonHTMLAttributes,
   type AnchorHTMLAttributes,
 } from "react";
-import { Button as UIButton, buttonVariants } from "../ui/button";
+import { Button as UIButton } from "../ui/button";
+import { buttonVariants } from "../ui/button-variants";
 import { cn } from "../../lib/utils";
 import type { VariantProps } from "class-variance-authority";
 

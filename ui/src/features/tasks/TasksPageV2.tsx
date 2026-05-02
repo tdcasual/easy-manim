@@ -84,18 +84,20 @@ function StatusBadge({ status, size = "md" }: { status: string; size?: "sm" | "m
 }
 
 function VideoThumb({ video }: { video: RecentVideoItem }) {
+  const { t } = useI18n();
   const previewUrl = resolveApiUrl(video.latest_preview_url);
   const videoUrl = resolveApiUrl(video.latest_video_url);
   const displayTitle = video.display_title ?? video.task_id?.slice(0, 8) ?? "";
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/60">
-      <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-pink-50 to-mint-50 dark:from-slate-800 dark:to-slate-800">
+    <div className="group overflow-hidden rounded-2xl border border-cloud-200 bg-white shadow-sm transition-colors transition-transform transition-shadow hover:-translate-y-1 hover:shadow-lg dark:border-cloud-800 dark:bg-cloud-900">
+      <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-pink-50 to-mint-50 dark:from-cloud-800 dark:to-cloud-800">
         {previewUrl ? (
           <img
             src={previewUrl}
             alt={displayTitle}
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
@@ -110,7 +112,8 @@ function VideoThumb({ video }: { video: RecentVideoItem }) {
           <a
             href={videoUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            aria-label={t("tasks.playVideo", { title: displayTitle })}
             className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
@@ -155,7 +158,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
   }, []);
 
   return (
-    <div className="group flex animate-float-in items-center gap-3 rounded-2xl border border-white/60 bg-white/60 px-4 py-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/80 hover:shadow-md dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-slate-900/80 sm:gap-4 sm:px-5 sm:py-4">
+    <div className="group flex items-center gap-3 rounded-2xl border border-cloud-200 bg-white px-4 py-3 shadow-sm transition-colors transition-transform transition-shadow hover:-translate-y-0.5 hover:bg-cloud-50 hover:shadow-md dark:border-cloud-800 dark:bg-cloud-900 dark:hover:bg-cloud-800 sm:gap-4 sm:px-5 sm:py-4">
       <Link
         to={`/tasks/${encodeURIComponent(task.task_id)}`}
         className="flex min-w-0 flex-1 items-center gap-3 text-inherit no-underline sm:gap-4"
@@ -173,8 +176,9 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
 
       <div className="relative" ref={menuRef}>
         <button
+          type="button"
           ref={triggerRef}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-cloud-100 text-cloud-600 transition-all hover:scale-110 hover:rotate-12 hover:bg-pink-100 hover:text-pink-500 dark:bg-slate-800 dark:text-cloud-400 dark:hover:bg-pink-900/30"
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-cloud-100 text-cloud-600 transition-colors transition-transform hover:scale-110 hover:rotate-12 hover:bg-pink-100 hover:text-pink-500 dark:bg-cloud-800 dark:text-cloud-400 dark:hover:bg-pink-900/30"
           onClick={() => setShowMenu(!showMenu)}
           aria-label={t("tasks.moreActions")}
           aria-expanded={showMenu}
@@ -183,7 +187,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-full z-40 mt-2 min-w-[10rem] animate-pop-in rounded-xl border border-white/60 bg-white/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
+          <div className="absolute right-0 top-full z-40 mt-2 min-w-[10rem] rounded-xl border border-cloud-200 bg-white p-1.5 shadow-lg dark:border-cloud-800 dark:bg-cloud-900">
             <Link
               to={`/tasks/${encodeURIComponent(task.task_id)}`}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-cloud-700 transition-colors hover:bg-pink-50 hover:text-pink-600 dark:text-cloud-200 dark:hover:bg-pink-900/20"
@@ -194,6 +198,7 @@ function TaskItem({ task, onCancel }: { task: TaskListItem; onCancel?: (id: stri
             </Link>
             {canCancel && onCancel && (
               <button
+                type="button"
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-peach-600 transition-colors hover:bg-peach-50 dark:text-peach-400 dark:hover:bg-peach-900/20"
                 onClick={() => {
                   onCancel(task.task_id);
@@ -252,15 +257,16 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
   return (
     <div
       className={cn(
-        "rounded-full border border-white/60 bg-white/70 p-1.5 shadow-md backdrop-blur-sm transition-all dark:border-white/10 dark:bg-slate-900/60",
+        "rounded-full border border-cloud-200 bg-white p-1.5 shadow-md transition-colors transition-shadow dark:border-cloud-800 dark:bg-cloud-900",
         isFocused && "border-pink-200 shadow-lg shadow-pink-100/30"
       )}
     >
       <form onSubmit={handleSubmit}>
         <div className="flex items-center gap-3 px-3 py-2">
-          <Sparkles size={18} className="shrink-0 text-pink-400 animate-bounce" />
+          <Sparkles size={18} className="shrink-0 text-pink-400" />
           <input
             type="text"
+            aria-label={t("tasks.promptLabel")}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onFocus={() => {
@@ -285,7 +291,7 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
           <button
             type="submit"
             className={cn(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all",
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-colors",
               "bg-gradient-to-br from-pink-400 to-pink-500 shadow-pink-200/40",
               "hover:scale-110 hover:rotate-90 hover:shadow-lg",
               "disabled:cursor-not-allowed disabled:opacity-60 disabled:scale-100 disabled:rotate-0"
@@ -302,12 +308,12 @@ function QuickInput({ onSubmit, creating = false, requireAuth }: QuickInputProps
         </div>
 
         {isFocused && (
-          <div className="flex flex-wrap gap-2 px-3 pb-3 pt-2 animate-slide-down">
+          <div className="flex flex-wrap gap-2 px-3 pb-3 pt-2">
             {quickPrompts.map((item) => (
               <button
                 key={item.text}
                 type="button"
-                className="flex items-center gap-1.5 rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-600 transition-all hover:-translate-y-0.5 hover:bg-pink-100 hover:shadow-sm dark:border-pink-900/30 dark:bg-pink-900/20 dark:text-pink-300"
+                className="flex items-center gap-1.5 rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-600 transition-colors transition-transform transition-shadow hover:-translate-y-0.5 hover:bg-pink-100 hover:shadow-sm dark:border-pink-900/30 dark:bg-pink-900/20 dark:text-pink-300"
                 onClick={() => submitPrompt(item.text)}
               >
                 <span>{item.emoji}</span>
@@ -340,7 +346,7 @@ function StatCard({
   }[color];
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/60 bg-white/60 px-4 py-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-slate-900/60 sm:gap-4 sm:px-5 sm:py-4">
+    <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-cloud-200 bg-white px-4 py-3 shadow-sm transition-colors transition-transform transition-shadow hover:-translate-y-1 hover:shadow-md dark:border-cloud-800 dark:bg-cloud-900 sm:gap-4 sm:px-5 sm:py-4">
       <div
         className={cn(
           "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12",
@@ -508,7 +514,7 @@ export function TasksPageV2() {
       <AnimatedContainer animation="slide-down" delay={0}>
         <div className="mb-5 flex flex-wrap items-stretch gap-3 sm:mb-6 sm:gap-4">
           <StatCard
-            icon={<Clock size={18} className="animate-pulse" />}
+            icon={<Clock size={18} />}
             value={stats.running}
             label={t("tasks.metric.active")}
             color="sky"
@@ -526,7 +532,8 @@ export function TasksPageV2() {
             color="pink"
           />
           <button
-            className="flex h-auto w-12 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white/60 text-cloud-500 shadow-sm backdrop-blur-sm transition-all hover:rotate-180 hover:scale-110 hover:bg-pink-100 hover:text-pink-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:rotate-0 disabled:hover:scale-100 dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-400 sm:w-14"
+            type="button"
+            className="flex h-auto w-12 shrink-0 items-center justify-center rounded-2xl border border-cloud-200 bg-white text-cloud-500 shadow-sm transition-colors transition-transform transition-shadow hover:rotate-180 hover:scale-110 hover:bg-pink-100 hover:text-pink-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:rotate-0 disabled:hover:scale-100 dark:border-cloud-800 dark:bg-cloud-900 dark:text-cloud-400 sm:w-14"
             onClick={loadData}
             disabled={loading}
             aria-label={t("tasks.refreshList")}
@@ -541,19 +548,23 @@ export function TasksPageV2() {
       </AnimatedContainer>
 
       <AnimatedContainer animation="slide-up" delay={150}>
-        <div className="mb-5 flex gap-2 overflow-x-auto pb-1 sm:mb-6 sm:gap-3">
+        <div className="mb-5 flex gap-2 overflow-x-auto pb-1 sm:mb-6 sm:gap-3" role="tablist">
           {[
             { key: "all" as const, label: t("tasks.tabs.all"), emoji: "🌸" },
             { key: "running" as const, label: t("tasks.tabs.running"), emoji: "🎬" },
             { key: "completed" as const, label: t("tasks.tabs.completed"), emoji: "✨" },
           ].map((tab) => (
             <button
+              type="button"
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              aria-controls="tasks-tabpanel"
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all sm:px-5 sm:py-2.5",
+                "flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors sm:px-5 sm:py-2.5",
                 activeTab === tab.key
                   ? "border-transparent bg-gradient-to-r from-pink-400 to-peach-400 text-white shadow-md shadow-pink-200/40"
-                  : "border-white/60 bg-white/60 text-cloud-600 hover:-translate-y-0.5 hover:border-pink-200 hover:bg-pink-50 hover:text-pink-500 hover:shadow-sm dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-400 dark:hover:bg-pink-900/20"
+                  : "border-cloud-200 bg-white text-cloud-600 hover:-translate-y-0.5 hover:border-pink-200 hover:bg-pink-50 hover:text-pink-500 hover:shadow-sm dark:border-cloud-800 dark:bg-cloud-900 dark:text-cloud-400 dark:hover:bg-pink-900/20"
               )}
               onClick={() => setActiveTab(tab.key)}
             >
@@ -566,7 +577,7 @@ export function TasksPageV2() {
 
       {loadError && (
         <div
-          className="mb-5 flex items-start gap-3 rounded-2xl border border-pink-200 bg-white/70 px-4 py-3 text-sm text-pink-700 shadow-sm backdrop-blur-sm dark:border-pink-900/30 dark:bg-slate-900/60 dark:text-pink-300"
+          className="mb-5 flex items-start gap-3 rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm text-pink-700 shadow-sm dark:border-pink-900/30 dark:bg-cloud-900 dark:text-pink-300"
           role="alert"
         >
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
@@ -579,7 +590,7 @@ export function TasksPageV2() {
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
+      <div id="tasks-tabpanel" role="tabpanel" className="flex flex-col gap-3">
         {loading && tasks.length === 0 ? (
           <div className="flex flex-col gap-3">
             {[...Array(5)].map((_, i) => (
@@ -605,18 +616,18 @@ export function TasksPageV2() {
           ))
         ) : loadError && tasks.length === 0 ? (
           <div
-            className="flex flex-col items-center rounded-2xl border border-white/60 bg-white/60 px-6 py-12 text-center text-cloud-500 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60"
+            className="flex flex-col items-center rounded-2xl border border-cloud-200 bg-white px-6 py-12 text-center text-cloud-500 shadow-sm dark:border-cloud-800 dark:bg-cloud-900"
             role="alert"
           >
-            <span className="mb-4 text-6xl animate-float">💔</span>
+            <span className="mb-4 text-6xl">💔</span>
             <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">{loadError}</p>
             <span className="text-sm text-cloud-500 dark:text-cloud-400">
               {t("tasks.loadFailedHint")}
             </span>
           </div>
         ) : (
-          <div className="flex flex-col items-center rounded-2xl border border-white/60 bg-white/60 px-6 py-12 text-center text-cloud-500 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-            <span className="mb-4 text-6xl animate-float">🌸</span>
+          <div className="flex flex-col items-center rounded-2xl border border-cloud-200 bg-white px-6 py-12 text-center text-cloud-500 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+            <span className="mb-4 text-6xl">🌸</span>
             <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
               {t("tasks.noTasks")}
             </p>
@@ -630,21 +641,21 @@ export function TasksPageV2() {
       {videos.length > 0 && (
         <AnimatedContainer animation="fade" delay={200}>
           <div className="mt-8">
-            <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-cloud-700 dark:text-cloud-200">
+            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-cloud-700 dark:text-cloud-200">
               <span className="text-xl">🎬</span>
               <span>{t("tasks.recentVideos")}</span>
               <Link
                 to="/videos"
-                className="ml-auto rounded-full bg-pink-50 px-3 py-1 text-xs font-medium text-pink-500 transition-all hover:translate-x-1 hover:bg-pink-100 dark:bg-pink-900/20 dark:hover:bg-pink-900/30"
+                className="ml-auto rounded-full bg-pink-50 px-3 py-1 text-xs font-medium text-pink-500 transition-colors transition-transform hover:translate-x-1 hover:bg-pink-100 dark:bg-pink-900/20 dark:hover:bg-pink-900/30"
               >
                 {t("tasks.viewAll")} →
               </Link>
-            </h3>
+            </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {videos.slice(0, 4).map((video, index) => (
                 <AnimatedContainer
                   key={video.task_id}
-                  animation="scale"
+                  animation="fade"
                   delay={index * 100}
                   trigger="in-view"
                 >

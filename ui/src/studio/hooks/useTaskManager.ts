@@ -1,6 +1,6 @@
 /**
- * useTaskManager - 任务管理 Hook
- * 管理任务创建、轮询、取消等核心逻辑
+ * useTaskManager - task management hook.
+ * Handles core logic for creation, polling, and cancellation.
  */
 import { useCallback, useRef, useEffect } from "react";
 import { createTask, getTask, getTaskResult, cancelTask } from "../../lib/tasksApi";
@@ -47,7 +47,7 @@ interface UseTaskManagerOptions {
 }
 
 export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerOptions) {
-  // 使用 selector 模式分别获取需要的 actions，避免整个 store 作为依赖
+  // Use selectors to fetch only needed actions, avoiding full-store dependencies
   const setIsGenerating = useStudioStore((state) => state.setIsGenerating);
   const setCurrentTask = useStudioStore((state) => state.setCurrentTask);
   const setError = useStudioStore((state) => state.setError);
@@ -57,7 +57,7 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
   const pollCleanupRef = useRef<(() => void) | null>(null);
   const submitLockRef = useRef(false);
 
-  // 清理轮询
+  // Clean up polling
   const cleanupPolling = useCallback(() => {
     if (pollCleanupRef.current) {
       pollCleanupRef.current();
@@ -65,12 +65,12 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
     }
   }, []);
 
-  // 组件卸载时清理
+  // Clean up on unmount
   useEffect(() => {
     return () => cleanupPolling();
   }, [cleanupPolling]);
 
-  // 提交任务
+  // Submit task
   const submitTask = useCallback(
     async (params: {
       prompt: string;
@@ -80,7 +80,7 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
       quality?: string;
     }) => {
       if (!sessionToken || submitLockRef.current) {
-        return { success: false, error: "无法提交" };
+        return { success: false, error: "Unable to submit" };
       }
 
       submitLockRef.current = true;
@@ -98,7 +98,7 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
           return { success: true, taskId: result.task_id };
         }
 
-        return { success: false, error: "创建任务失败" };
+        return { success: false, error: "Failed to create task" };
       } catch (err) {
         const parsedError = parseError(err);
         setError(parsedError);
@@ -111,7 +111,7 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
     [sessionToken, setIsGenerating, setCurrentTask, setError]
   );
 
-  // 开始轮询任务状态
+  // Start polling task status
   const startPolling = useCallback(
     (taskId: string) => {
       if (!sessionToken) return;
@@ -153,7 +153,7 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
             const interval = getPollInterval(task.status, false);
             timeoutId = window.setTimeout(checkStatus, interval);
           } else if (task.status === "failed") {
-            setError({ type: "generation", message: "任务执行失败", retryable: true });
+            setError({ type: "generation", message: "Task execution failed", retryable: true });
             setIsGenerating(false);
           }
         } catch (err) {
@@ -180,7 +180,7 @@ export function useTaskManager({ sessionToken, onTaskComplete }: UseTaskManagerO
     [sessionToken, cleanupPolling, onTaskComplete, updateTaskStatus, setIsGenerating, setError]
   );
 
-  // 取消任务
+  // Cancel task
   const cancelCurrentTask = useCallback(async () => {
     if (!sessionToken || !currentTask?.id) return { success: false };
 

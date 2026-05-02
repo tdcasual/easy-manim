@@ -327,7 +327,7 @@ export function TaskDetailPageV2() {
         <ConfirmDialog />
         <div className="page-header-v2">
           <div className="page-header-content-v2">
-            <button onClick={() => navigate(-1)} className="back-link">
+            <button type="button" onClick={() => navigate(-1)} className="back-link">
               <ArrowLeft size={18} />
               {t("taskDetail.back")}
             </button>
@@ -413,23 +413,23 @@ export function TaskDetailPageV2() {
 
   return (
     <div className="page-v2">
-      {/* ARIA Live 区域 */}
+      {/* ARIA live region */}
       <ARIALiveRegion />
 
-      {/* 确认对话框 */}
+      {/* Confirm dialog */}
       <ConfirmDialog />
 
-      {/* 头部 */}
+      {/* Header */}
       <div className="page-header-v2">
         <div className="page-header-content-v2">
-          <button onClick={() => navigate(-1)} className="back-link">
+          <button type="button" onClick={() => navigate(-1)} className="back-link">
             <ArrowLeft size={18} />
             {t("taskDetail.back")}
           </button>
           <h1 className="page-title-v2 break-words">{displayTitle}</h1>
           <p className="page-description-v2">{taskId}</p>
         </div>
-        <button className="refresh-btn" onClick={() => setReloadTick((t) => t + 1)}>
+        <button type="button" className="refresh-btn" onClick={() => setReloadTick((t) => t + 1)}>
           <RefreshCw size={18} />
           {t("taskDetail.refresh")}
         </button>
@@ -441,7 +441,7 @@ export function TaskDetailPageV2() {
         </div>
       )}
 
-      {/* 状态栏 */}
+      {/* Status bar */}
       <div
         className="task-status-bar"
         style={{ "--status-color": currentStatus.colorVar } as React.CSSProperties}
@@ -450,7 +450,7 @@ export function TaskDetailPageV2() {
           <StatusIcon
             size={24}
             style={{ color: currentStatus.colorVar }}
-            className={status === "running" ? "spin" : ""}
+            className={status === "running" ? "animate-spin" : ""}
           />
         </div>
         <div className="status-info">
@@ -467,10 +467,10 @@ export function TaskDetailPageV2() {
         </div>
       )}
 
-      {/* 主内容 */}
+      {/* Main content */}
       <div className="content-grid-v2">
         <div className="main-column">
-          {/* 视频播放器 */}
+          {/* Video player */}
           {videoUrl && (
             <div className="section-card-v2 video-player-card">
               <video
@@ -484,7 +484,7 @@ export function TaskDetailPageV2() {
 
           {snapshot.thread_id ? (
             <div className="section-card-v2 task-thread-workspace-card">
-              <h3 className="section-title-v2">Thread workspace</h3>
+              <h2 className="section-title-v2">Thread workspace</h2>
               <p className="page-description-v2">
                 Open the canonical video page for discussion, versions, and revision history.
               </p>
@@ -497,13 +497,16 @@ export function TaskDetailPageV2() {
             </div>
           ) : null}
 
-          {/* 操作面板 */}
+          {/* Actions panel */}
           <div className="section-card-v2">
-            <h3 className="section-title-v2">{t("taskDetail.actions")}</h3>
+            <h2 className="section-title-v2">{t("taskDetail.actions")}</h2>
 
             <div className="action-group">
-              <label className="form-label-v2">{t("taskDetail.feedbackLabel")}</label>
+              <label htmlFor="task-feedback" className="form-label-v2">
+                {t("taskDetail.feedbackLabel")}
+              </label>
               <textarea
+                id="task-feedback"
                 className="form-textarea-v2"
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
@@ -520,7 +523,7 @@ export function TaskDetailPageV2() {
               >
                 {actionState === "revise" ? (
                   <>
-                    <Loader2 size={18} className="spin" /> {t("taskDetail.submitting")}
+                    <Loader2 size={18} className="animate-spin" /> {t("taskDetail.submitting")}
                   </>
                 ) : (
                   <>
@@ -570,9 +573,9 @@ export function TaskDetailPageV2() {
             />
           ) : null}
 
-          {/* 结果信息 */}
+          {/* Result info */}
           <div className="section-card-v2">
-            <h3 className="section-title-v2">{t("taskDetail.results")}</h3>
+            <h2 className="section-title-v2">{t("taskDetail.results")}</h2>
             <div className="info-list">
               <div className="info-item">
                 <span className="info-label">{t("taskDetail.status")}</span>
@@ -599,7 +602,7 @@ export function TaskDetailPageV2() {
         </div>
       </div>
 
-      {/* 🔐 认证弹窗 */}
+      {/* 🔐 Auth modal */}
       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
     </div>
   );

@@ -40,7 +40,7 @@ afterEach(() => {
 
 test("in-view animated containers stay hidden until they intersect", () => {
   render(
-    <AnimatedContainer animation="scale" trigger="in-view">
+    <AnimatedContainer animation="slide-up" trigger="in-view">
       <div>Video card</div>
     </AnimatedContainer>
   );

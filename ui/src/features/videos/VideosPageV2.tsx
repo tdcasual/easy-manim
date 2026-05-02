@@ -73,20 +73,21 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
   };
 
   const status = statusConfig[video.status.toLowerCase()] ?? {
-    className: "bg-cloud-100 text-cloud-700 dark:bg-slate-800 dark:text-cloud-300",
+    className: "bg-cloud-100 text-cloud-700 dark:bg-cloud-800 dark:text-cloud-300",
     icon: null,
     label: video.status,
     emoji: "📹",
   };
 
   return (
-    <div className="group flex flex-wrap items-center gap-4 rounded-2xl border border-white/60 bg-white/60 p-3 shadow-sm backdrop-blur-sm transition-all hover:translate-x-2 hover:border-pink-200 hover:bg-white/80 hover:shadow-md dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-slate-900/80 sm:flex-nowrap sm:p-4">
+    <div className="group flex flex-wrap items-center gap-4 rounded-2xl border border-cloud-200 bg-white p-3 shadow-sm transition-colors transition-transform transition-shadow hover:translate-x-2 hover:border-pink-200 hover:bg-cloud-50 hover:shadow-md dark:border-cloud-800 dark:bg-cloud-900 dark:hover:bg-cloud-800 sm:flex-nowrap sm:p-4">
       <div className="relative h-auto w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-pink-100 to-mint-100 aspect-video sm:w-32">
         {previewUrl ? (
           <img
             src={previewUrl}
             alt={displayTitle}
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (
@@ -96,7 +97,7 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
         )}
         <div
           className={cn(
-            "absolute bottom-1 left-1 flex items-center gap-1 rounded-full border border-white/70 px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm",
+            "absolute bottom-1 left-1 flex items-center gap-1 rounded-full border border-cloud-200 bg-white px-2 py-0.5 text-[11px] font-semibold",
             status.className
           )}
         >
@@ -110,7 +111,7 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
           {displayTitle}
         </h4>
         <div className="flex flex-wrap gap-3 text-xs text-cloud-500 dark:text-cloud-400">
-          <span className="min-w-0 truncate font-mono">{video.task_id}</span>
+          <span className="min-w-0 break-all font-mono">{video.task_id}</span>
           <span>{new Date(video.updated_at ?? Date.now()).toLocaleDateString(locale)}</span>
         </div>
       </div>
@@ -118,7 +119,7 @@ const VideoListItem = memo(function VideoListItem({ video }: { video: RecentVide
       <div className="w-full shrink-0 sm:w-auto">
         <Link
           to={detailHref}
-          className="flex w-full items-center justify-center gap-1 rounded-full bg-gradient-to-r from-mint-400 to-sky-400 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:gap-2 sm:w-auto"
+          className="flex w-full items-center justify-center gap-1 rounded-full bg-gradient-to-r from-mint-400 to-sky-400 px-3 py-2 text-xs font-medium text-white shadow-sm transition-transform transition-shadow hover:-translate-y-0.5 hover:shadow-md hover:gap-2 sm:w-auto"
         >
           <span>{t("videos.viewDetails")}</span>
           <ArrowRight size={14} />
@@ -168,7 +169,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
   };
 
   const status = statusConfig[video.status.toLowerCase()] ?? {
-    className: "bg-cloud-100 text-cloud-700 dark:bg-slate-800 dark:text-cloud-300",
+    className: "bg-cloud-100 text-cloud-700 dark:bg-cloud-800 dark:text-cloud-300",
     label: video.status,
     emoji: "📹",
   };
@@ -192,8 +193,8 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
   }, []);
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-white/60 bg-white/60 shadow-md backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-pink-200 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/60">
-      <div className="relative aspect-video overflow-hidden rounded-t-2xl bg-gradient-to-br from-pink-100 to-mint-100 dark:from-slate-800 dark:to-slate-800">
+    <div className="group overflow-hidden rounded-2xl border border-cloud-200 bg-white shadow-md transition-colors transition-transform transition-shadow hover:-translate-y-1 hover:border-pink-200 hover:shadow-lg dark:border-cloud-800 dark:bg-cloud-900">
+      <div className="relative aspect-video overflow-hidden rounded-t-2xl bg-gradient-to-br from-pink-100 to-mint-100 dark:from-cloud-800 dark:to-cloud-800">
         {videoUrl ? (
           <>
             <video
@@ -211,10 +212,10 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
             <button
               type="button"
               className={cn(
-                "absolute bottom-3 left-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-white shadow-md transition-all hover:scale-110",
+                "absolute bottom-3 left-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-white shadow-md transition-transform hover:scale-110",
                 isPlaying
                   ? "bg-gradient-to-br from-pink-400 to-pink-500 text-white"
-                  : "bg-white/80 text-pink-500 hover:bg-white"
+                  : "bg-white border-2 border-cloud-200 text-pink-500 hover:bg-cloud-50"
               )}
               onClick={togglePlay}
               aria-label={isPlaying ? t("videos.pauseVideo") : t("videos.playVideo")}
@@ -235,6 +236,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
             src={previewUrl}
             alt={displayTitle}
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
@@ -253,7 +255,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
         </div>
         <div
           className={cn(
-            "absolute right-3 top-3 flex items-center gap-1 rounded-full border border-white/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm shadow-sm",
+            "absolute right-3 top-3 flex items-center gap-1 rounded-full border border-cloud-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide shadow-sm",
             status.className
           )}
         >
@@ -261,7 +263,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
           <span>{status.label}</span>
         </div>
       </div>
-      <div className="flex flex-col gap-1 p-4">
+      <div className="flex min-w-0 flex-col gap-1 overflow-hidden p-4">
         <h4 className="truncate text-base font-semibold text-cloud-800 dark:text-cloud-100">
           {displayTitle}
         </h4>
@@ -270,7 +272,7 @@ const VideoGridCard = memo(function VideoGridCard({ video }: { video: RecentVide
         </p>
         <Link
           to={detailHref}
-          className="mt-1 flex items-center gap-1 text-sm font-medium text-pink-500 transition-all hover:gap-2"
+          className="mt-1 flex items-center gap-1 text-sm font-medium text-pink-500 transition-colors hover:gap-2"
         >
           <span>{t("videos.viewDetails")}</span>
           <ArrowRight size={14} />
@@ -331,11 +333,12 @@ function FilterBar({
     ];
 
   return (
-    <div className="relative z-10 mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-md backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-      <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-full border-2 border-transparent bg-cloud-100 px-4 py-2 shadow-sm transition-all focus-within:border-pink-300 focus-within:bg-white focus-within:shadow-md dark:bg-slate-800">
+    <div className="relative z-10 mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-cloud-200 bg-white p-4 shadow-md dark:border-cloud-800 dark:bg-cloud-900">
+      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border-2 border-transparent bg-cloud-100 px-4 py-2 shadow-sm transition-colors transition-shadow focus-within:border-pink-300 focus-within:bg-white focus-within:shadow-md dark:bg-cloud-800">
         <Search size={16} className="shrink-0 text-pink-400" />
         <input
           type="text"
+          aria-label={t("videos.searchLabel")}
           placeholder={t("videos.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -344,7 +347,7 @@ function FilterBar({
         {searchQuery && (
           <button
             type="button"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pink-300 text-white transition-all hover:scale-110 hover:bg-pink-500"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-300 text-white transition-colors transition-transform hover:scale-110 hover:bg-pink-500"
             onClick={() => onSearchChange("")}
             aria-label={t("videos.clearSearch")}
           >
@@ -356,10 +359,10 @@ function FilterBar({
       <button
         type="button"
         className={cn(
-          "flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-medium transition-all",
+          "flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-medium transition-colors transition-transform",
           isExpanded
             ? "border-lavender-400 bg-gradient-to-r from-lavender-400 to-pink-400 text-white shadow-md"
-            : "border-transparent bg-cloud-100 text-cloud-700 hover:border-lavender-300 hover:bg-lavender-50 dark:bg-slate-800 dark:text-cloud-200"
+            : "border-transparent bg-cloud-100 text-cloud-700 hover:border-lavender-300 hover:bg-lavender-50 dark:bg-cloud-800 dark:text-cloud-200"
         )}
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
@@ -381,10 +384,10 @@ function FilterBar({
               type="button"
               key={option.value}
               className={cn(
-                "flex items-center gap-1 rounded-full border-2 px-4 py-2 text-sm font-semibold transition-all",
+                "flex items-center gap-1 rounded-full border-2 px-4 py-2 text-sm font-semibold transition-colors transition-transform",
                 statusFilter === option.value
-                  ? "border-current bg-white shadow-sm dark:bg-slate-800"
-                  : "border-transparent bg-cloud-100 text-cloud-700 hover:-translate-y-0.5 hover:border-pink-200 hover:bg-pink-50 hover:text-pink-600 dark:bg-slate-800 dark:text-cloud-200"
+                  ? "border-current bg-white shadow-sm dark:bg-cloud-800"
+                  : "border-transparent bg-cloud-100 text-cloud-700 hover:-translate-y-0.5 hover:border-pink-200 hover:bg-pink-50 hover:text-pink-600 dark:bg-cloud-800 dark:text-cloud-200"
               )}
               onClick={() => onStatusChange(option.value)}
             >
@@ -403,22 +406,13 @@ function FilterBar({
 function CloudDecoration() {
   return (
     <>
-      <div className="pointer-events-none absolute left-[5%] top-[5%] -z-10 animate-float text-4xl opacity-40">
-        ☁️
-      </div>
-      <div className="pointer-events-none absolute right-[10%] top-[15%] -z-10 animate-float text-5xl opacity-40 [animation-delay:-3s]">
-        ☁️
-      </div>
-      <div className="pointer-events-none absolute bottom-[20%] left-[3%] -z-10 animate-float text-3xl opacity-40 [animation-delay:-5s]">
-        ☁️
-      </div>
-      <div className="pointer-events-none absolute right-[5%] top-[10%] -z-10 animate-twinkle text-2xl opacity-60">
+      <div className="pointer-events-none absolute right-[5%] top-[10%] -z-10 text-2xl opacity-60">
         ✨
       </div>
-      <div className="pointer-events-none absolute left-[15%] top-[25%] -z-10 animate-twinkle text-xl opacity-60 [animation-delay:-1s]">
+      <div className="pointer-events-none absolute left-[15%] top-[25%] -z-10 text-xl opacity-60">
         ✨
       </div>
-      <div className="pointer-events-none absolute left-[30%] top-[8%] -z-10 animate-twinkle text-lg opacity-60 [animation-delay:-0.5s]">
+      <div className="pointer-events-none absolute left-[30%] top-[8%] -z-10 text-lg opacity-60">
         🌸
       </div>
     </>
@@ -479,7 +473,10 @@ export function VideosPageV2() {
   }, [items, statusFilter, searchQuery]);
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#E8F4F8] via-[#F0F7FA] to-[#FFF8F0] px-4 py-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 sm:px-6 sm:py-8">
+    <div
+      className="relative min-h-screen px-4 py-6 sm:px-6 sm:py-8"
+      style={{ background: "var(--gradient-page-videos)" }}
+    >
       <CloudDecoration />
       <ARIALiveRegion />
 
@@ -492,7 +489,7 @@ export function VideosPageV2() {
             </div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-cloud-800 dark:text-cloud-100 sm:text-3xl">
               {t("videos.page.title")}
-              <span className="animate-bounce text-2xl">✨</span>
+              <span className="text-2xl transition-transform duration-300 hover:scale-110">✨</span>
             </h1>
             <p className="text-sm text-cloud-500 dark:text-cloud-400">
               {t("videos.page.description")}
@@ -500,14 +497,14 @@ export function VideosPageV2() {
           </div>
           <div className="flex items-center gap-3">
             <div
-              className="flex rounded-xl border border-white/60 bg-white/60 p-1 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60"
+              className="flex rounded-xl border border-cloud-200 bg-white p-1 shadow-sm dark:border-cloud-800 dark:bg-cloud-900"
               role="group"
               aria-label={t("videos.viewToggle")}
             >
               <button
                 type="button"
                 className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-lg transition-all",
+                  "flex h-11 w-11 items-center justify-center rounded-lg transition-colors",
                   viewMode === "grid"
                     ? "bg-gradient-to-br from-pink-400 to-peach-400 text-white shadow-sm"
                     : "text-cloud-500 hover:bg-pink-50 hover:text-pink-500 dark:text-cloud-400 dark:hover:bg-pink-900/20"
@@ -521,7 +518,7 @@ export function VideosPageV2() {
               <button
                 type="button"
                 className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-lg transition-all",
+                  "flex h-11 w-11 items-center justify-center rounded-lg transition-colors",
                   viewMode === "list"
                     ? "bg-gradient-to-br from-pink-400 to-peach-400 text-white shadow-sm"
                     : "text-cloud-500 hover:bg-pink-50 hover:text-pink-500 dark:text-cloud-400 dark:hover:bg-pink-900/20"
@@ -535,7 +532,7 @@ export function VideosPageV2() {
             </div>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-full bg-gradient-to-r from-mint-400 to-sky-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex items-center gap-2 rounded-full bg-gradient-to-r from-mint-400 to-sky-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform transition-shadow hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
               onClick={refresh}
               disabled={status === "loading"}
               aria-busy={status === "loading"}
@@ -584,8 +581,8 @@ export function VideosPageV2() {
               : filteredItems.map((video) => <VideoListItem key={video.task_id} video={video} />)}
           </div>
         ) : (
-          <div className="flex flex-col items-center rounded-2xl border border-white/60 bg-white/60 px-6 py-16 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-            <div className="mb-4 text-5xl animate-float">🎭</div>
+          <div className="flex flex-col items-center rounded-2xl border border-cloud-200 bg-white px-6 py-16 text-center shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+            <div className="mb-4 text-5xl">🎭</div>
             <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
               {searchQuery || statusFilter !== "all"
                 ? t("videos.noResults")

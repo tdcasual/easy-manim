@@ -1,7 +1,8 @@
-import type { Locale, MessageParams } from "../app/locale";
 import enMessages from "./en-US.json";
 import zhMessages from "./zh-CN.json";
 
+export type Locale = "zh-CN" | "en-US";
+export type MessageParams = Record<string, number | string | null | undefined>;
 export type Messages = Record<string, string | string[]>;
 
 const BASE_MESSAGES: Record<Locale, Messages> = {

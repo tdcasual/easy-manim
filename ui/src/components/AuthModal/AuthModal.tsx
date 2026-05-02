@@ -5,7 +5,7 @@ import { writeSessionToken, clearSessionToken } from "../../lib/session";
 import { useSession } from "../../features/auth/useSession";
 import { useAsyncStatus } from "../../hooks/useAsyncStatus";
 import { useI18n } from "../../app/locale";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { cn } from "../../lib/utils";
 
 export interface AuthModalProps {
@@ -102,14 +102,17 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="gap-4 rounded-3xl border-[var(--glass-border)] bg-[var(--glass-white)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-md">
-        <DialogHeader className="border-b border-[var(--glass-border)] p-5">
+      <DialogContent className="gap-4 rounded-3xl border-cloud-200 bg-white p-0 shadow-xl dark:border-cloud-800 dark:bg-cloud-900 sm:max-w-md">
+        <DialogHeader className="border-b border-cloud-200 p-5 dark:border-cloud-800">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
               <span>{isAuthenticated ? "✨" : "🔐"}</span>
               <span>{isAuthenticated ? t("login.welcome") : t("authModal.titleLogin")}</span>
             </DialogTitle>
           </div>
+          <DialogDescription className="sr-only">
+            {isAuthenticated ? t("authModal.successSubtitle") : t("login.subtitle")}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="px-5 pb-6">
@@ -121,7 +124,7 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-all hover:bg-destructive/20"
+                className="flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
               >
                 <LogOut size={16} />
                 <span>{t("sidebar.logout")}</span>
@@ -162,7 +165,7 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
                     placeholder={t("login.tokenPlaceholder")}
                     disabled={isLoading}
                     autoFocus
-                    className="flex h-10 w-full rounded-xl border border-border bg-card/60 px-3 py-2 text-sm text-foreground shadow-sm transition-all placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+                    className="flex h-10 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
                   />
                 </div>
 
@@ -170,7 +173,7 @@ export function AuthModal({ forceShow = false, onClose }: AuthModalProps) {
                   type="submit"
                   disabled={!token.trim() || isLoading}
                   className={cn(
-                    "flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all",
+                    "flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors transition-transform",
                     !token.trim() || isLoading
                       ? "bg-cloud-300"
                       : "bg-gradient-to-br from-pink-400 to-lavender-400 hover:-translate-y-0.5 hover:shadow-md"

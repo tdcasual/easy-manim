@@ -1,23 +1,23 @@
 /**
- * 防抖 Hook
- * 用于处理高频触发的事件（搜索输入、窗口调整等）
+ * Debounce hook
+ * For high-frequency events like search input or window resize.
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 
 /**
- * 防抖值 Hook
- * 延迟更新值，减少不必要的渲染或请求
+ * Debounced value hook
+ * Delays value updates to reduce unnecessary renders or requests.
  *
- * @param value 原始值
- * @param delay 延迟时间（毫秒）
- * @returns 防抖后的值
+ * @param value Original value.
+ * @param delay Delay in milliseconds.
+ * @returns Debounced value.
  *
  * @example
  * ```tsx
  * const [searchTerm, setSearchTerm] = useState('');
  * const debouncedSearch = useDebounce(searchTerm, 300);
  *
- * // 只在停止输入 300ms 后触发
+ * // Triggers only 300ms after typing stops.
  * useEffect(() => {
  *   performSearch(debouncedSearch);
  * }, [debouncedSearch]);
@@ -40,12 +40,12 @@ export function useDebounce<T>(value: T, delay: number): T {
 }
 
 /**
- * 防抖回调 Hook
- * 返回一个防抖的函数
+ * Debounced callback hook
+ * Returns a debounced function.
  *
- * @param callback 回调函数
- * @param delay 延迟时间（毫秒）
- * @returns 防抖后的回调函数
+ * @param callback Callback function.
+ * @param delay Delay in milliseconds.
+ * @returns Debounced callback.
  *
  * @example
  * ```tsx
@@ -54,7 +54,7 @@ export function useDebounce<T>(value: T, delay: number): T {
  *   500
  * );
  *
- * // 频繁调用不会立即执行
+ * // Frequent calls are not executed immediately.
  * debouncedSave(newData);
  * ```
  */
@@ -65,7 +65,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
 
-  // 保持回调引用最新
+  // Keep callback reference up to date
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
@@ -85,12 +85,12 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
 }
 
 /**
- * 节流 Hook
- * 限制函数执行频率
+ * Throttle hook
+ * Limits function execution frequency.
  *
- * @param callback 回调函数
- * @param limit 限制时间（毫秒）
- * @returns 节流后的回调函数
+ * @param callback Callback function.
+ * @param limit Throttle window in milliseconds.
+ * @returns Throttled callback.
  */
 export function useThrottle<T extends (...args: unknown[]) => unknown>(
   callback: T,

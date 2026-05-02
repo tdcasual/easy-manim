@@ -29,10 +29,10 @@ function formatPercent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
 
-const qualityRateIconColors = {
-  strong: "#22c55e",
-  medium: "#f59e0b",
-  weak: "#ef4444",
+const qualityRateIconClassMap = {
+  strong: "text-mint-600 dark:text-mint-300",
+  medium: "text-peach-600 dark:text-peach-300",
+  weak: "text-pink-600 dark:text-pink-300",
 } as const;
 
 export function EvalsPageV2() {
@@ -82,7 +82,7 @@ export function EvalsPageV2() {
   if (!sessionToken) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/60 bg-white/60 px-6 py-16 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-cloud-200 bg-white px-6 py-16 text-center shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
           <p className="text-lg font-semibold text-cloud-700 dark:text-cloud-200">
             {t("common.notLoggedIn")}
           </p>
@@ -108,7 +108,8 @@ export function EvalsPageV2() {
           </p>
         </div>
         <button
-          className="flex items-center gap-2 rounded-xl border border-white/60 bg-white/60 px-4 py-2 text-sm font-semibold text-cloud-700 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900/60 dark:text-cloud-200"
+          type="button"
+          className="flex items-center gap-2 rounded-xl border border-cloud-200 bg-white px-4 py-2 text-sm font-semibold text-cloud-700 shadow-sm transition-colors transition-transform transition-shadow hover:-translate-y-0.5 hover:bg-cloud-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-cloud-800 dark:bg-cloud-900 dark:text-cloud-200"
           onClick={refresh}
           disabled={status === "loading"}
         >
@@ -140,7 +141,7 @@ export function EvalsPageV2() {
         </div>
       ) : (
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center gap-4 rounded-2xl border border-lavender-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center gap-4 rounded-2xl border border-lavender-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lavender-100 text-lavender-600 dark:bg-lavender-900/30 dark:text-lavender-300">
               <BarChart3 size={20} />
             </div>
@@ -148,12 +149,12 @@ export function EvalsPageV2() {
               <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
                 {t("evals.runCount")}
               </p>
-              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+              <h2 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {items.length}
-              </h3>
+              </h2>
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-mint-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center gap-4 rounded-2xl border border-mint-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-mint-100 text-mint-600 dark:bg-mint-900/30 dark:text-mint-300">
               <CheckCircle2 size={20} />
             </div>
@@ -161,12 +162,12 @@ export function EvalsPageV2() {
               <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
                 {t("evals.averagePassRate")}
               </p>
-              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+              <h2 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {formatPercent(averageQualityPassRate)}
-              </h3>
+              </h2>
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-sky-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center gap-4 rounded-2xl border border-sky-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300">
               <BarChart3 size={20} />
             </div>
@@ -174,12 +175,12 @@ export function EvalsPageV2() {
               <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
                 {t("evals.averageDeliveryRate")}
               </p>
-              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+              <h2 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {formatPercent(averageDeliveryRate)}
-              </h3>
+              </h2>
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-sky-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
+          <div className="flex items-center gap-4 rounded-2xl border border-sky-200 bg-white p-4 shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300">
               <ClipboardList size={20} />
             </div>
@@ -187,20 +188,20 @@ export function EvalsPageV2() {
               <p className="text-xs font-semibold uppercase tracking-wide text-cloud-500 dark:text-cloud-400">
                 {t("evals.visibleCases")}
               </p>
-              <h3 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
+              <h2 className="text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {items.reduce((sum, item) => sum + item.total_cases, 0)}
-              </h3>
+              </h2>
             </div>
           </div>
         </div>
       )}
 
-      <div className="mb-5 rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
-          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
+      <div className="mb-5 rounded-2xl border border-cloud-200 bg-white shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+        <div className="border-b border-cloud-200 px-5 py-4 dark:border-cloud-800">
+          <h2 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <BarChart3 size={20} />
             {t("evals.recentRuns")}
-          </h3>
+          </h2>
         </div>
 
         <div className="flex flex-col p-2">
@@ -218,7 +219,7 @@ export function EvalsPageV2() {
                 <Link
                   key={run.run_id}
                   to={`/evals/${encodeURIComponent(run.run_id)}`}
-                  className="group flex animate-slide-up items-center gap-4 rounded-xl px-4 py-4 text-inherit no-underline transition-colors hover:bg-white/60 dark:hover:bg-slate-800/60"
+                  className="group flex items-center gap-4 rounded-xl px-4 py-4 text-inherit no-underline transition-colors hover:bg-cloud-50 dark:hover:bg-cloud-800"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="min-w-0 flex-1">
@@ -234,11 +235,11 @@ export function EvalsPageV2() {
                       {qualityRate !== null ? (
                         <>
                           {qualityRate >= 0.8 ? (
-                            <CheckCircle2 size={16} color={qualityRateIconColors.strong} />
+                            <CheckCircle2 size={16} className={qualityRateIconClassMap.strong} />
                           ) : qualityRate >= 0.5 ? (
-                            <BarChart3 size={16} color={qualityRateIconColors.medium} />
+                            <BarChart3 size={16} className={qualityRateIconClassMap.medium} />
                           ) : (
-                            <XCircle size={16} color={qualityRateIconColors.weak} />
+                            <XCircle size={16} className={qualityRateIconClassMap.weak} />
                           )}
                           {formatPercent(qualityRate)}
                         </>
@@ -254,7 +255,7 @@ export function EvalsPageV2() {
                   </div>
                   <ArrowRight
                     size={16}
-                    className="shrink-0 text-cloud-400 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-pink-500"
+                    className="shrink-0 text-cloud-400 opacity-0 transition-transform transition-colors transition-opacity group-hover:translate-x-1 group-hover:opacity-100 group-hover:text-pink-500"
                   />
                 </Link>
               );
@@ -279,12 +280,12 @@ export function EvalsPageV2() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/60">
-        <div className="border-b border-white/60 px-5 py-4 dark:border-white/10">
-          <h3 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
+      <div className="rounded-2xl border border-cloud-200 bg-white shadow-sm dark:border-cloud-800 dark:bg-cloud-900">
+        <div className="border-b border-cloud-200 px-5 py-4 dark:border-cloud-800">
+          <h2 className="flex items-center gap-2 text-base font-bold text-cloud-800 dark:text-cloud-100">
             <ClipboardList size={20} />
             Recent Shadow Decisions
-          </h3>
+          </h2>
         </div>
 
         <div className="flex flex-col p-2">
@@ -292,7 +293,7 @@ export function EvalsPageV2() {
             decisions.slice(0, 5).map((decision, index) => (
               <div
                 key={`${decision.strategy_id}:${decision.recorded_at}`}
-                className="flex animate-slide-up items-center gap-4 rounded-xl px-4 py-4"
+                className="flex items-center gap-4 rounded-xl px-4 py-4"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <div className="min-w-0 flex-1">

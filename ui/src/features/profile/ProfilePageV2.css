@@ -32,7 +32,6 @@
   position: absolute;
   font-size: 2rem;
   opacity: 0.4;
-  animation: cloudFloat 8s ease-in-out infinite;
 }
 
 .cloud-1 {
@@ -59,22 +58,6 @@
   right: 5%;
   animation-delay: 6s;
   font-size: 1.5rem;
-}
-
-@keyframes cloudFloat {
-  0%,
-  100% {
-    transform: translateX(0) translateY(0);
-  }
-  25% {
-    transform: translateX(10px) translateY(-5px);
-  }
-  50% {
-    transform: translateX(20px) translateY(0);
-  }
-  75% {
-    transform: translateX(10px) translateY(5px);
-  }
 }
 
 /* ================================
@@ -173,17 +156,6 @@
 
 .title-emoji {
   font-size: 1.5rem;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
 }
 
 .page-kawaii .page-description-v2 {
@@ -210,12 +182,10 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-5);
-  background: var(--glass-white);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s var(--ease-kawaii);
   overflow: hidden;
 }
@@ -230,8 +200,7 @@
   top: var(--space-2);
   right: var(--space-3);
   font-size: 1.25rem;
-  opacity: 0.5;
-  animation: twinkle 2s ease-in-out infinite;
+  opacity: 0.4;
 }
 
 .metric-card-mint {
@@ -283,12 +252,10 @@
 .section-card-glass {
   position: relative;
   z-index: 1;
-  background: var(--glass-white);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -316,19 +283,7 @@
 
 .section-decoration {
   font-size: 1.5rem;
-  animation: twinkle 2s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.8);
-  }
+  opacity: 0.6;
 }
 
 /* ================================
@@ -368,7 +323,6 @@
   top: -4px;
   right: -4px;
   font-size: 1.25rem;
-  animation: float 2s ease-in-out infinite;
 }
 
 .profile-info h4 {
@@ -755,7 +709,6 @@
   right: var(--space-3);
   font-size: 1rem;
   opacity: 0.5;
-  animation: twinkle 2s ease-in-out infinite;
 }
 
 .form-textarea-v2 {
@@ -956,7 +909,6 @@
 
 .empty-emoji {
   font-size: 4rem;
-  animation: float 3s ease-in-out infinite;
 }
 
 .page-kawaii .empty-state-v2 p {
@@ -966,19 +918,7 @@
   margin: 0;
 }
 
-/* 旋转动画 */
-.page-kawaii .spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* 旋转动画已迁移至 Tailwind animate-spin */
 
 /* ================================
    Focus-visible standardization

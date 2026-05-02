@@ -18,7 +18,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out",
+      "fixed inset-0 z-50 bg-black/40 data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out",
       className
     )}
     {...props}
@@ -43,7 +43,7 @@ const SheetContent = React.forwardRef<
       ref={ref}
       aria-modal="true"
       className={cn(
-        "fixed z-50 flex h-full max-h-screen flex-col gap-4 overflow-y-auto border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl focus:outline-none",
+        "fixed z-50 flex h-full max-h-screen flex-col gap-4 overflow-y-auto border-border bg-card p-6 shadow-2xl focus:outline-none",
         side === "left" &&
           "left-0 top-0 w-3/4 max-w-sm data-[state=open]:animate-slide-in-left data-[state=closed]:animate-slide-out-left",
         side === "right" &&

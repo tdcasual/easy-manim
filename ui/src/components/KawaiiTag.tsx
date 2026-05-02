@@ -77,10 +77,10 @@ export function KawaiiTag({
   return (
     <span
       className={cn(
-        "inline-flex cursor-default select-none items-center gap-1.5 rounded-full border-2 border-transparent font-semibold transition-all duration-200",
+        "inline-flex cursor-default select-none items-center gap-1.5 rounded-full border-2 border-transparent font-semibold transition-colors transition-transform duration-200",
         variantClassMap[variant],
         sizeClassMap[size],
-        pulse && "animate-pulse-glow",
+        pulse && "ring-2 ring-current ring-offset-1",
         closable && "pr-2",
         "shadow-sm hover:-translate-y-0.5 hover:shadow-md active:translate-y-0",
         className
@@ -91,14 +91,16 @@ export function KawaiiTag({
       {closable && (
         <button
           type="button"
-          className="relative ml-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-black/10 text-inherit transition-all hover:scale-110 hover:bg-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
+          className="relative -my-1 -mr-1 ml-0.5 flex h-11 w-11 items-center justify-center rounded-full bg-current/10 text-inherit transition-colors transition-transform hover:scale-110 hover:bg-current/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
           onClick={(e) => {
             e.stopPropagation();
             onClose?.();
           }}
           aria-label={t("common.removeTag")}
         >
-          <span className="text-sm font-bold leading-none">×</span>
+          <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-sm font-bold leading-none">
+            ×
+          </span>
         </button>
       )}
     </span>
@@ -126,7 +128,7 @@ export function StatusTag({ status, children, size = "md" }: StatusTagProps) {
     <KawaiiTag
       variant={config.variant}
       size={size}
-      icon={<span className="animate-pulse text-[0.9em]">{config.icon}</span>}
+      icon={<span className="text-[0.9em]">{config.icon}</span>}
       pulse={config.pulse}
     >
       {children ?? status}

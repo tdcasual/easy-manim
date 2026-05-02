@@ -1,5 +1,5 @@
 /**
- * Studio Store - 使用 Zustand 管理全局状态
+ * Studio store - global state managed by Zustand.
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -25,25 +25,25 @@ export interface TaskError {
 }
 
 interface StudioState {
-  // 输入状态
+  // Input state
   prompt: string;
   setPrompt: (prompt: string) => void;
 
-  // 任务状态
+  // Task state
   currentTask: Task | null;
   setCurrentTask: (task: Task | null) => void;
   updateTaskStatus: (status: Task["status"], videoUrl?: string) => void;
 
-  // 生成状态
+  // Generation state
   isGenerating: boolean;
   setIsGenerating: (value: boolean) => void;
 
-  // 错误状态
+  // Error state
   error: TaskError | null;
   setError: (error: TaskError | null) => void;
   clearError: () => void;
 
-  // 面板状态
+  // Panel state
   isHistoryOpen: boolean;
   toggleHistory: () => void;
   closeHistory: () => void;
@@ -56,11 +56,11 @@ interface StudioState {
   toggleHelp: () => void;
   closeHelp: () => void;
 
-  // 生成参数
+  // Generation params
   generationParams: GenerationParams;
   updateGenerationParams: (params: Partial<GenerationParams>) => void;
 
-  // 重置
+  // Reset
   reset: () => void;
 }
 
@@ -79,7 +79,7 @@ const initialState = {
   isHistoryOpen: false,
   isSettingsOpen: false,
   isHelpOpen: false,
-  // 创建新的对象，避免引用 defaultParams
+  // Create a new object to avoid referencing defaultParams
   generationParams: { ...defaultParams },
 };
 
@@ -88,10 +88,10 @@ export const useStudioStore = create<StudioState>()(
     (set, get) => ({
       ...initialState,
 
-      // 输入
+      // Input
       setPrompt: (prompt) => set({ prompt }),
 
-      // 任务
+      // Task
       setCurrentTask: (task) => set({ currentTask: task }),
       updateTaskStatus: (status, videoUrl) => {
         const { currentTask } = get();
@@ -102,14 +102,14 @@ export const useStudioStore = create<StudioState>()(
         }
       },
 
-      // 生成状态
+      // Generation state
       setIsGenerating: (isGenerating) => set({ isGenerating }),
 
-      // 错误
+      // Error
       setError: (error) => set({ error }),
       clearError: () => set({ error: null }),
 
-      // 面板 - 切换时自动关闭其他面板，防止冲突
+      // Panels - auto-close others when toggling to avoid conflicts
       toggleHistory: () =>
         set((state) => ({
           isHistoryOpen: !state.isHistoryOpen,
@@ -134,13 +134,13 @@ export const useStudioStore = create<StudioState>()(
         })),
       closeHelp: () => set({ isHelpOpen: false }),
 
-      // 参数
+      // Params
       updateGenerationParams: (params) =>
         set((state) => ({
           generationParams: { ...state.generationParams, ...params },
         })),
 
-      // 重置
+      // Reset
       reset: () => set(initialState),
     }),
     {

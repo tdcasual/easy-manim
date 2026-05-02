@@ -1,6 +1,6 @@
 /**
- * useKeyboardShortcuts - 键盘快捷键管理 Hook
- * 使用 ref 存储最新回调，避免频繁添加/移除事件监听器
+ * useKeyboardShortcuts - keyboard shortcuts hook.
+ * Uses refs to store latest callbacks, avoiding frequent add/remove of listeners.
  */
 import { useEffect, useRef } from "react";
 
@@ -25,7 +25,7 @@ export function useKeyboardShortcuts({
   onToggleTheme,
   onFocusInput,
 }: UseKeyboardShortcutsOptions) {
-  // 使用 ref 存储最新状态和回调，避免频繁重新绑定事件
+  // Use refs to store latest state/callbacks to avoid frequent re-binding
   const stateRef = useRef({
     isSettingsOpen,
     isHistoryOpen,
@@ -37,7 +37,7 @@ export function useKeyboardShortcuts({
     onFocusInput,
   });
 
-  // 更新 ref
+  // Update ref
   useEffect(() => {
     stateRef.current = {
       isSettingsOpen,
@@ -55,7 +55,7 @@ export function useKeyboardShortcuts({
     const handleKeyDown = (e: KeyboardEvent) => {
       const state = stateRef.current;
 
-      // 忽略输入框内的快捷键（除了 Escape）
+      // Ignore shortcuts inside inputs (except Escape)
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         if (e.key === "Escape") {
           (e.target as HTMLElement).blur();
@@ -63,24 +63,24 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // ? - 显示/隐藏帮助（优先级最高）
+      // ? - show/hide help (highest priority)
       if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         state.onToggleHelp();
         return;
       }
 
-      // 帮助面板打开时，其他快捷键不生效
+      // Other shortcuts are disabled while help panel is open
       if (state.isHelpOpen) return;
 
-      // / - 聚焦输入框
+      // / - focus input
       if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         state.onFocusInput();
         return;
       }
 
-      // ESC - 关闭面板
+      // ESC - close panels
       if (e.key === "Escape") {
         if (state.isSettingsOpen) {
           state.onToggleSettings();
@@ -93,19 +93,19 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // H - 打开历史
+      // H - open history
       if ((e.key === "h" || e.key === "H") && !state.isSettingsOpen) {
         state.onToggleHistory();
         return;
       }
 
-      // S - 打开设置
+      // S - open settings
       if ((e.key === "s" || e.key === "S") && !state.isHistoryOpen) {
         state.onToggleSettings();
         return;
       }
 
-      // T - 切换主题
+      // T - toggle theme
       if (e.key === "t" || e.key === "T") {
         state.onToggleTheme();
         return;
@@ -114,5 +114,5 @@ export function useKeyboardShortcuts({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []); // 只在组件挂载时绑定一次
+  }, []); // bind only once on mount
 }

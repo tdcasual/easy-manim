@@ -1,6 +1,6 @@
 /**
- * Toast Context
- * 单独文件导出以避免 react-refresh 警告
+ * Toast context
+ * Exported in a separate file to avoid react-refresh warnings.
  */
 import { createContext } from "react";
 

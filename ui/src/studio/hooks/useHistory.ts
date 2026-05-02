@@ -1,5 +1,5 @@
 /**
- * useHistory - 历史记录管理 Hook
+ * useHistory - history management hook.
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { readLocale, translate } from "../../app/locale";
@@ -39,11 +39,11 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isLoadingRef = useRef(false);
 
-  // 加载历史
+  // Load history
   const loadHistory = useCallback(async () => {
     if (!sessionToken || isLoadingRef.current) return;
 
-    // 取消之前的请求
+    // Cancel previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -59,7 +59,7 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
         listRecentVideos(sessionToken, 20),
       ]);
 
-      // 组件已卸载或请求已取消，不更新状态
+      // Component unmounted or request cancelled; skip state update
       if (controller.signal.aborted) return;
 
       setTasks(tasksRes.items || []);
@@ -68,7 +68,7 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
       if (err instanceof Error && err.name === "AbortError") return;
       // loading failures are handled by the UI layer
     } finally {
-      // 只有当这是当前活动的请求时才更新状态
+      // Update state only if this is the current active request
       if (abortControllerRef.current === controller) {
         isLoadingRef.current = false;
         setIsLoading(false);
@@ -77,7 +77,7 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
     }
   }, [sessionToken]);
 
-  // 组件卸载时取消请求
+  // Cancel request on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -86,10 +86,10 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
     };
   }, []);
 
-  // 准备历史数据
+  // Prepare history data
   const historyItems: HistoryItem[] = tasks.map((task) => {
     const video = videos.find((v) => v.task_id === task.task_id);
-    const timestamp = video?.updated_at ? formatTime(new Date(video.updated_at)) : "刚刚";
+    const timestamp = video?.updated_at ? formatTime(new Date(video.updated_at)) : "just now";
 
     return {
       id: task.task_id,
@@ -101,7 +101,7 @@ export function useHistory({ sessionToken }: UseHistoryOptions) {
     };
   });
 
-  // 获取最近完成的任务
+  // Get most recent completed task
   const getRecentCompleted = useCallback(() => {
     return videos.find((v) => v.status.toLowerCase() === "completed");
   }, [videos]);

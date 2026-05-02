@@ -1,36 +1,36 @@
 /**
- * 异步操作状态管理 Hook
- * 统一处理 loading/error/idle 状态，消除重复代码
+ * Async status management hook
+ * Unifies loading/error/idle state to remove duplication.
  */
 import { useState, useCallback } from "react";
 
 export type AsyncStatus = "idle" | "loading" | "error";
 
 export interface UseAsyncStatusReturn {
-  /** 当前状态 */
+  /** Current status */
   status: AsyncStatus;
-  /** 错误信息 */
+  /** Error message */
   error: string | null;
-  /** 是否处于加载中 */
+  /** Whether loading */
   isLoading: boolean;
-  /** 是否发生错误 */
+  /** Whether an error occurred */
   isError: boolean;
-  /** 是否处于空闲状态 */
+  /** Whether idle */
   isIdle: boolean;
-  /** 开始加载 */
+  /** Start loading */
   startLoading: () => void;
-  /** 设置错误状态 */
+  /** Set error state */
   setErrorState: (error: string | Error | unknown) => void;
-  /** 重置为空闲状态 */
+  /** Reset to idle */
   reset: () => void;
-  /** 成功完成 */
+  /** Mark as succeeded */
   succeed: () => void;
 }
 
 /**
- * 管理异步操作状态的 Hook
- * @param initialStatus 初始状态，默认为 "idle"
- * @returns 状态和控制函数
+ * Hook that manages async operation status.
+ * @param initialStatus Initial status, defaults to "idle".
+ * @returns State and controls.
  *
  * @example
  * ```tsx

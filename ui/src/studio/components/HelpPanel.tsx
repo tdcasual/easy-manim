@@ -1,6 +1,12 @@
 import { useI18n } from "../../app/locale";
 import { EmojiIcon } from "../../components";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 interface HelpPanelProps {
   isOpen: boolean;
@@ -25,35 +31,36 @@ export function HelpPanel({ isOpen, onClose }: HelpPanelProps) {
       <DialogContent
         closeLabel={t("studio.help.close")}
         closeAutoFocus
-        className="rounded-3xl border-[var(--glass-border)] bg-[var(--glass-white)] p-0 shadow-2xl backdrop-blur-xl sm:max-w-md"
+        className="rounded-3xl border-cloud-200 bg-white p-0 shadow-xl dark:border-cloud-800 dark:bg-cloud-900 sm:max-w-md"
       >
-        <DialogHeader className="border-b border-[var(--glass-border)] p-5">
+        <DialogHeader className="border-b border-cloud-200 p-5 dark:border-cloud-800">
           <div className="flex items-center gap-2">
             <EmojiIcon emoji="⌨️" color="sky" size="sm" />
             <DialogTitle className="text-lg font-semibold text-foreground">
               {t("studio.help.title")}
             </DialogTitle>
           </div>
+          <DialogDescription className="sr-only">{t("studio.help.footer")}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-1 p-5">
           {shortcuts.map((shortcut) => (
             <div
               key={shortcut.key}
-              className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
+              className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-cloud-50"
             >
               <div className="flex items-center gap-2 text-sm text-foreground">
                 <EmojiIcon emoji={shortcut.emoji} color="white" size="xs" />
                 <span>{shortcut.description}</span>
               </div>
-              <kbd className="rounded-lg border border-[var(--glass-border)] bg-white/60 px-2 py-1 text-xs font-semibold text-cloud-700">
+              <kbd className="rounded-lg border border-cloud-200 bg-cloud-50 px-2 py-1 text-xs font-semibold text-cloud-700 dark:border-cloud-800 dark:bg-cloud-800">
                 {shortcut.key}
               </kbd>
             </div>
           ))}
         </div>
 
-        <div className="border-t border-[var(--glass-border)] p-4 text-center text-xs text-muted-foreground">
+        <div className="border-t border-cloud-200 p-4 text-center text-xs text-muted-foreground dark:border-cloud-800">
           💡 {t("studio.help.footer")}
         </div>
       </DialogContent>

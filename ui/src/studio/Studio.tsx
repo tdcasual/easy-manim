@@ -1,6 +1,6 @@
 /**
- * Studio - 宫崎骏风格创作工作室主容器
- * 重构后版本 - 使用 Hooks + Zustand + Tailwind CSS
+ * Studio - main creative workspace container.
+ * Refactored version using Hooks + Zustand + Tailwind CSS.
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
@@ -44,8 +44,8 @@ function LoadingScreen() {
       className="flex min-h-screen flex-col items-center justify-center gap-4"
       style={{ background: "var(--gradient-day)" }}
     >
-      <div className="animate-pop-in text-5xl">🎨</div>
-      <p className="m-0 text-lg text-cloud-700 animate-fade-in">{t("studio.loading")} ✨</p>
+      <div className="text-5xl">🎨</div>
+      <p className="m-0 text-lg text-cloud-700">{t("studio.loading")} ✨</p>
     </div>
   );
 }
@@ -108,7 +108,7 @@ interface ToolbarAction {
 }
 
 export function Studio() {
-  const { t } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const { isNight, toggleTheme } = useTheme();
   const { sessionToken } = useSession();
   const { isMobile } = useResponsive();
@@ -249,7 +249,7 @@ export function Studio() {
     },
   ];
   const toolbarButtonClass =
-    "flex items-center gap-1 rounded-full border-none bg-[var(--glass-white)] px-3 py-2 text-sm font-medium text-cloud-700 shadow-xs transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md active:scale-95";
+    "flex items-center gap-1 rounded-full border-none bg-white px-3 py-2 text-sm font-medium text-cloud-700 shadow-xs transition-colors transition-transform hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md active:scale-95 dark:bg-cloud-900";
 
   return (
     <div
@@ -260,10 +260,10 @@ export function Studio() {
 
       <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 overflow-y-auto p-4 min-h-0 sm:gap-6 sm:p-6">
         {/* Header */}
-        <header className="mb-2 flex items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-white)] p-3 px-3 shadow-md backdrop-blur-xl transition-all duration-300 hover:shadow-lg sm:px-4">
-          <div className="flex items-center gap-3">
+        <header className="mb-2 flex items-start justify-between rounded-2xl border border-cloud-200 bg-white p-3 px-3 shadow-md transition-shadow duration-300 hover:shadow-lg dark:border-cloud-800 dark:bg-cloud-900 sm:items-center sm:px-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white shadow-lg animate-float transition-transform duration-300 hover:scale-110 hover:rotate-[5deg] sm:h-12 sm:w-12"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white shadow-lg transition-transform duration-300 hover:scale-110 hover:rotate-[5deg] sm:h-12 sm:w-12"
               style={{
                 background:
                   "linear-gradient(135deg, var(--color-pink-300) 0%, var(--color-peach-300) 100%)",
@@ -272,8 +272,8 @@ export function Studio() {
             >
               <Sparkles size={isMobile ? 18 : 22} />
             </div>
-            <div className="flex flex-col">
-              <h1 className="m-0 bg-gradient-to-br from-pink-500 to-lavender-500 bg-clip-text text-xl font-bold text-transparent sm:text-2xl">
+            <div className="min-w-0">
+              <h1 className="m-0 truncate text-lg font-bold leading-tight text-pink-500 dark:text-pink-400 sm:text-2xl">
                 easy-manim
               </h1>
               {!isMobile && (
@@ -285,72 +285,85 @@ export function Studio() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <LocaleToggle />
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {isMobile ? (
-              <Sheet open={isMobileActionsOpen} onOpenChange={setIsMobileActionsOpen}>
-                <SheetTrigger asChild>
+              <>
+                <div role="group" aria-label={t("locale.switcher")}>
                   <button
                     type="button"
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-white)] text-cloud-700 shadow-xs transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md"
-                    aria-label={t("studio.toolbar.moreActionsAria")}
-                    title={t("studio.toolbar.moreActionsTitle")}
+                    className="flex h-10 min-w-10 items-center justify-center rounded-full border border-cloud-200 bg-white px-2 text-sm font-semibold text-cloud-700 shadow-xs transition-colors transition-transform hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md dark:border-cloud-800 dark:bg-cloud-900"
+                    onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
+                    aria-label={t("locale.switcher")}
+                    title={t("locale.switcher")}
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <circle cx="12" cy="5" r="1.5" />
-                      <circle cx="12" cy="12" r="1.5" />
-                      <circle cx="12" cy="19" r="1.5" />
-                    </svg>
+                    {locale === "zh-CN" ? "EN" : "中"}
                   </button>
-                </SheetTrigger>
-                <SheetContent side="right" closeLabel={t("studio.toolbar.moreActionsTitle")}>
-                  <SheetHeader>
-                    <SheetTitle>{t("studio.toolbar.moreActions")}</SheetTitle>
-                    <SheetDescription>{t("studio.toolbar.moreActionsHint")}</SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-4 flex flex-col gap-3">
-                    {toolbarActions.map((action) => (
-                      <button
-                        key={action.id}
-                        type="button"
-                        onClick={() => {
-                          action.onClick();
-                          setIsMobileActionsOpen(false);
-                        }}
-                        className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-white)] px-4 py-3 text-left text-sm font-medium text-cloud-700 transition-all hover:bg-pink-50 hover:text-pink-600"
-                        aria-label={action.ariaLabel}
-                        title={action.title}
-                      >
-                        <span className="text-cloud-600">{action.icon}</span>
-                        <span>{action.label}</span>
-                      </button>
-                    ))}
+                </div>
+                <Sheet open={isMobileActionsOpen} onOpenChange={setIsMobileActionsOpen}>
+                  <SheetTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => {
-                        toggleTheme();
-                        setIsMobileActionsOpen(false);
-                      }}
-                      className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-white)] px-4 py-3 text-left text-sm font-medium text-cloud-700 transition-all hover:bg-pink-50 hover:text-pink-600"
-                      aria-label={isNight ? t("studio.theme.toDay") : t("studio.theme.toNight")}
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-cloud-200 bg-white text-cloud-700 shadow-xs transition-colors transition-transform hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-pink-100 hover:to-lavender-100 hover:text-pink-600 hover:shadow-md dark:border-cloud-800 dark:bg-cloud-900"
+                      aria-label={t("studio.toolbar.moreActionsAria")}
+                      title={t("studio.toolbar.moreActionsTitle")}
                     >
-                      <span className="text-lg" aria-hidden="true">
-                        {isNight ? "🌙" : "☀️"}
-                      </span>
-                      <span>{isNight ? t("studio.theme.toDay") : t("studio.theme.toNight")}</span>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <circle cx="12" cy="5" r="1.5" />
+                        <circle cx="12" cy="12" r="1.5" />
+                        <circle cx="12" cy="19" r="1.5" />
+                      </svg>
                     </button>
-                  </div>
-                </SheetContent>
-              </Sheet>
+                  </SheetTrigger>
+                  <SheetContent side="right" closeLabel={t("studio.toolbar.moreActionsTitle")}>
+                    <SheetHeader>
+                      <SheetTitle>{t("studio.toolbar.moreActions")}</SheetTitle>
+                      <SheetDescription>{t("studio.toolbar.moreActionsHint")}</SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-4 flex flex-col gap-3">
+                      {toolbarActions.map((action) => (
+                        <button
+                          key={action.id}
+                          type="button"
+                          onClick={() => {
+                            action.onClick();
+                            setIsMobileActionsOpen(false);
+                          }}
+                          className="flex items-center gap-3 rounded-xl border border-cloud-200 bg-white px-4 py-3 text-left text-sm font-medium text-cloud-700 transition-colors hover:bg-pink-50 hover:text-pink-600 dark:border-cloud-800 dark:bg-cloud-900"
+                          aria-label={action.ariaLabel}
+                          title={action.title}
+                        >
+                          <span className="text-cloud-600">{action.icon}</span>
+                          <span>{action.label}</span>
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toggleTheme();
+                          setIsMobileActionsOpen(false);
+                        }}
+                        className="flex items-center gap-3 rounded-xl border border-cloud-200 bg-white px-4 py-3 text-left text-sm font-medium text-cloud-700 transition-colors hover:bg-pink-50 hover:text-pink-600 dark:border-cloud-800 dark:bg-cloud-900"
+                        aria-label={isNight ? t("studio.theme.toDay") : t("studio.theme.toNight")}
+                      >
+                        <span className="text-lg" aria-hidden="true">
+                          {isNight ? "🌙" : "☀️"}
+                        </span>
+                        <span>{isNight ? t("studio.theme.toDay") : t("studio.theme.toNight")}</span>
+                      </button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </>
             ) : (
               <>
+                <LocaleToggle />
                 {toolbarActions.map((action) => (
                   <button
                     key={action.id}
@@ -377,10 +390,10 @@ export function Studio() {
           <div
             role="alert"
             className={cn(
-              "animate-slide-up flex items-start gap-3 rounded-2xl border-2 p-4 px-5",
+              "flex items-start gap-3 rounded-2xl border-2 p-4 px-5",
               isNetworkError
-                ? "border-pink-300 bg-[var(--glass-pink)] shadow-[var(--shadow-glow-pink)]"
-                : "border-mint-300 bg-[var(--glass-mint)] shadow-[var(--shadow-glow-mint)]"
+                ? "border-pink-300 bg-pink-50 shadow-[var(--shadow-glow-pink)]"
+                : "border-mint-300 bg-mint-50 shadow-[var(--shadow-glow-mint)]"
             )}
           >
             <div
@@ -436,7 +449,7 @@ export function Studio() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="flex items-center gap-1 rounded-xl border-none bg-gradient-to-br from-mint-400 to-sky-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  className="flex items-center gap-1 rounded-xl border-none bg-gradient-to-br from-mint-400 to-sky-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform transition-shadow hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <svg
                     width="14"
@@ -455,7 +468,7 @@ export function Studio() {
                 type="button"
                 onClick={clearError}
                 aria-label={t("studio.error.close")}
-                className="flex h-11 w-11 items-center justify-center rounded-full border-none bg-transparent text-cloud-700 transition-all hover:rotate-90 hover:bg-pink-100 hover:text-pink-600"
+                className="flex h-11 w-11 items-center justify-center rounded-full border-none bg-transparent text-cloud-700 transition-colors transition-transform hover:rotate-90 hover:bg-pink-100 hover:text-pink-600"
               >
                 <svg
                   width="18"

@@ -1,48 +1,48 @@
 /**
- * useAuthGuard - 认证守卫 Hook
- * 在需要认证时自动显示 AuthModal
- * 特点：
- * - 默认不弹窗，需要时自动弹出
- * - 支持手动触发和自动触发
- * - 可关闭，不影响页面使用
+ * useAuthGuard - authentication guard hook
+ * Automatically shows AuthModal when auth is required.
+ * Features:
+ * - Does not show by default; auto-shows when needed.
+ * - Supports manual and automatic triggers.
+ * - Can be closed without blocking page usage.
  */
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSession } from "../../features/auth/useSession";
 
 interface UseAuthGuardOptions {
-  /** 是否立即检查认证（用于页面加载时） */
+  /** Whether to check auth immediately (on page load) */
   immediate?: boolean;
-  /** 认证成功回调 */
+  /** Callback when authenticated */
   onAuthenticated?: () => void;
 }
 
 interface UseAuthGuardReturn {
-  /** 是否显示认证弹窗 */
+  /** Whether the auth modal is visible */
   showAuthModal: boolean;
-  /** 手动触发显示弹窗 */
+  /** Manually trigger the modal */
   requireAuth: () => boolean;
-  /** 关闭弹窗 */
+  /** Close the modal */
   closeAuthModal: () => void;
-  /** 是否已认证 */
+  /** Whether the user is authenticated */
   isAuthenticated: boolean;
 }
 
 /**
- * 认证守卫 Hook
+ * Authentication guard hook.
  * @example
  * ```tsx
- * // 在页面中使用
+ * // Usage in a page
  * function MyPage() {
  *   const { showAuthModal, requireAuth, closeAuthModal } = useAuthGuard();
  *
  *   const handleCreateTask = () => {
- *     if (!requireAuth()) return; // 未认证时自动弹窗
- *     // 执行创建任务...
+ *     if (!requireAuth()) return; // auto-show modal when not authenticated
+ *     // proceed to create task...
  *   };
  *
  *   return (
  *     <div>
- *       <button onClick={handleCreateTask}>创建任务</button>
+ *       <button onClick={handleCreateTask}>Create task</button>
  *       {showAuthModal && <AuthModal forceShow onClose={closeAuthModal} />}
  *     </div>
  *   );
@@ -55,10 +55,10 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): UseAuthGuardRet
   const [showAuthModal, setShowAuthModal] = useState(false);
   const hasShownRef = useRef(false);
 
-  // 立即检查认证（用于页面加载时）
+  // Immediate auth check (used on page load)
   useEffect(() => {
     if (immediate && !isAuthenticated && !hasShownRef.current) {
-      // 延迟一点显示，避免页面加载时的突兀感
+      // Delay slightly to avoid jarring appearance on page load
       const timer = setTimeout(() => {
         setShowAuthModal(true);
         hasShownRef.current = true;
@@ -67,7 +67,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): UseAuthGuardRet
     }
   }, [immediate, isAuthenticated]);
 
-  // 认证成功回调
+  // Auth success callback
   useEffect(() => {
     if (isAuthenticated && showAuthModal) {
       onAuthenticated?.();
@@ -75,9 +75,9 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): UseAuthGuardRet
   }, [isAuthenticated, showAuthModal, onAuthenticated]);
 
   /**
-   * 要求认证
-   * 如果未认证，自动显示弹窗
-   * @returns 是否已认证
+   * Require authentication.
+   * Auto-shows the modal if not authenticated.
+   * @returns Whether authenticated.
    */
   const requireAuth = useCallback((): boolean => {
     if (isAuthenticated) {
@@ -88,7 +88,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): UseAuthGuardRet
   }, [isAuthenticated]);
 
   /**
-   * 关闭弹窗
+   * Close the modal
    */
   const closeAuthModal = useCallback(() => {
     setShowAuthModal(false);

@@ -64,9 +64,9 @@ export function HistoryDrawer({
         side="right"
         closeLabel={t("studio.history.close")}
         closeAutoFocus
-        className="w-full max-w-sm border-l border-[var(--glass-border)] bg-[var(--glass-white)] p-0"
+        className="w-full max-w-sm border-l border-cloud-200 bg-white p-0 dark:border-cloud-800 dark:bg-cloud-900"
       >
-        <SheetHeader className="border-b border-[var(--glass-border)] p-5">
+        <SheetHeader className="border-b border-cloud-200 p-5 dark:border-cloud-800">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-100">
               <EmojiIcon emoji="📚" color="pink" size="sm" />
@@ -117,10 +117,10 @@ export function HistoryDrawer({
                     aria-current={isActive ? "true" : undefined}
                     aria-label={`${item.title}, ${statusLabel}, ${item.timestamp}`}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl border p-3 text-left transition-all animate-slide-up",
+                      "flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors transition-transform transition-shadow",
                       isActive
                         ? "border-pink-300 bg-pink-50/60 shadow-sm"
-                        : "border-[var(--glass-border)] bg-white/40 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-sm"
+                        : "border-cloud-200 bg-cloud-50 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm dark:border-cloud-800 dark:bg-cloud-800 dark:hover:bg-cloud-700"
                     )}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
@@ -129,7 +129,13 @@ export function HistoryDrawer({
                         className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl"
                         aria-hidden="true"
                       >
-                        <img className="h-full w-full object-cover" src={thumbnailUrl} alt="" />
+                        <img
+                          className="h-full w-full object-cover"
+                          src={thumbnailUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                     ) : (
                       <div

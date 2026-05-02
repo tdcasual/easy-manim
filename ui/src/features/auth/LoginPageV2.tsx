@@ -13,16 +13,16 @@ function CloudDecorations() {
   return (
     <>
       <div className="cloud-decoration cloud-1">
-        <EmojiIcon emoji="☁️" color="pink" size="lg" bounce />
+        <EmojiIcon emoji="☁️" color="pink" size="lg" />
       </div>
       <div className="cloud-decoration cloud-2">
-        <EmojiIcon emoji="☁️" color="mint" size="md" bounce />
+        <EmojiIcon emoji="☁️" color="mint" size="md" />
       </div>
       <div className="cloud-decoration cloud-3">
-        <EmojiIcon emoji="☁️" color="sky" size="xl" bounce />
+        <EmojiIcon emoji="☁️" color="sky" size="xl" />
       </div>
       <div className="cloud-decoration cloud-4">
-        <EmojiIcon emoji="☁️" color="lavender" size="sm" bounce />
+        <EmojiIcon emoji="☁️" color="lavender" size="sm" />
       </div>
     </>
   );
@@ -32,19 +32,19 @@ function StarDecorations() {
   return (
     <>
       <div className="star-decoration star-1">
-        <EmojiIcon emoji="⭐" color="lemon" size="sm" pulse />
+        <EmojiIcon emoji="⭐" color="lemon" size="sm" />
       </div>
       <div className="star-decoration star-2">
-        <EmojiIcon emoji="✨" color="pink" size="xs" pulse />
+        <EmojiIcon emoji="✨" color="pink" size="xs" />
       </div>
       <div className="star-decoration star-3">
-        <EmojiIcon emoji="🌟" color="mint" size="md" pulse />
+        <EmojiIcon emoji="🌟" color="mint" size="md" />
       </div>
       <div className="star-decoration star-4">
-        <EmojiIcon emoji="✨" color="lavender" size="sm" pulse />
+        <EmojiIcon emoji="✨" color="lavender" size="sm" />
       </div>
       <div className="star-decoration star-5">
-        <EmojiIcon emoji="⭐" color="peach" size="xs" pulse />
+        <EmojiIcon emoji="⭐" color="peach" size="xs" />
       </div>
     </>
   );
@@ -83,10 +83,13 @@ export function LoginPageV2() {
   }
 
   return (
-    <div className="login-page relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-gradient-to-b from-[#E8F4F8] via-[#F0F7FA] to-[#FFF8F0] px-4 py-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div
+      className="login-page relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-8"
+      style={{ background: "var(--gradient-page-login)" }}
+    >
       {/* Background orbs */}
       <div
-        className="pointer-events-none fixed inset-0 -z-10 animate-spin"
+        className="pointer-events-none fixed inset-0 -z-10"
         style={{
           animationDuration: "20s",
           background:
@@ -106,21 +109,21 @@ export function LoginPageV2() {
         {/* Left brand */}
         <div className="relative flex flex-col justify-center lg:p-10">
           <div className="relative z-10 text-center lg:text-left">
-            <div className="mx-auto mb-6 flex items-center justify-center lg:mx-0 lg:mb-8 animate-float">
-              <KawaiiIcon icon={Sparkles} color="gradient" size="xl" pulse />
+            <div className="mx-auto mb-6 flex items-center justify-center lg:mx-0 lg:mb-8">
+              <KawaiiIcon icon={Sparkles} color="gradient" size="xl" />
             </div>
-            <h1 className="mb-4 text-4xl font-extrabold tracking-tight bg-gradient-to-r from-pink-500 via-lavender-500 to-mint-500 bg-clip-text text-transparent drop-shadow-sm lg:text-6xl">
+            <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-pink-500 dark:text-pink-400 lg:text-6xl">
               easy-manim
             </h1>
             <p className="mb-8 text-lg font-medium text-cloud-700 dark:text-cloud-200 lg:text-xl">
               {t("login.brand.tagline")}
             </p>
             <div className="flex flex-col items-center gap-3 lg:items-start">
-              <div className="flex w-fit items-center gap-3 rounded-xl border border-white/50 bg-white/60 px-3 py-2 text-sm text-cloud-600 backdrop-blur-sm dark:border-white/10 dark:bg-white/10 dark:text-cloud-300">
+              <div className="flex w-fit items-center gap-3 rounded-xl border border-cloud-200 bg-cloud-50 px-3 py-2 text-sm text-cloud-700 dark:border-cloud-800 dark:bg-cloud-900/60 dark:text-cloud-300">
                 <EmojiIcon emoji="🎨" color="mint" size="sm" />
                 <span>{t("login.brand.workflow")}</span>
               </div>
-              <div className="flex w-fit items-center gap-3 rounded-xl border border-white/50 bg-white/60 px-3 py-2 text-sm text-cloud-600 backdrop-blur-sm dark:border-white/10 dark:bg-white/10 dark:text-cloud-300">
+              <div className="flex w-fit items-center gap-3 rounded-xl border border-cloud-200 bg-cloud-50 px-3 py-2 text-sm text-cloud-700 dark:border-cloud-800 dark:bg-cloud-900/60 dark:text-cloud-300">
                 <EmojiIcon emoji="🛡️" color="sky" size="sm" />
                 <span>{t("login.brand.localFirst")}</span>
               </div>
@@ -130,15 +133,15 @@ export function LoginPageV2() {
           {/* Decorative rings */}
           <div className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 lg:block">
             <div
-              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-b-pink-200 animate-spin"
+              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-b-pink-200"
               style={{ animationDuration: "6s" }}
             />
             <div
-              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-r-mint-200 animate-spin"
+              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-r-mint-200"
               style={{ animationDuration: "6s", animationDelay: "2s" }}
             />
             <div
-              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-t-lavender-200 animate-spin"
+              className="decoration-ring absolute inset-0 rounded-full border-2 border-transparent border-t-lavender-200"
               style={{ animationDuration: "6s", animationDelay: "4s" }}
             />
           </div>
@@ -146,10 +149,10 @@ export function LoginPageV2() {
 
         {/* Right form */}
         <div className="flex items-center justify-center">
-          <div className="w-full max-w-md animate-pop-in rounded-[32px] border border-white/60 bg-white/70 p-6 shadow-2xl shadow-pink-200/20 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/60 sm:p-8">
+          <div className="w-full max-w-md rounded-[32px] border border-cloud-200 bg-white p-6 shadow-xl dark:border-cloud-800 dark:bg-cloud-900 sm:p-8">
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex items-center justify-center animate-pop-in">
-                <EmojiIcon emoji="🌟" color="peach" size="lg" bounce />
+              <div className="mx-auto mb-4 flex items-center justify-center">
+                <EmojiIcon emoji="🌟" color="peach" size="lg" />
               </div>
               <h2 className="mb-2 text-2xl font-bold text-cloud-800 dark:text-cloud-100">
                 {t("login.welcome")}
@@ -171,9 +174,9 @@ export function LoginPageV2() {
                     id="token"
                     type="text"
                     className={cn(
-                      "w-full rounded-2xl border-2 border-transparent bg-cloud-100 px-4 py-3 text-sm text-cloud-800 outline-none transition-all",
+                      "w-full rounded-2xl border-2 border-transparent bg-cloud-100 px-4 py-3 text-sm text-cloud-800 outline-none transition-colors transition-shadow",
                       "placeholder:text-cloud-500",
-                      "focus:border-pink-300 focus:bg-white focus:shadow-md dark:bg-slate-800 dark:text-cloud-100"
+                      "focus:border-pink-300 focus:bg-white focus:shadow-md dark:bg-cloud-800 dark:text-cloud-100"
                     )}
                     value={agentToken}
                     onChange={(e) => setAgentToken(e.target.value)}
@@ -200,7 +203,7 @@ export function LoginPageV2() {
               <button
                 type="submit"
                 className={cn(
-                  "group relative mt-2 flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3.5 text-base font-semibold text-white transition-all",
+                  "group relative mt-2 flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3.5 text-base font-semibold text-white transition-transform transition-shadow transition-opacity",
                   "bg-gradient-to-r from-pink-400 to-peach-400 shadow-lg shadow-pink-200/40",
                   "hover:-translate-y-0.5 hover:shadow-xl hover:shadow-pink-200/50",
                   "disabled:cursor-not-allowed disabled:opacity-60 disabled:translate-y-0 disabled:shadow-none"

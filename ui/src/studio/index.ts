@@ -1,4 +1,4 @@
-// Studio - 宫崎骏风格创作工作室
+// Studio - creative workspace
 export { Studio } from "./Studio";
 export { SkyBackground } from "./components/SkyBackground";
 export { ThemeToggle } from "./components/ThemeToggle";

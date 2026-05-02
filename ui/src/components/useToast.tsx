@@ -1,6 +1,6 @@
 /**
- * Toast Hook
- * 使用 Toast 通知系统
+ * Toast hook
+ * Uses the toast notification system.
  */
 import { useContext } from "react";
 import { ToastContext } from "./ToastContext";

@@ -76,11 +76,14 @@ export function ThreadDiscussionPanel({
         </div>
         <div className="video-thread-workbench__chip-list">
           <span className="video-thread-workbench__chip">
-            {t("thread.discussion.threadLabel")}: {discussionRuntime.active_thread_title ?? t("thread.discussion.openDiscussion")}
+            {t("thread.discussion.threadLabel")}:{" "}
+            {discussionRuntime.active_thread_title ?? t("thread.discussion.openDiscussion")}
           </span>
-          <span className="video-thread-workbench__chip">Reply target: {replyTarget}</span>
           <span className="video-thread-workbench__chip">
-            Iteration:{" "}
+            {t("thread.discussion.replyTargetLabel")}: {replyTarget}
+          </span>
+          <span className="video-thread-workbench__chip">
+            {t("thread.discussion.iterationLabel")}:{" "}
             {activeComposerTarget?.iteration_id ??
               discussionRuntime.active_iteration_id ??
               t("thread.discussion.threadWide")}
@@ -94,10 +97,12 @@ export function ThreadDiscussionPanel({
 
       <div className="thread-discussion-panel__context video-thread-workbench__intent-meta">
         <span className="video-thread-workbench__meta">
-          {t("thread.discussion.replyToLabel")}: {composerReplyToTurnId ?? t("thread.discussion.startNewTurn")}
+          {t("thread.discussion.replyToLabel")}:{" "}
+          {composerReplyToTurnId ?? t("thread.discussion.startNewTurn")}
         </span>
         <span className="video-thread-workbench__meta">
-          {t("thread.discussion.resultLabel")}: {composerResultId ?? t("thread.discussion.threadWide")}
+          {t("thread.discussion.resultLabel")}:{" "}
+          {composerResultId ?? t("thread.discussion.threadWide")}
         </span>
         <span className="video-thread-workbench__meta">
           {t("thread.discussion.continuityLabel")}: {discussionRuntime.continuity_scope}
@@ -118,7 +123,10 @@ export function ThreadDiscussionPanel({
               {group.prompt_summary ? <p>{group.prompt_summary}</p> : null}
               <div className="video-thread-workbench__intent-meta">
                 <span className="video-thread-workbench__meta">
-                  {t("thread.discussion.promptByLabel")}: {group.prompt_actor_display_name ?? group.prompt_actor_role ?? t("thread.discussion.owner")}
+                  {t("thread.discussion.promptByLabel")}:{" "}
+                  {group.prompt_actor_display_name ??
+                    group.prompt_actor_role ??
+                    t("thread.discussion.owner")}
                 </span>
                 {group.prompt_intent_type ? (
                   <span className="video-thread-workbench__meta">
@@ -127,7 +135,7 @@ export function ThreadDiscussionPanel({
                 ) : null}
                 {group.related_result_id ? (
                   <span className="video-thread-workbench__meta">
-                    Result: {group.related_result_id}
+                    {t("thread.discussion.resultLabel")}: {group.related_result_id}
                   </span>
                 ) : null}
               </div>
@@ -137,7 +145,11 @@ export function ThreadDiscussionPanel({
                     <article key={reply.turn_id} className="video-thread-workbench__reply">
                       <div className="video-thread-workbench__turn-row">
                         <strong>{reply.title}</strong>
-                        <span>{reply.speaker_display_name ?? reply.speaker_role ?? t("thread.discussion.agent")}</span>
+                        <span>
+                          {reply.speaker_display_name ??
+                            reply.speaker_role ??
+                            t("thread.discussion.agent")}
+                        </span>
                       </div>
                       {reply.summary ? <p>{reply.summary}</p> : null}
                     </article>
@@ -160,7 +172,9 @@ export function ThreadDiscussionPanel({
               {turn.summary ? <p>{turn.summary}</p> : null}
               <div className="video-thread-workbench__intent-meta">
                 {turn.intent_type ? (
-                  <span className="video-thread-workbench__meta">Intent: {turn.intent_type}</span>
+                  <span className="video-thread-workbench__meta">
+                    {t("thread.discussion.intentLabel")}: {turn.intent_type}
+                  </span>
                 ) : null}
                 {turn.reply_to_turn_id ? (
                   <span className="video-thread-workbench__meta">
@@ -169,7 +183,7 @@ export function ThreadDiscussionPanel({
                 ) : null}
                 {turn.related_result_id ? (
                   <span className="video-thread-workbench__meta">
-                    Result: {turn.related_result_id}
+                    {t("thread.discussion.resultLabel")}: {turn.related_result_id}
                   </span>
                 ) : null}
               </div>
@@ -214,8 +228,13 @@ export function ThreadDiscussionPanel({
         {activeComposerTarget?.summary ? <p>{activeComposerTarget.summary}</p> : null}
         <div className="video-thread-workbench__composer-footer">
           <div className="video-thread-workbench__composer-strategy">
-            <span>{t("thread.composer.modeLabel")}: {selectedAction?.label || t("thread.discussion.addNote")}</span>
-            <span>{t("thread.composer.replyTargetLabel")}: {replyTarget}</span>
+            <span>
+              {t("thread.composer.modeLabel")}:{" "}
+              {selectedAction?.label || t("thread.discussion.addNote")}
+            </span>
+            <span>
+              {t("thread.composer.replyTargetLabel")}: {replyTarget}
+            </span>
           </div>
           <button
             type="button"

@@ -46,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
           className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-destructive/25 bg-gradient-to-b from-destructive/5 to-destructive/[0.02] p-8 text-center shadow-sm"
           role="alert"
         >
-          <div className="mb-4 animate-pulse-glow text-destructive">
+          <div className="mb-4 text-destructive">
             <AlertCircle size={48} />
           </div>
           <h2 className="mb-2 text-2xl font-bold text-foreground">
@@ -56,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
             {this.state.error?.message ?? translate(readLocale(), "errorBoundary.message")}
           </p>
           <button
-            className="flex items-center gap-2 rounded-xl border border-border bg-muted/60 px-5 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-muted"
+            className="flex items-center gap-2 rounded-xl border border-border bg-muted px-5 py-2.5 text-sm font-medium text-foreground shadow-sm transition-colors transition-transform hover:-translate-y-0.5 hover:bg-muted/80"
             onClick={this.handleReset}
             type="button"
           >
@@ -95,7 +95,7 @@ export function ErrorFallback({ error, resetError }: { error: Error; resetError:
       <button
         onClick={resetError}
         type="button"
-        className="rounded-lg border border-border bg-muted/60 px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-muted"
+        className="rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
       >
         {translate(readLocale(), "errorBoundary.retry")}
       </button>
